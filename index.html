@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Tiny Brawlers: 3D Battle Arena</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #111417;
+      --bg-panel: rgba(22, 27, 34, 0.88);
+      --border-line: #333f4f;
+      --text-main: #f0f4f8;
+      --text-muted: #9ba8b8;
+      --team-red: #ff4757;
+      --team-blue: #2ed573;
+      --team-yellow: #ffa502;
+      --team-cyan: #1e90ff;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg-base);
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      color: var(--text-main);
+    }
+
+    /* 3D Canvas Viewport */
+    #gameCanvas {
+      width: 100vw;
+      height: 100vh;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+
+    /* HUD Layout */
+    .hud-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 16px;
+    }
+
+    .interactive {
+      pointer-events: auto;
+    }
+
+    /* Top Bar HUD */
+    .top-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .player-card {
+      background: var(--bg-panel);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border-line);
+      border-left: 4px solid var(--team-red);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      min-width: 220px;
+    }
+
+    .player-title {
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .hp-track {
+      width: 100%;
+      height: 10px;
+      background: #1c2229;
+      border-radius: 5px;
+      overflow: hidden;
+      margin: 6px 0;
+      border: 1px solid #2e3846;
+    }
+
+    .hp-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ff4757, #ff6b81);
+      width: 100%;
+      transition: width 0.15s ease;
+    }
+
+    .status-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* Pad Recipe & Quick Build */
+    .pad-card {
+      background: var(--bg-panel);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border-line);
+      border-radius: var(--radius-sm);
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-build {
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      min-height: 44px;
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid #b57a38;
+      background: #c68945;
+      color: #fff;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-build:active {
+      transform: scale(0.96);
+    }
+
+    .btn-tool {
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      min-height: 44px;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-line);
+      background: var(--bg-panel);
+      color: var(--text-main);
+      cursor: pointer;
+    }
+
+    /* Class Switcher Toolbar */
+    .class-toolbar {
+      position: absolute;
+      top: 86px;
+      left: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .class-btn {
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      min-height: 44px;
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-line);
+      background: var(--bg-panel);
+      color: var(--text-muted);
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .class-btn.active {
+      border-color: #70a1ff;
+      background: #253346;
+      color: #fff;
+    }
+
+    /* Mobile Touch Controls Layer */
+    .touch-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      width: 100%;
+      padding-bottom: 8px;
+    }
+
+    /* Virtual Joystick */
+    .joystick-base {
+      width: 120px;
+      height: 120px;
+      background: rgba(30, 39, 51, 0.65);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      position: relative;
+      touch-action: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .joystick-thumb {
+      width: 52px;
+      height: 52px;
+      background: #70a1ff;
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(112, 161, 255, 0.5);
+      pointer-events: none;
+      transition: transform 0.05s ease-out;
+    }
+
+    /* Action Buttons (Right Thumb) */
+    .action-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: flex-end;
+    }
+
+    .btn-action-round {
+      width: 68px;
+      height: 68px;
+      min-width: 44px;
+      min-height: 44px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      touch-action: none;
+    }
+
+    .btn-pick {
+      background: #d35400;
+      border-color: #f39c12;
+    }
+
+    .btn-attack {
+      background: #c0392b;
+      border-color: #e74c3c;
+    }
+
+    .btn-action-round:active {
+      transform: scale(0.92);
+      filter: brightness(1.2);
+    }
+
+    /* Desktop Hint Box */
+    .desktop-hints {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg-panel);
+      padding: 6px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-line);
+      font-size: 12px;
+      color: var(--text-muted);
+      display: none;
+    }
+
+    @media (min-width: 900px) {
+      .desktop-hints {
+        display: block;
+      }
+      .touch-controls {
+        opacity: 0.6;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Three.js 3D Viewport -->
+  <div id="gameCanvas"></div>
+
+  <!-- HUD Layer -->
+  <div class="hud-layer">
+    <!-- Top HUD Bar -->
+    <div class="top-bar">
+      <!-- Player Status -->
+      <div class="player-card interactive">
+        <div class="player-title">
+          <span>Karakter Kamu</span>
+          <span id="playerWeaponText">Senjata: KOSONG</span>
+        </div>
+        <div class="hp-track">
+          <div class="hp-fill" id="playerHpBar"></div>
+        </div>
+        <div class="status-sub">
+          <span id="playerHpText">130 / 130 HP</span>
+          <span style="color: var(--team-red); font-weight: 700;">Tim Merah</span>
+        </div>
+      </div>
+
+      <!-- Pad Status & Quick Build Action -->
+      <div class="pad-card interactive">
+        <div style="font-size: 13px;">
+          <div style="font-weight: 700; color: #fff;" id="padRecipeText">Pad: Pad Kosong (0/8 Peti)</div>
+          <div style="font-size: 11px; color: var(--text-muted);">Bawa peti ke pad untuk merakit senjata atau spawn bot</div>
+        </div>
+        <button class="btn-build" id="btnBuildPad">Rakit Pad</button>
+        <button class="btn-tool" id="btnAudioToggle">Suara: Aktif</button>
+      </div>
+    </div>
+
+    <!-- Class Selector Sidebar -->
+    <div class="class-toolbar interactive">
+      <button class="class-btn active" data-class="fighter" data-info="Fighter: HP +30%, damage senjata lebih besar.">1. Fighter (Tempur)</button>
+      <button class="class-btn" data-class="healer" data-info="Healer: Aura penyembuh pasif untuk kawan di sekitar.">2. Healer (Medis)</button>
+      <button class="class-btn" data-class="constructor" data-info="Constructor: Lari cepat saat membawa peti, lemparan jauh.">3. Constructor (Pembangun)</button>
+      <div id="classInfoText" style="font-size: 11px; color: #70a1ff; max-width: 170px; margin-top: 4px;">
+        Fighter: HP +30%, damage senjata lebih besar.
+      </div>
+    </div>
+
+    <!-- Desktop Key Bindings -->
+    <div class="desktop-hints">
+      Keyboard: <b>WASD</b> Jalan &bull; <b>E</b> Ambil/Lempar Peti &bull; <b>F / Spasi</b> Tembak Senjata
+    </div>
+
+    <!-- Mobile Touch Controls -->
+    <div class="touch-controls interactive">
+      <!-- Virtual Analog Joystick (Left Thumb) -->
+      <div class="joystick-base" id="joystickArea">
+        <div class="joystick-thumb" id="joystickKnob"></div>
+      </div>
+
+      <!-- Action Buttons (Right Thumb) -->
+      <div class="action-group">
+        <button class="btn-action-round btn-pick" id="btnTouchAction">
+          <span>AMBIL</span>
+          <span style="font-size: 10px; opacity: 0.8;">PETI (E)</span>
+        </button>
+        <button class="btn-action-round btn-attack" id="btnTouchAttack">
+          <span>TEMBAK</span>
+          <span style="font-size: 10px; opacity: 0.8;">SERANG (F)</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
