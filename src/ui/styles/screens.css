@@ -276,6 +276,11 @@
   align-items: flex-end;
   gap: var(--tap-gap);
   pointer-events: auto;
+  /* Without this the cluster becomes the first grid item on a fine pointer,
+     where the stick zone is display:none, and the lone pause button drifts to
+     the bottom left corner. */
+  grid-column: 2;
+  justify-self: end;
 }
 
 /* Thumb buttons are a touch affordance. On a keyboard they are dead weight over
@@ -520,5 +525,37 @@
   .btn-zoom {
     width: var(--tap-min);
     height: var(--tap-min);
+  }
+}
+
+/* A short landscape phone cannot pay for a second HUD row: the pad panel spans
+   the whole band there and leaves a letterbox for the actual game. */
+@media (max-height: 500px) {
+  .card-pad {
+    grid-column: 3;
+    grid-row: 2;
+    justify-self: end;
+    max-width: 286px;
+    padding: var(--space-1) var(--space-2);
+  }
+
+  .pad-head {
+    white-space: nowrap;
+  }
+
+  .btn-build {
+    grid-column: 1 / -1;
+    width: 100%;
+    font-size: var(--text-xs);
+    padding: var(--space-1) var(--space-2);
+  }
+
+  .hud-top {
+    grid-template-rows: auto auto;
+  }
+
+  .pad-slots {
+    grid-template-columns: repeat(4, 11px);
+    grid-auto-rows: 11px;
   }
 }

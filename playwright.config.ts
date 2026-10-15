@@ -65,6 +65,17 @@ export default defineConfig({
       name: 'visual',
       testMatch: 'visual.spec.ts',
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 }, baseURL: `http://localhost:${DEV_PORT}` }
+    },
+    {
+      name: 'visual-phone',
+      testMatch: 'visual.spec.ts',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 740, height: 360 },
+        hasTouch: true,
+        isMobile: true,
+        baseURL: `http://localhost:${DEV_PORT}`
+      }
     }
   ]
 });

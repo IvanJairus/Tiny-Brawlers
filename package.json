@@ -12,8 +12,8 @@
     "test:watch": "vitest",
     "lint:layers": "vitest run tests/layers.test.ts",
     "test:browser": "playwright test --project=desktop --project=phone-landscape --project=phone-portrait --project=production",
-    "test:visual": "playwright test --project=visual",
-    "visual:baseline": "playwright test --project=visual --update-snapshots",
+    "test:visual": "playwright test --project=visual --project=visual-phone",
+    "visual:baseline": "playwright test --project=visual --project=visual-phone --update-snapshots",
     "test:perf": "playwright test --config playwright.perf.config.ts",
     "signal": "node scripts/signaling-server.mjs",
     "signal:test": "node scripts/signaling-server.mjs --port 8090"

@@ -142,10 +142,13 @@ npm run build && npx serve dist    # cek lokal hasil yang sama dengan yang akan 
 
 Baseline visual: `npm run test:visual` membandingkan tujuh permukaan UI (judul, pilih kelas, HUD,
 pause, konfirmasi keluar, terputus, hasil) dengan PNG di `e2e/visual.spec.ts-snapshots`, ambang 1,5
-persen, `--update-snapshots` lewat `npm run visual:baseline` untuk membuat ulang. Nama file memuat
-platform, jadi baseline ini milik darwin; runner Linux harus membuatnya sendiri sebelum gerbang itu
-berarti di sana. Canvas 3D sengaja tidak dibaseline: geraknya dikunci ke jam dinding (air, bob
-idle, denyut pad), dan membekukan jam itu berarti menambah jalur khusus tes ke dalam render.
+persen; `npm run visual:baseline` untuk membuat ulang. Nama file memuat platform, jadi baseline ini
+milik darwin; runner Linux harus membuatnya sendiri sebelum gerbang itu berarti di sana.
+Shot-nya adalah kotak `#ui` yang transparan, jadi arena di belakangnya ikut terpotret dan fase
+animasinya (air, bob idle, denyut pad) tidak dibekukan: ambang 1,5 persen itulah yang menyerapnya.
+Artinya gerbang ini menangkap perubahan layout, chrome, dan aset gambar besar, bukan pergeseran
+puncak gelombang. Tiap jalan juga menyimpan tangkapan layar viewport penuh di
+`test-results/visual-review/` untuk dinilai manusia.
 
 Yang dibuktikan otomatis: aturan lapisan, determinisme sim, 7 resep, invarian cacat lama, codec
 dan sesi netplay di link ber-jitter, anggaran render, tidak ada bocor horizontal dan tidak ada

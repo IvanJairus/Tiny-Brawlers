@@ -27,8 +27,11 @@ export const PALETTE = {
   rock: 0x718093,
   path: 0xc9b27a,
   concrete: 0x9aa5b1,
+  concreteDark: 0x76818d,
   sand: 0xd2b48c,
-  padSurface: 0x253346
+  padSurface: 0x253346,
+  padTile: 0x35516b,
+  pathDark: 0xa8925f
 };
 
 /**
@@ -60,16 +63,20 @@ export function createWaterMaterial(): THREE.ShaderMaterial {
       uTime: { value: 0 },
       uShallow: { value: new THREE.Color(0x4fd0ff) },
       uDeep: { value: new THREE.Color(0x1177cc) },
-      uFoam: { value: new THREE.Color(0xffffff) }
+      uFoam: { value: new THREE.Color(0xdff2ff) }
     },
     vertexShader: `
       uniform float uTime;
       varying float uWave;
+      varying vec2 uPlane;
       void main() {
         vec3 p = position;
-        float w = sin(p.x * 0.35 + uTime * 1.4) * 0.5 + cos(p.y * 0.28 - uTime * 1.1) * 0.5;
-        p.z += w * 0.32;
+        // Wavelength stays wide compared to the 5m grid this plane is cut from.
+        // Shorter waves alias into pale blobs that read as clouds, not water.
+        float w = sin(p.x * 0.16 + uTime * 0.9) * 0.5 + cos(p.y * 0.13 - uTime * 0.7) * 0.5;
+        p.z += w * 0.22;
         uWave = w;
+        uPlane = position.xy;
         gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
       }
     `,
@@ -78,11 +85,13 @@ export function createWaterMaterial(): THREE.ShaderMaterial {
       uniform vec3 uDeep;
       uniform vec3 uFoam;
       varying float uWave;
+      varying vec2 uPlane;
       void main() {
         float t = clamp(uWave * 0.5 + 0.5, 0.0, 1.0);
         vec3 col = mix(uDeep, uShallow, t);
-        col = mix(col, uFoam, smoothstep(0.86, 1.0, t));
-        gl_FragColor = vec4(col, 0.82);
+        float surf = smoothstep(35.0, 39.0, length(uPlane)) * (1.0 - smoothstep(43.0, 49.0, length(uPlane)));
+        col = mix(col, uFoam, surf * 0.9);
+        gl_FragColor = vec4(col, 0.84);
       }
     `
   });

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { mergeParts, type Part } from './geometryKit';
 import { PALETTE, type SharedMaterials } from './materials';
 import { ARENA_HALF, BASE_COORDINATES, PAD } from '../sim/domain/constants';
+import { padOrigin } from '../sim/domain/pad';
 import { TEAM_COLORS, TEAM_IDS, type TeamId } from '../sim/domain/teams';
 
 export interface Arena {
@@ -12,6 +13,8 @@ export interface Arena {
 
 const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
 const cyl = (rt: number, rb: number, h: number, seg = 10) => new THREE.CylinderGeometry(rt, rb, h, seg);
+
+const PLAZA_RADIUS = 7.6;
 
 function islandParts(): Part[] {
   const parts: Part[] = [
@@ -33,55 +36,131 @@ function islandParts(): Part[] {
     });
   }
 
+  // Crates drop in the middle, so the middle is drawn as a plaza and each base is
+  // joined to it by one kerbed road. Four loose strips of tan read as an accident.
+  parts.push({ geometry: cyl(PLAZA_RADIUS, PLAZA_RADIUS, 0.06, 28), color: PALETTE.path, position: [0, 0.03, 0] });
+  parts.push({ geometry: cyl(PLAZA_RADIUS - 1.2, PLAZA_RADIUS - 1.2, 0.07, 28), color: PALETTE.pathDark, position: [0, 0.035, 0] });
+  parts.push({ geometry: cyl(2.3, 2.3, 0.08, 20), color: PALETTE.path, position: [0, 0.042, 0] });
+
   for (const team of TEAM_IDS) {
     const base = BASE_COORDINATES[team];
-    const angle = Math.atan2(base.z, base.x);
-    const length = Math.hypot(base.x, base.z) - 7.5;
+    const angle = Math.atan2(base.x, base.z);
+    const radius = Math.hypot(base.x, base.z);
+    const from = PLAZA_RADIUS - 0.6;
+    const to = radius - 4.6;
+    const length = to - from;
+    const mid = (from + to) * 0.5;
+    const dirX = Math.sin(angle);
+    const dirZ = Math.cos(angle);
+
     parts.push({
-      geometry: box(length, 0.06, 2.2),
+      geometry: box(2.6, 0.06, length),
       color: PALETTE.path,
-      position: [Math.cos(angle) * length * 0.5 + base.x * 0.24, 0.03, Math.sin(angle) * length * 0.5 + base.z * 0.24],
-      rotation: [0, -angle, 0]
+      position: [dirX * mid, 0.032, dirZ * mid],
+      rotation: [0, angle, 0]
     });
+    for (const side of [-1, 1]) {
+      parts.push({
+        geometry: box(0.3, 0.1, length),
+        color: PALETTE.pathDark,
+        position: [dirX * mid + dirZ * 1.45 * side, 0.04, dirZ * mid - dirX * 1.45 * side],
+        rotation: [0, angle, 0]
+      });
+    }
   }
 
   return parts;
 }
 
+/**
+ * The bunker is the biggest thing on screen and the only thing a team can lose,
+ * so it is built in a local frame with its front facing the plaza: doorway,
+ * lintel in team colour, sandbags, corner posts, and two shadow bands that keep
+ * the wall from reading as one flat grey plane.
+ */
 function bunkerParts(team: TeamId): Part[] {
   const base = BASE_COORDINATES[team];
-  const towardCentre = Math.atan2(-base.z, -base.x);
+  const dirX = -base.x;
+  const dirZ = -base.z;
+  const dirLen = Math.hypot(dirX, dirZ) || 1;
+  const yaw = Math.atan2(dirX / dirLen, dirZ / dirLen);
+  const cos = Math.cos(yaw);
+  const sin = Math.sin(yaw);
   const colour = TEAM_COLORS[team].hex;
-  const at = (x: number, y: number, z: number): [number, number, number] => [base.x + x, y, base.z + z];
+  const facing: [number, number, number] = [0, yaw, 0];
 
-  const parts: Part[] = [
-    { geometry: box(7.2, 2.6, 7.2), color: PALETTE.concrete, position: at(0, 1.3, 0) },
-    { geometry: box(7.8, 0.5, 7.8), color: colour, position: at(0, 2.75, 0) },
-    { geometry: box(7.4, 1.1, 0.5), color: PALETTE.concrete, position: at(0, 3.3, -3.5) },
-    { geometry: box(7.4, 1.1, 0.5), color: PALETTE.concrete, position: at(0, 3.3, 3.5) },
-    { geometry: box(0.5, 1.1, 7.4), color: PALETTE.concrete, position: at(-3.5, 3.3, 0) },
-    { geometry: box(0.5, 1.1, 7.4), color: PALETTE.concrete, position: at(3.5, 3.3, 0) },
-    { geometry: cyl(0.09, 0.09, 3.4, 6), color: PALETTE.metal, position: at(0, 4.6, 0) },
-    { geometry: box(1.5, 0.9, 0.08), color: colour, position: at(0.78, 5.5, 0) }
-  ];
+  const parts: Part[] = [];
+  const add = (geometry: THREE.BufferGeometry, color: number, x: number, y: number, z: number): void => {
+    parts.push({ geometry, color, position: [base.x + x * cos + z * sin, y, base.z - x * sin + z * cos], rotation: facing });
+  };
 
-  // Sandbags read as a stacked wall: flat-sided bags in two offset rows, not
-  // loose cylinders scattered around the entrance.
+  add(box(8.4, 0.5, 8.4), PALETTE.concreteDark, 0, 0.25, 0);
+  add(box(7.2, 2.4, 7.2), PALETTE.concrete, 0, 1.45, 0);
+  add(box(7.36, 0.18, 7.36), PALETTE.concreteDark, 0, 0.95, 0);
+  add(box(7.36, 0.18, 7.36), PALETTE.concreteDark, 0, 2.05, 0);
+
+  add(box(1.7, 1.9, 0.24), PALETTE.eyeDark, 0, 1.2, 3.62);
+  add(box(2.4, 0.36, 0.36), colour, 0, 2.3, 3.62);
+  add(box(7.36, 0.46, 0.14), colour, 0, 2.62, 3.66);
+
+  add(box(7.8, 0.4, 7.8), colour, 0, 2.9, 0);
+  add(box(5.2, 0.16, 5.2), PALETTE.concreteDark, 0, 3.1, 0);
+  add(box(7.4, 1.0, 0.5), PALETTE.concrete, 0, 3.5, -3.5);
+  add(box(7.4, 1.0, 0.5), PALETTE.concrete, 0, 3.5, 3.5);
+  add(box(0.5, 1.0, 7.4), PALETTE.concrete, -3.5, 3.5, 0);
+  add(box(0.5, 1.0, 7.4), PALETTE.concrete, 3.5, 3.5, 0);
+  for (const x of [-3.5, 3.5]) {
+    for (const z of [-3.5, 3.5]) add(box(0.78, 1.4, 0.78), colour, x, 3.6, z);
+  }
+
+  add(box(1.05, 0.36, 0.6), PALETTE.sand, -0.56, 0.18, 4.6);
+  add(box(1.05, 0.36, 0.6), PALETTE.sand, 0.56, 0.18, 4.6);
+  add(box(1.05, 0.36, 0.6), PALETTE.sand, 0, 0.54, 4.6);
+
+  parts.push({ geometry: cyl(0.09, 0.09, 3.4, 6), color: PALETTE.metal, position: [base.x, 4.9, base.z] });
+  add(box(1.7, 1.0, 0.08), colour, 0.9, 5.8, 0);
+
   return parts;
 }
 
+/**
+ * A pad holds eight crates in four quadrants and two layers, which a flat dark
+ * quad cannot say. The quadrant tiles, the gaps between them, and the corner
+ * posts one crate tall are what make the stack rule visible.
+ */
 function padParts(team: TeamId): Part[] {
-  const base = BASE_COORDINATES[team];
-  const origin = { x: base.x * 0.66, z: base.z * 0.66 };
+  const origin = padOrigin(team);
+  const colour = TEAM_COLORS[team].hex;
   const parts: Part[] = [
-    { geometry: box(PAD.halfWidth * 2, 0.12, PAD.halfWidth * 2), color: PALETTE.padSurface, position: [origin.x, 0.09, origin.z] }
+    { geometry: box(PAD.halfWidth * 2 + 0.5, 0.1, PAD.halfWidth * 2 + 0.5), color: PALETTE.padSurface, position: [origin.x, 0.05, origin.z] }
   ];
+
+  for (const x of [-PAD.quadrantOffset, PAD.quadrantOffset]) {
+    for (const z of [-PAD.quadrantOffset, PAD.quadrantOffset]) {
+      parts.push({
+        geometry: box(1.86, 0.12, 1.86),
+        color: PALETTE.padTile,
+        position: [origin.x + x, 0.13, origin.z + z]
+      });
+    }
+  }
+
+  const edge = PAD.halfWidth + 0.12;
+  for (const x of [-edge, edge]) {
+    for (const z of [-edge, edge]) {
+      parts.push({ geometry: box(0.26, 0.92, 0.26), color: colour, position: [origin.x + x, 0.46, origin.z + z] });
+    }
+  }
+  parts.push({ geometry: box(edge * 2, 0.16, 0.2), color: colour, position: [origin.x, 0.1, origin.z - edge] });
+  parts.push({ geometry: box(edge * 2, 0.16, 0.2), color: colour, position: [origin.x, 0.1, origin.z + edge] });
+  parts.push({ geometry: box(0.2, 0.16, edge * 2), color: colour, position: [origin.x - edge, 0.1, origin.z] });
+  parts.push({ geometry: box(0.2, 0.16, edge * 2), color: colour, position: [origin.x + edge, 0.1, origin.z] });
+
   return parts;
 }
 
 function padGlowParts(team: TeamId): Part[] {
-  const base = BASE_COORDINATES[team];
-  const origin = { x: base.x * 0.66, z: base.z * 0.66 };
+  const origin = padOrigin(team);
   const colour = TEAM_COLORS[team].hex;
   const size = PAD.halfWidth * 2;
   const parts: Part[] = [];
@@ -91,10 +170,10 @@ function padGlowParts(team: TeamId): Part[] {
     [0.18, size, -PAD.halfWidth + 0.09, 0],
     [0.18, size, PAD.halfWidth - 0.09, 0]
   ] as const) {
-    parts.push({ geometry: box(w, 0.1, d), color: colour, position: [origin.x + x, 0.16, origin.z + z] });
+    parts.push({ geometry: box(w, 0.1, d), color: colour, position: [origin.x + x, 0.2, origin.z + z] });
   }
-  parts.push({ geometry: box(size, 0.06, 0.09), color: colour, position: [origin.x, 0.15, origin.z] });
-  parts.push({ geometry: box(0.09, 0.06, size), color: colour, position: [origin.x, 0.15, origin.z] });
+  parts.push({ geometry: box(size, 0.06, 0.09), color: colour, position: [origin.x, 0.19, origin.z] });
+  parts.push({ geometry: box(0.09, 0.06, size), color: colour, position: [origin.x, 0.19, origin.z] });
   return parts;
 }
 

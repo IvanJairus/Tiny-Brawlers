@@ -1,10 +1,11 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type TestInfo } from '@playwright/test';
 
 /**
- * Pixel comparison for the interface surfaces. Only #ui is captured: the canvas
- * is drawn on a wall-clock animation curve (water, idle bob, pad pulse), so its
- * pixels cannot be pinned to a committed baseline without freezing that clock,
- * which this build deliberately does not do.
+ * Pixel comparison for the interface surfaces. The shot is the #ui box, which is
+ * transparent, so the arena behind it is in the picture too and its animation
+ * phase (water, idle bob, pad pulse) is not frozen. That is what the 1.5 percent
+ * budget absorbs: this gate catches layout, chrome and art changes, and it will
+ * not notice a small shift in a wave crest.
  */
 
 type Page = import('@playwright/test').Page;
@@ -16,13 +17,13 @@ function shot(name: string) {
 }
 
 /**
- * Pins the interface layer and drops a full screen shot, arena included, where a
- * human can look at it. The review image is not asserted on: the canvas runs on a
- * wall-clock animation curve, so its pixels move between runs.
+ * Pins the interface layer and drops a full viewport shot next to it, for a human
+ * to look at. The baseline covers the #ui box only; the review image shows the
+ * whole frame, including the arena outside the HUD padding.
  */
-async function pin(page: Page, name: string): Promise<void> {
+async function pin(page: Page, name: string, info: TestInfo): Promise<void> {
   await expect(ui(page)).toHaveScreenshot(`${name}.png`, shot(`${name}.png`));
-  await page.screenshot({ path: `test-results/visual-review/${name}.png` });
+  await page.screenshot({ path: `test-results/visual-review/${info.project.name}-${name}.png` });
 }
 
 async function send(page: Page, event: string): Promise<void> {
@@ -50,44 +51,44 @@ async function startSolo(page: Page): Promise<void> {
   await expect.poll(() => page.evaluate(() => document.body.dataset.screen), { timeout: 15_000 }).toBe('playing');
 }
 
-test('the title screen', async ({ page }) => {
+test('the title screen', async ({ page }, info) => {
   await openTitle(page);
-  await pin(page, 'title');
+  await pin(page, 'title', info);
 });
 
-test('the class select screen', async ({ page }) => {
+test('the class select screen', async ({ page }, info) => {
   await openTitle(page);
   await page.getByRole('button', { name: 'Main', exact: true }).click();
-  await pin(page, 'select');
+  await pin(page, 'select', info);
 });
 
-test('the HUD three seconds into a match', async ({ page }) => {
+test('the HUD three seconds into a match', async ({ page }, info) => {
   await startSolo(page);
   await advance(page, 90);
-  await pin(page, 'playing');
+  await pin(page, 'playing', info);
 });
 
-test('the solo pause screen', async ({ page }) => {
+test('the solo pause screen', async ({ page }, info) => {
   await startSolo(page);
   await advance(page, 30);
   await send(page, 'pause');
-  await pin(page, 'paused');
+  await pin(page, 'paused', info);
 });
 
-test('the leave confirmation', async ({ page }) => {
+test('the leave confirmation', async ({ page }, info) => {
   await startSolo(page);
   await advance(page, 30);
   await send(page, 'leave');
-  await pin(page, 'confirming');
+  await pin(page, 'confirming', info);
 });
 
-test('the connection lost notice', async ({ page }) => {
+test('the connection lost notice', async ({ page }, info) => {
   await startSolo(page);
   await send(page, 'dropped');
-  await pin(page, 'disconnected');
+  await pin(page, 'disconnected', info);
 });
 
-test('the results screen of a finished match', async ({ page }) => {
+test('the results screen of a finished match', async ({ page }, info) => {
   await startSolo(page);
   await advance(page, 900);
 
@@ -101,5 +102,5 @@ test('the results screen of a finished match', async ({ page }) => {
     tb.world.winner = 'red';
   });
   await send(page, 'finished');
-  await pin(page, 'results');
+  await pin(page, 'results', info);
 });
