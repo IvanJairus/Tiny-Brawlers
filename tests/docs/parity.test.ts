@@ -65,6 +65,49 @@ describe('parity ledger', () => {
     }
   });
 
+  it('runs every cited browser spec from some npm script', () => {
+    const config = readFileSync(resolve(ROOT, 'playwright.config.ts'), 'utf8');
+    const perfConfig = readFileSync(resolve(ROOT, 'playwright.perf.config.ts'), 'utf8');
+    const scripts = Object.values(
+      JSON.parse(readFileSync(resolve(ROOT, 'package.json'), 'utf8')).scripts as Record<string, string>
+    ).join(' ');
+
+    const devSpecs = (config.match(/const DEV_SPECS = \[([^\]]*)\]/)?.[1] ?? '')
+      .split(',')
+      .map((entry) => entry.trim().replace(/^'|'$/g, ''))
+      .filter(Boolean);
+
+    const runs = new Map<string, { project: string; config: string }[]>();
+    const add = (spec: string, project: string, file: string): void => {
+      runs.set(spec, [...(runs.get(spec) ?? []), { project, config: file }]);
+    };
+    for (const match of config.matchAll(/name: '([a-z-]+)',\s*\n\s*testMatch: (DEV_SPECS|\[[^\]]*\]|'[^']*'),/g)) {
+      const [, project, raw] = match;
+      if (raw === 'DEV_SPECS') for (const spec of devSpecs) add(spec, project, 'playwright.config.ts');
+      else for (const entry of raw.match(/'[^']*'/g) ?? []) add(entry.replace(/'/g, ''), project, 'playwright.config.ts');
+    }
+    // A second config is chosen by file name rather than --project.
+    const perfSpec = perfConfig.match(/testMatch: '([^']+)'/)?.[1];
+    for (const match of perfConfig.matchAll(/name: '([a-z-]+)'/g)) {
+      if (perfSpec) add(perfSpec, match[1], 'playwright.perf.config.ts');
+    }
+    expect(runs.size, 'the config parser found no browser specs').toBeGreaterThanOrEqual(5);
+
+    for (const row of rows) {
+      for (const path of row.cites.filter((cite) => cite.startsWith('e2e/'))) {
+        const spec = path.split('/').pop() as string;
+        const owners = runs.get(spec) ?? [];
+        expect(owners.length, `${path} is cited by row ${row.n} but no playwright project runs it`).toBeGreaterThan(0);
+        const covered = owners.some((owner) =>
+          owner.config === 'playwright.config.ts'
+            ? scripts.includes(`--project=${owner.project}`)
+            : scripts.includes(owner.config)
+        );
+        expect(covered, `${path} belongs to ${owners.map((o) => `${o.project}@${o.config}`).join(', ')} but no npm script runs it`).toBe(true);
+      }
+    }
+  });
+
   it('covers every milestone', () => {
     const seen = new Set(rows.map((row) => row.milestone));
     for (const milestone of ['M0', 'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7']) {

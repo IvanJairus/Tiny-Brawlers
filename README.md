@@ -233,7 +233,10 @@ Daftar "jangan turun mutu" ada di `docs/PARITY.md`, satu baris per perilaku, tia
 yang membuktikannya. Jumlah barisnya sengaja tidak ditulis di sini karena angka itu akan basi; yang
 menjaga isinya adalah tesnya sendiri. `tests/docs/parity.test.ts` menjaga daftar itu sendiri, yaitu nomor baris unik,
 klaim perilakunya ada, milestone M0-M7, file yang disebut harus benar-benar ada serta berisi tes,
-dan statusnya hanya A atau P; sebuah P wajib punya alasan di bagian "Masih sebagian". Sebelum tes
+dan statusnya hanya A atau P; sebuah P wajib punya alasan di bagian "Masih sebagian".
+Ledger juga memeriksa bahwa tes yang disebutnya benar-benar dijalankan sebuah perintah: setiap sitasi `e2e/*`
+dipetakan ke proyek Playwright-nya lalu ke skrip npm yang menjalankan proyek itu, jadi baris yang
+mengacu ke tes yatim tidak bisa lolos. Sebelum tes
 itu ada, audit ini saya kerjakan dengan mata dan ia menemukan baris yang menyebut file yang tidak
 pernah ada; sekarang kesalahan seperti itu merah.
 

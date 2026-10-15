@@ -128,6 +128,7 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 118 | TURN bisa diserahkan relay | Relay mengirim daftar ICE ke setiap peer setelah hello; entri TURN dari environment sampai ke halaman dan dipakai RTCPeerConnection, tanpa kredensial di repo. Diuji terhadap proses relay sungguhan, dua arah: dengan TURN terpasang dan tanpa | tests/net/relay-server.test.ts, tests/net/signalling.test.ts, tests/platform/net.test.ts | M6 | A |
 | 119 | Jalur fallback pemain benar-benar dijalankan | Laga selesai lewat dua jalur tanpa perangkat tambahan: dua tab satu browser tanpa server, dan dua halaman lewat relay WebSocket yang dijalankan sungguhan oleh tes | e2e/netplay.spec.ts, e2e/relay.spec.ts | M6 | A |
 | 120 | Kerapatan piksel ponsel nyata | Proyek viewport sentuh merender pada devicePixelRatio 2 dan kanvas benar-benar memakai rasio itu (740 css jadi 1110 buffer, 390 jadi 585, sesuai batas 1,5 untuk pointer kasar), jadi tes tata letak ponsel tidak lagi menguji densitas desktop | e2e/layout.spec.ts | M3 | A |
+| 121 | Tes yang disebut ledger benar-benar dijalankan sebuah perintah | Setiap sitasi e2e/ dipetakan ke proyek Playwright-nya lalu ke npm script yang menjalankan proyek itu (config kedua dihitung lewat nama filenya); menghapus --project dari sebuah script membuatnya merah | tests/docs/parity.test.ts | M7 | A |
 
 ## Masih sebagian
 
