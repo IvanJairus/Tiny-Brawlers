@@ -179,6 +179,17 @@ Tiga kali jalan di mesin ini dengan mesin kosong memberi p95 16,7 sampai 16,8 ms
 terjadi segera sesudah suite browser lain selesai di mesin yang sama. Gerbang ini sensitif terhadap
 beban sampingan, jadi jalankan `test:perf` sendirian dan jangan menambah retry untuk menutupinya.
 
+Seluruh langkah `ci.yml` sudah diulang di salinan bersih repo ini dengan Node 24.13.0, versi yang
+dipin workflow, dan install memakai `npm ci`: audit 0 kerentanan, lapisan 34, `tsc` bersih, 271 tes
+unit, `test:speed` 2314 sampai 4217x, build jalan, 67 tes Playwright, dan `test:perf` p95 16,8 ms.
+Sebelum replika ini semua verifikasi saya jalankan di Node 25.5.0, jadi angka 24 baru ada sejak
+percobaan ini.
+
+Yang tetap berbeda: workflow berjalan di ubuntu-latest, replika ini di darwin/arm64. Angka ambang
+frame di runner Linux belum pernah terlihat, dan headroom di mesin ini tinggal 16 persen (16,8 ms
+melawan ambang 20 ms). Kalau langkah `test:perf` merah di sana, yang benar dilakukan adalah mengukur
+ulang di Linux dan membandingkan hasilnya, bukan menurunkan ambangnya diam-diam.
+
 Yang diverifikasi di artefak build, bukan hanya di dev server: boot tanpa error, rute layar penuh
 (judul → pilih kelas → main → jeda → keluar ke judul), nol bocor horizontal dan nol kartu HUD
 tumpang tindih di 1440x900, 740x360, dan 390x844, bingkai render nyata, dan meter di perangkat.
