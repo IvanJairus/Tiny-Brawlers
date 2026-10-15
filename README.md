@@ -13,7 +13,7 @@ pembanding paritas.
 ```bash
 npm install
 npm run dev            # http://localhost:3000
-npm test               # 250 tes unit/sim/net, headless
+npm test               # 252 tes unit/sim/net, headless
 npm run test:speed     # gerbang 1000x realtime dari rencana M1, file itu saja yang jalan
 npm run test:browser   # 59 tes Playwright: 3 ukuran layar, netplay, relay, artefak produksi
 npm run test:perf      # 1 tes budget frame dengan CPU di-throttle 6x, sendirian
@@ -155,11 +155,15 @@ npm run build && npx serve dist    # cek lokal hasil yang sama dengan yang akan 
 
 ## Status verifikasi
 
-Daftar "jangan turun mutu" ada di `docs/PARITY.md`: 105 baris, tiap baris menyebut tes yang
-membuktikannya. `tests/docs/parity.test.ts` menjaga daftar itu sendiri, yaitu status harus A, nomor
-baris unik, klaim perilakunya ada, dan file yang disebut harus benar-benar ada serta berisi tes.
-Sebelum tes itu ada, audit ini saya kerjakan dengan mata dan ia menemukan baris yang menyebut file
-yang tidak pernah ada; sekarang kesalahan seperti itu merah.
+Daftar "jangan turun mutu" ada di `docs/PARITY.md`: 107 baris, tiap baris menyebut tes yang
+membuktikannya. `tests/docs/parity.test.ts` menjaga daftar itu sendiri, yaitu nomor baris unik,
+klaim perilakunya ada, milestone M0-M7, file yang disebut harus benar-benar ada serta berisi tes,
+dan statusnya hanya A atau P; sebuah P wajib punya alasan di bagian "Masih sebagian". Sebelum tes
+itu ada, audit ini saya kerjakan dengan mata dan ia menemukan baris yang menyebut file yang tidak
+pernah ada; sekarang kesalahan seperti itu merah.
+
+Satu baris sengaja berstatus P: batas simpul prediksi 0,75 m dari rencana bagian 4.3. Alasannya
+tertulis di ledger, dan ia butuh perubahan format wire untuk bisa diukur, jadi itu keputusan anda.
 
 Baseline visual: `npm run test:visual` membandingkan tujuh permukaan UI (judul, pilih kelas, HUD,
 pause, konfirmasi keluar, terputus, hasil) di dua viewport, 1440x900 dan 740x360, dengan PNG di
@@ -182,7 +186,9 @@ dan build hasil `vite build` benar-benar dijalankan lewat `vite preview` tanpa e
 Kebocoran jangka panjang diuji dengan 20 menit simulasi (roster, peti, dan id aktif tetap terbatas)
 serta 45 detik bermain nyata di browser (jumlah node DOM dan heap tidak naik).
 
-Yang belum: 60 fps pada perangkat ponsel nyata, dan netplay lintas perangkat di jaringan seluler.
+Yang belum: 60 fps pada perangkat ponsel nyata, netplay lintas perangkat di jaringan seluler,
+dan satu baris ledger yang masih P (batas simpul prediksi 0,75 m). Selama baris itu P, gerbang M7
+"PARITY.md 100 persen" belum tercapai.
 Keduanya butuh perangkat, jadi angka performa ponsel sengaja tidak diklaim.
 
 Belum ada satu pun langkah CI yang pernah berjalan untuk cabang ini, termasuk langkah

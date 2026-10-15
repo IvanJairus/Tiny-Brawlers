@@ -11,6 +11,7 @@ import { BAD_LINK, CLEAN_LINK, LoopbackHub } from '../../src/sim/net/transport';
 import { EMPTY_INPUT, encodeInput as encode } from '../../src/sim/input/actions';
 import { TICK_S } from '../../src/sim/domain/constants';
 import { padOrigin } from '../../src/sim/domain/pad';
+import { TEAM_IDS } from '../../src/sim/domain/teams';
 import { NO_ENTITY } from '../../src/sim/core/ids';
 
 function seededWorld(): ReturnType<typeof createWorld> {
@@ -284,6 +285,68 @@ describe('host authoritative session', () => {
       const problem = client.lastError();
       expect(problem === null || problem === 'resync', `client ${index}: ${problem}`).toBe(true);
     }
+  });
+
+  it('predicts only the local buddy and holds everything else authoritative', () => {
+    const hub = new LoopbackHub(BAD_LINK, 11);
+    const world = seededWorld();
+    const hostTransport = hub.create();
+    const host = createHost(world, hostTransport, { roomCode: 'PRED01', now: () => hub.now });
+    const guestTransport = hub.create();
+    const guest = createClient(guestTransport, { name: 'Lima', cls: 'constructor', roomCode: 'PRED01', now: () => hub.now });
+    guest.join(hostTransport.id);
+    hub.advance(120);
+    guest.ready();
+    host.begin();
+    hub.advance(120);
+
+    let sincePublish = 0;
+    for (let i = 0; i < 300; i++) {
+      host.collect();
+      host.noteLocalInput();
+      stepWorld(world, TICK_S);
+      guest.tick(TICK_S, encode(0, {
+        moveX: 0.6, moveY: -0.4, aimX: 0, aimY: 0, attack: true, grab: false, build: false, zoom: 0
+      }));
+      hub.advance(TICK_S * 1000);
+      sincePublish += TICK_S * 1000;
+      if (sincePublish < 1000 / 15) continue;
+      sincePublish = 0;
+      host.publish([]);
+    }
+
+    const held = guest.buffer.latest();
+    expect(held, 'the client received nothing').not.toBeNull();
+    expect(guest.phase).toBe('playing');
+
+    // Let everything still in flight land, then run the client with no further
+    // snapshots: that window is the only place it executes anything of its own,
+    // because each apply rebuilds the world from the host's numbers.
+    const idle = () => guest.tick(TICK_S, encode(0, {
+      moveX: 0.6, moveY: -0.4, aimX: 0, aimY: 0, attack: false, grab: false, build: false, zoom: 0
+    }));
+    for (let i = 0; i < 12; i++) {
+      hub.advance(TICK_S * 1000);
+      idle();
+    }
+    const settled = guest.buffer.latest();
+    for (let i = 0; i < 5; i++) idle();
+    expect(guest.buffer.latest()!.tick, 'a snapshot landed during the quiet window').toBe(settled!.tick);
+
+    for (const buddy of settled!.buddies) {
+      if (buddy.id === guest.world.localPlayer) continue;
+      const mine = guest.world.buddies.find((b) => b.id === buddy.id);
+      expect(mine, `buddy ${buddy.id} is missing on the client`).toBeDefined();
+      expect(Math.hypot(mine!.x - buddy.x, mine!.z - buddy.z), `buddy ${buddy.id} moved without authority`).toBe(0);
+      expect(mine!.hp).toBe(buddy.hp);
+    }
+    for (const crate of settled!.crates) {
+      const mine = guest.world.crates.find((c) => c.id === crate.id);
+      if (!mine) continue;
+      expect(mine.x, `crate ${crate.id} moved without authority`).toBe(crate.x);
+      expect(mine.z, `crate ${crate.id} moved without authority`).toBe(crate.z);
+    }
+    for (const team of TEAM_IDS) expect(guest.world.pads[team]).toBe(settled!.pads[team]);
   });
 
   it('hands a dropped player back to the AI without losing their crate', () => {

@@ -112,8 +112,22 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 102 | Tampilan ASCII debug | `?ascii=1` menampilkan grid 65x33 plus tick/hp/hidup, setiap baris ≤ 65 karakter, dan panel tidak keluar dari layar di 1440x900, 740x360, 390x844 | tests/sim/ascii.test.ts, e2e/layout.spec.ts | M2 | A |
 | 103 | Navigasi keyboard penuh di menu | Tab dan Shift+Tab berputar di dalam layar tanpa pernah keluar (fokus = none), setiap layar merebut fokus saat dibuka, dan Enter menyelesaikan rute judul → pilih kelas → main → jeda → lanjut di tiga ukuran | e2e/layout.spec.ts | M4 | A |
 | 104 | Reduced motion dan tanpa animasi tanpa pemicu | Dengan prefers-reduced-motion: reduce tidak ada transisi UI yang lebih dari 1 ms dan tidak ada animasi CSS tak berujung; probe yang sama membuktikan transisi nyata ada saat motion normal | e2e/layout.spec.ts | M4 | A |
-| 105 | Paritas dijaga mesin | Setiap baris ledger punya status A, nomor unik, klaim perilaku, milestone M0-M7, dan menyebut file tes yang benar-benar ada serta berisi tes | tests/docs/parity.test.ts | M7 | A |
+| 105 | Paritas dijaga mesin | Setiap baris ledger punya nomor unik, klaim perilaku, milestone M0-M7, menyebut file tes yang benar-benar ada serta berisi tes, dan berstatus A atau P; kalau P, alasannya harus tertulis di bagian Masih sebagian | tests/docs/parity.test.ts | M7 | A |
 | 106 | Konvergensi setelah stall 400 ms | Di link bermusuhan (60ms delay, 60ms jitter, loss 3%, dup 2%) klien kembali memegang snapshot dari setelah stall dalam 133,3 ms waktu link dan tertinggal 3 tick (n=1, seed 5; gerbang 250 ms dan 5 tick), dan isi snapshot yang dipegangnya persis sama dengan state host untuk tick itu | tests/net/net.test.ts | M5 | A |
+| 107 | Simpul prediksi ≤0,75 m | Rencana 4.3 menuntut simpul prediksi buddy tidak pernah lewat 0,75 m setelah loss acak; belum terukur karena error yang dipakai klien membandingkan posisi dari dua saat berbeda | tests/net/net.test.ts | M5 | P |
+
+## Masih sebagian
+
+**Baris 107, Simpul prediksi ≤0,75 m.** Klien menghitung error dengan membandingkan
+posisi hasil prediksi sesaat sebelum snapshot dipakai, dengan posisi otoritatif pada
+tick snapshot itu. Snapshot datang 15 Hz sedangkan prediksi jalan 30 Hz, jadi selisih
+ini memuat jarak yang memang ditempuh buddy selama waktu link, bukan hanya salah prediksi.
+Di link 60 ms + jitter 60 ms, dua snapshot yang hilang berturut-turut sudah cukup untuk
+melewati 0,75 m walau prediksinya benar. Angka yang sekarang tercatat di harness lima
+menit adalah 1 sampai 3 hard snap per klien (baris 66), dan itu ukuran frekuensi, bukan
+jarak terjauh. Membandingkan pada saat yang sama butuh nomor input yang diakui host
+dikirim balik di snapshot; itu perubahan format wire, jadi saya catat, bukan saya kerjakan
+diam-diam.
 
 ## Yang sengaja tidak ada
 

@@ -22,9 +22,21 @@ const rows: Row[] = DOC.split('\n')
   });
 
 describe('parity ledger', () => {
-  it('reads a full table of affirmed rows', () => {
+  const partialFrom = DOC.indexOf('## Masih sebagian');
+  const partial = partialFrom < 0 ? '' : DOC.slice(partialFrom);
+
+  it('reads a full table with a status on every row', () => {
     expect(rows.length).toBeGreaterThanOrEqual(100);
-    for (const row of rows) expect(row.status, `row ${row.n}`).toBe('A');
+    for (const row of rows) expect(row.status, `row ${row.n} has no status`).not.toBe('');
+  });
+
+  it('affirms rows, or admits them as partial with a written reason', () => {
+    for (const row of rows) {
+      expect(['A', 'P'], `row ${row.n} status`).toContain(row.status);
+      if (row.status === 'P') {
+        expect(partial, `row ${row.n} is partial but no reason is written down`).toContain(row.feature);
+      }
+    }
   });
 
   it('numbers each row once', () => {
