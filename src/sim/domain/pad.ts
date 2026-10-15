@@ -62,7 +62,7 @@ export function setSlot(mask: PadMask, slot: number, filled: boolean): PadMask {
 
 export function padOrigin(team: TeamId): { x: number; z: number } {
   const base = BASE_COORDINATES[team];
-  return { x: base.x * 0.82, z: base.z * 0.82 };
+  return { x: base.x * 0.66, z: base.z * 0.66 };
 }
 
 export function slotPosition(team: TeamId, slot: number): { x: number; y: number; z: number } {

@@ -473,8 +473,8 @@ function recoverFromVoid(w: World): void {
   for (const b of w.buddies) {
     if (b.state === 'ko' || Math.hypot(b.x, b.z) <= VOID_DISTANCE) continue;
     const base = BASE_COORDINATES[b.team];
-    b.x = base.x;
-    b.z = base.z;
+    b.x = base.x * 0.74;
+    b.z = base.z * 0.74;
     knockout(b, 3);
     emit(w, { kind: 'knockout', entity: b.id, at: { x: b.x, z: b.z } });
   }

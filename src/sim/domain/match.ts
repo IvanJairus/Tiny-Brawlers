@@ -9,10 +9,12 @@ import { TEAM_IDS, type TeamId } from './teams';
 export function spawnBuddy(w: World, team: TeamId, cls: BuddyClass, isBot: boolean): BuddyRec {
   const base = BASE_COORDINATES[team];
   const angle = w.rngWorld.float(0, Math.PI * 2);
+  // Buddies come out on the field side of the fort: spawning them inside its own
+  // walls hid the player behind the building they are supposed to defend.
   const buddy = makeBuddy(
     w.ids.alloc(), team, cls,
-    base.x + Math.cos(angle) * 2.4,
-    base.z + Math.sin(angle) * 2.4,
+    base.x * 0.74 + Math.cos(angle) * 2.2,
+    base.z * 0.74 + Math.sin(angle) * 2.2,
     isBot
   );
   buddy.invuln = 0.5;
@@ -84,8 +86,8 @@ export function tickRespawns(w: World, dt: number): void {
     const alive = w.buddies.filter((x) => x.team === b.team && x.state !== 'ko').length;
     if (alive >= 6) continue;
     const base = BASE_COORDINATES[b.team];
-    b.x = base.x + w.rngWorld.float(-2, 2);
-    b.z = base.z + w.rngWorld.float(-2, 2);
+    b.x = base.x * 0.74 + w.rngWorld.float(-2, 2);
+    b.z = base.z * 0.74 + w.rngWorld.float(-2, 2);
     b.hp = Math.max(1, Math.round(CLASS_STATS[b.cls].maxHp * 0.4));
     b.state = 'idle';
     b.invuln = 2;

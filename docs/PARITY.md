@@ -57,11 +57,11 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 47 | Bot melawan dan mengambil peti | AI memakai senjata, memburu peti, mengisi pad | tests/invariants/defects.test.ts | M2 | A |
 | 48 | Input kuantan tetap | Stream sentuh dan keyboard identik menghasilkan dunia identik | tests/net/parity-input.test.ts | M4 | - |
 | 49 | Mesin tanpa nama | Sim tidak punya nama node scene graph untuk di-assert | tests/layers.test.ts | M0 | A |
-| 50 | Arena satu draw call statis | Pulau, bunker, karung pasir, pad digabung | tests/render/budget.test.ts | M3 | - |
-| 51 | Anggaran draw call | DC ≤ 60, material ≤ 12, geometry ≤ 30 | tests/render/budget.test.ts | M3 | - |
-| 52 | Air di GPU | Gelombang di vertex shader, bukan CPU | tests/render/budget.test.ts | M3 | - |
-| 53 | Chibi multi-part merge | Karakter 2-3 mesh, bukan 67 | tests/render/budget.test.ts | M3 | - |
-| 54 | Palet tim benar | Nama tim dan warna cocok | tests/render/palette.test.ts | M3 | - |
+| 50 | Arena satu draw call statis | Pulau, bunker, karung pasir, pad digabung | tests/render/budget.test.ts | M3 | - A |
+| 51 | Anggaran draw call | DC ≤ 60, material ≤ 12, geometry ≤ 30 | tests/render/budget.test.ts | M3 | - A |
+| 52 | Air di GPU | Gelombang di vertex shader, bukan CPU | tests/render/budget.test.ts | M3 | - A |
+| 53 | Chibi multi-part merge | Karakter 2-3 mesh, bukan 67 | tests/render/budget.test.ts | M3 | - A |
+| 54 | Palet tim benar | Nama tim dan warna cocok | tests/render/palette.test.ts | M3 | - A |
 | 55 | Layar judul dan pilih | State machine menelusuri semua layar | tests/ui/machine.test.ts | M4 | - |
 | 56 | Pause hanya solo | Netplay tidak membekukan orang lain | tests/ui/machine.test.ts | M4 | - |
 | 57 | HUD tanpa lookup per frame | Node diselesaikan sekali saat mount | tests/ui/hud-bind.test.ts | M4 | - |
