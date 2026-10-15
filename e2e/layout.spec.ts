@@ -106,6 +106,33 @@ test('every menu is walkable and trapped by keyboard, and Enter plays the whole 
   await expect.poll(screen).toBe('playing');
 });
 
+const motionProbe = (page: import('@playwright/test').Page) =>
+  page.evaluate(() => {
+    let slowest = 0;
+    let loops = 0;
+    for (const el of Array.from(document.querySelectorAll('#ui *'))) {
+      const cs = getComputedStyle(el);
+      for (const value of cs.transitionDuration.split(',')) {
+        const number = parseFloat(value);
+        slowest = Math.max(slowest, value.trim().endsWith('ms') ? number : number * 1000);
+      }
+      if (cs.animationName !== 'none' && cs.animationIterationCount.includes('infinite')) loops++;
+    }
+    return { slowest, loops };
+  });
+
+test('reduced motion turns the UI transitions off, and nothing loops by itself', async ({ page }) => {
+  await startMatch(page);
+  const full = await motionProbe(page);
+  expect(full.slowest, 'the probe must find a transition, or the reduced check below proves nothing').toBeGreaterThan(1);
+  expect(full.loops, 'no endless CSS animation is allowed to run without a trigger').toBe(0);
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const reduced = await motionProbe(page);
+  expect(reduced.slowest).toBeLessThan(1);
+  expect(reduced.loops).toBe(0);
+});
+
 test('the title offers netplay when the browser can do WebRTC', async ({ page }) => {
   await page.goto('/');
   await expect.poll(() => page.evaluate(() => document.body.dataset.screen)).toBe('title');

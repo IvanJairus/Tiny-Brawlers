@@ -111,6 +111,7 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 74 | Simulasi tidak berjalan di layar salah | Tick hanya terjadi saat layar playing | e2e/layout.spec.ts | M4 | A |
 | 102 | Tampilan ASCII debug | `?ascii=1` menampilkan grid 65x33 plus tick/hp/hidup, setiap baris ≤ 65 karakter, dan panel tidak keluar dari layar di 1440x900, 740x360, 390x844 | tests/sim/ascii.test.ts, e2e/layout.spec.ts | M2 | A |
 | 103 | Navigasi keyboard penuh di menu | Tab dan Shift+Tab berputar di dalam layar tanpa pernah keluar (fokus = none), setiap layar merebut fokus saat dibuka, dan Enter menyelesaikan rute judul → pilih kelas → main → jeda → lanjut di tiga ukuran | e2e/layout.spec.ts | M4 | A |
+| 104 | Reduced motion dan tanpa animasi tanpa pemicu | Dengan prefers-reduced-motion: reduce tidak ada transisi UI yang lebih dari 1 ms dan tidak ada animasi CSS tak berujung; probe yang sama membuktikan transisi nyata ada saat motion normal | e2e/layout.spec.ts | M4 | A |
 
 ## Yang sengaja tidak ada
 

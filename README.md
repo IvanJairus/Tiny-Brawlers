@@ -15,7 +15,7 @@ npm install
 npm run dev            # http://localhost:3000
 npm test               # 244 tes unit/sim/net, headless
 npm run test:speed     # gerbang 1000x realtime dari rencana M1, file itu saja yang jalan
-npm run test:browser   # 56 tes Playwright: 3 ukuran layar, netplay, relay, artefak produksi
+npm run test:browser   # 59 tes Playwright: 3 ukuran layar, netplay, relay, artefak produksi
 npm run test:perf      # 1 tes budget frame dengan CPU di-throttle 6x, sendirian
 npm run build          # tsc + vite build
 npm audit              # 0 kerentanan; CI gagal bila ada yang high atau critical
