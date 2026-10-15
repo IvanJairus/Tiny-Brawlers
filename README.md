@@ -13,8 +13,9 @@ pembanding paritas.
 ```bash
 npm install
 npm run dev            # http://localhost:3000
-npm test               # 168 tes unit/sim/net, headless
-npm run test:browser   # 33 tes Playwright: 3 ukuran layar, relay, artefak produksi
+npm test               # 244 tes unit/sim/net, headless
+npm run test:speed     # gerbang 1000x realtime dari rencana M1, file itu saja yang jalan
+npm run test:browser   # 53 tes Playwright: 3 ukuran layar, netplay, relay, artefak produksi
 npm run test:perf      # 1 tes budget frame dengan CPU di-throttle 6x, sendirian
 npm run build          # tsc + vite build
 npm audit              # 0 kerentanan; CI gagal bila ada yang high atau critical
@@ -176,6 +177,11 @@ serta 45 detik bermain nyata di browser (jumlah node DOM dan heap tidak naik).
 
 Yang belum: 60 fps pada perangkat ponsel nyata, dan netplay lintas perangkat di jaringan seluler.
 Keduanya butuh perangkat, jadi angka performa ponsel sengaja tidak diklaim.
+
+Belum ada satu pun langkah CI yang pernah berjalan untuk cabang ini, termasuk langkah
+`test:speed` yang menagih 1000x realtime di runner. Angka 2278-4284x berasal dari mesin ini
+(n=5, CPU sendiri), bukan dari runner. Gerbangnya merah atau hijau di sana baru terbukti setelah
+push pertama.
 
 Satu pertanyaan desain yang masih terbuka: laga tidak punya batas waktu. Ia selesai hanya kalau
 bunker satu tim rata dan semua anggotanya tumbang, dan pada seed 7 empat tim bot masih belum

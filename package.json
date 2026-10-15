@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:speed": "TB_SPEED_GATE=1 vitest run tests/sim/determinism.test.ts",
     "lint:layers": "vitest run tests/layers.test.ts",
     "test:browser": "playwright test --project=desktop --project=phone-landscape --project=phone-portrait --project=production",
     "test:visual": "playwright test --project=visual --project=visual-phone",
