@@ -448,6 +448,51 @@ describe('host authoritative session', () => {
     }
   });
 
+  /**
+   * The harness link duplicates two percent of packets, and a second join from a
+   * peer that already holds a seat used to be answered with the room being full,
+   * which left that client watching a match it had actually joined.
+   */
+  it('answers a duplicated join with the same seat', () => {
+    const hub = new LoopbackHub(BAD_LINK, 77);
+    const world = seededWorld();
+    const hostTransport = hub.create();
+    const host = createHost(world, hostTransport, { roomCode: 'DUP001', now: () => hub.now });
+    const guestTransport = hub.create();
+    const guest = createClient(guestTransport, { name: 'Tujuh', cls: 'fighter', roomCode: 'DUP001', now: () => hub.now });
+
+    guest.join(hostTransport.id);
+    guest.join(hostTransport.id);
+    hub.advance(300);
+
+    const seats = host.slots.filter((slot) => slot.peerId === guestTransport.id);
+    expect(seats).toHaveLength(1);
+    expect(host.humanCount()).toBe(2);
+
+    guest.ready();
+    hub.advance(120);
+    host.begin();
+    let sincePublish = 0;
+    for (let i = 0; i < 120; i++) {
+      host.collect();
+      host.noteLocalInput();
+      stepWorld(world, TICK_S);
+      sincePublish += TICK_S * 1000;
+      if (sincePublish >= 1000 / 15) {
+        sincePublish = 0;
+        host.publish([]);
+      }
+      guest.tick(TICK_S, encode(1, {
+        moveX: 0.4, moveY: 0.2, aimX: 0, aimY: 0, attack: false, grab: false, build: false, zoom: 0
+      }));
+      hub.advance(TICK_S * 1000);
+    }
+
+    expect(guest.phase).toBe('playing');
+    expect(guest.lastError()).not.toBe('rejoin');
+    expect(guest.buffer.latest()).not.toBeNull();
+  });
+
   it('refuses a stranger once the match has started', () => {
     const hub = new LoopbackHub(CLEAN_LINK, 33);
     const world = createWorld({ seed: 707 });

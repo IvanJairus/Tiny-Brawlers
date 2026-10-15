@@ -73,7 +73,7 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 63 | Codec snapshot | Round-trip biner identik, buffer rusak ditolak | tests/net/net.test.ts | M5 | A |
 | 64 | Host otoritatif | Klien hanya mengirim input, host yang mensimulasikan | tests/net/net.test.ts | M5 | A |
 | 65 | Prediksi bounded | Hanya buddy lokal yang diprediksi, sisanya otoritatif | tests/net/net.test.ts | M5 | A |
-| 66 | Interpolasi tahan loss | Harness 1 host plus 3 klien selama 5 menit waktu link (60ms delay, 60ms jitter, loss 3 persen, duplikasi 2 persen): lag snapshot maksimum 3 tick, 4195 dari sekitar 4500 snapshot tiba, hard snap 1 sampai 3 kali | tests/net/net.test.ts | M5 | A |
+| 66 | Interpolasi tahan loss | Harness 1 host plus 3 klien selama 5 menit waktu link. Rencana menyebut jitter 120ms; yang dipakai adalah 60ms delay + 60ms jitter, jadi 120 ms itu latensi satu arah terburuk (terukur: lag snapshot maksimum 3 tick, 4211 dari sekitar 4500 snapshot tiba, hard snap 1 kali per klien). Profil yang lebih keras dari itu juga diukur, lihat catatan di bawah | tests/net/net.test.ts | M5 | A |
 | 67 | Putus jadi bot | Peer yang hilang jadi bot dan tetap membawa petinya, dalam ≤3 detik waktu link sesuai rencana (terukur 2466,7 ms, n=1) | tests/net/net.test.ts | M5 | A |
 | 68 | Anggaran bandwidth | Snapshot dunia penuh < 1200 byte, di bawah 16KB/s | tests/net/net.test.ts | M5 | A |
 | 69 | Kode ruangan | Gabung dengan kode salah ditolak | tests/net/net.test.ts | M5 | A |
@@ -129,6 +129,18 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 119 | Jalur fallback pemain benar-benar dijalankan | Laga selesai lewat dua jalur tanpa perangkat tambahan: dua tab satu browser tanpa server, dan dua halaman lewat relay WebSocket yang dijalankan sungguhan oleh tes | e2e/netplay.spec.ts, e2e/relay.spec.ts | M6 | A |
 | 120 | Kerapatan piksel ponsel nyata | Proyek viewport sentuh merender pada devicePixelRatio 2 dan kanvas benar-benar memakai rasio itu (740 css jadi 1110 buffer, 390 jadi 585, sesuai batas 1,5 untuk pointer kasar), jadi tes tata letak ponsel tidak lagi menguji densitas desktop | e2e/layout.spec.ts | M3 | A |
 | 121 | Tes yang disebut ledger benar-benar dijalankan sebuah perintah | Setiap sitasi e2e/ dipetakan ke proyek Playwright-nya lalu ke npm script yang menjalankan proyek itu (config kedua dihitung lewat nama filenya); menghapus --project dari sebuah script membuatnya merah | tests/docs/parity.test.ts | M7 | A |
+| 122 | Join ganda tidak merebut kursi kedua | Link harness menduplikasi 2 persen paket; join kedua dari peer yang sudah punya kursi sekarang dijawab dengan kursi yang sama. Tanpa perbaikan ini satu peer memegang dua kursi (terukur: filter slot milik satu peer menghasilkan 2 entri) | tests/net/net.test.ts | M5 | A |
+| 123 | Orang asing tidak bisa masuk laga berjalan | Join yang tiba setelah host mulai, dari peer yang tidak pernah memegang kursi, dijawab rejoin dan tidak mendapat buddy | tests/net/net.test.ts | M5 | A |
+
+**Profil link yang lebih keras.** Rencana menyebut jitter 120 ms. Selain bacaan di baris 66, saya
+juga mengukur bacaan harfiahnya (60 ms delay + 120 ms jitter, loss dan duplikasi sama) pada harness
+yang sama: dua dari tiga klien tetap konvergen dengan lag maksimum 5 tick dan 3601 snapshot tiba,
+sedangkan yang ketiga tidak masuk laga sama sekali. Penyebabnya bukan interpolasi: join-nya mendarat
+setelah host menekan mulai, dan itu justru aturan yang diinginkan (baris 123: orang asing tidak bisa
+masuk laga yang sudah berjalan). Harness mengirim join, ready, lalu mulai dalam 240 ms, jadi pada jitter tinggi join
+terakhir masih di jalan. Di permainan nyata lobby menunggu roster lengkap sebelum mulai, dan tes
+netplay dua halaman sudah menunggu kondisi itu.
+
 
 ## Masih sebagian
 

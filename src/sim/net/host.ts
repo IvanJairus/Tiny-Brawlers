@@ -122,6 +122,22 @@ export function createHost(world: World, transport: Transport, options: HostOpti
       if (!message) return;
 
       if (message.t === 'join') {
+        if ((message.code ?? '').toUpperCase() !== options.roomCode.toUpperCase()) {
+          sendTo(peerId, 'reliable', { t: 'refused' });
+          return;
+        }
+        // A duplicated join is ordinary on a lossy link. The peer that already holds
+        // a seat has to be told about that seat again, not given a second one and
+        // not refused for the room being full.
+        const held = slots.find((entry) => entry.peerId === peerId);
+        if (held) {
+          sendTo(peerId, 'reliable', {
+            t: 'accept', slot: held.index, team: held.team, protocol: PROTOCOL_HASH, code: options.roomCode,
+            buddyId: held.buddyId
+          });
+          broadcastRoster();
+          return;
+        }
         // The buddy id is only known once squads exist, so it is sent again at start.
         // After the match begins only a peer that already held a slot may re-enter it.
         const free = started
@@ -129,10 +145,6 @@ export function createHost(world: World, transport: Transport, options: HostOpti
           : slots.find((slot) => slot.peerId === null);
         if (!free) {
           sendTo(peerId, 'reliable', { t: started ? 'rejoin' : 'full' });
-          return;
-        }
-        if ((message.code ?? '').toUpperCase() !== options.roomCode.toUpperCase()) {
-          sendTo(peerId, 'reliable', { t: 'refused' });
           return;
         }
         // A slot that was taken over by AI keeps its buddy, so the same player
