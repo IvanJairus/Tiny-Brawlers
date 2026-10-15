@@ -13,9 +13,9 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 3 | Sim tanpa host API | Sim tidak menyentuh DOM, three, jam dinding, Math.random | tests/layers.test.ts | M0 | A |
 | 4 | Satu loop rAF | requestAnimationFrame hanya di boot | tests/layers.test.ts | M0 | A |
 | 5 | ID entitas bertingkat | Slot dipakai ulang dengan generasi baru, tanpa tabrakan | tests/sim/ids.test.ts | M1 | A |
-| 6 | RNG dapat replay | Seed sama menghasilkan hash sama | tests/sim/determinism.test.ts | M1 | A |
+| 6 | RNG dapat replay | Seed dan stream input yang sama menghasilkan riwayat hash yang sama, di tiga kali jalan (gerbang M1 minta tiga) | tests/sim/determinism.test.ts | M1 | A |
 | 7 | Hash dunia | Sidik jari kuantitatif untuk determinisme dan netplay | tests/sim/determinism.test.ts | M1 | A |
-| 8 | Kecepatan simulasi | Pertandingan 4 tim 60 detik jalan ≥1000x realtime; terukur 2278-4284x (n=5) saat file itu memegang CPU sendiri lewat `npm run test:speed`, dan 1054x saat seluruh suite berjalan paralel, jadi lantai di suite adalah jaring regresi 300x | tests/sim/determinism.test.ts, .github/workflows/ci.yml | M1 | A |
+| 8 | Kecepatan simulasi | Pertandingan 4 tim 60 detik jalan ≥1000x realtime. Angka terukur dicetak tesnya sendiri, lima sampel per jalan, jadi tidak bisa basi di dokumen: gerbang 1000x ditegakkan saat file itu memegang CPU sendiri lewat `npm run test:speed`, dan di suite paralel lantainya 300x sebagai jaring regresi karena core dibagi | tests/sim/determinism.test.ts, .github/workflows/ci.yml | M1 | A |
 | 9 | Kelas Fighter | HP 130, kecepatan 6,8, pengali rusak 1,25 | tests/sim/buddy.test.ts | M2 | A |
 | 10 | Kelas Healer | HP 100, aura 4,5m, 25 HP per detik | tests/sim/buddy.test.ts, tests/sim/step.test.ts | M2 | A |
 | 11 | Kelas Constructor | HP 90, kecepatan 8,2, faktor bawa 0,95, lempar 18 | tests/sim/buddy.test.ts | M2 | A |

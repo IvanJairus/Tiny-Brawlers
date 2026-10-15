@@ -275,6 +275,19 @@ dan satu baris ledger yang masih P (batas simpul prediksi 0,75 m). Selama baris 
 Dua yang pertama butuh perangkat, jadi angka performa ponsel sengaja tidak diklaim; yang terakhir
 butuh keputusan desain, lihat di atas.
 
+Status tiap gerbang, apa adanya:
+
+| Gerbang | Sudah terbukti di repo | Yang masih terbuka |
+|---|---|---|
+| M0 | cabang `v2`, ledger, aturan lapisan ditegakkan mesin, workflow CI; seluruh langkahnya saya replika lokal di Node 24 dari salinan bersih dengan `npm ci` dan semuanya hijau | CI sungguhan di runner Linux, karena itu butuh push |
+| M1 | pertandingan 4 tim 60 detik di atas 1000x realtime (dinagihkan di step CI tersendiri), hash determinis stabil tiga jalan | tidak ada |
+| M2 | delapan resep dicapai lewat `InputCmd` terskrip, baris cacat lama hijau, tampilan ASCII debug | tidak ada |
+| M3 | anggaran renderer (`renderer.info` di halaman) dan kerapatan piksel proyek ponsel | 60 fps p95 di HP nyata; throttle desktop bukan penggantinya |
+| M4 | semua layar ditelusuri, paritas sentuh vs keyboard, nol lookup DOM per frame, kontrak desain bagian 5 di tiga ukuran termasuk kontras terukur, enam item daftar feel, bot mencapai tujuh resep | tidak ada |
+| M5 | harness 1 host + 3 klien lima menit waktu link, konvergensi dengan integritas snapshot, putus jadi bot di bawah tiga detik, latensi masukan dan join ganda terkunci | satu klausul berstatus P: batas simpul prediksi 0,75 m, alasannya terukur di ledger |
+| M6 | relay sendiri, TURN bisa diserahkannya, UX kode ruangan, dua jalur fallback dijalankan tes | dua perangkat satu Wi-Fi, dan dua perangkat dengan salah satunya 4G |
+| M7 | audio, layar hasil, pass performa, tanda tangan paritas dijaga mesin, build diuji dari subpath repo | baseline visual diterima anda, anggaran frame di perangkat, dan publish |
+
 Empat langkah yang tersisa, dengan perintah persisnya:
 
 1. **60 fps di HP anda (gerbang M3).** `npm run dev -- --host`, catat alamat network yang

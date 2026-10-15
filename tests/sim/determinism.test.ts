@@ -32,8 +32,10 @@ function scriptedMatch(seed: number, ticks: number): number[] {
 }
 
 describe('deterministic simulation', () => {
-  it('replays identically from the same seed and inputs', () => {
-    expect(scriptedMatch(4242, 1200)).toEqual(scriptedMatch(4242, 1200));
+  it('replays identically from the same seed and inputs, three runs', () => {
+    const first = scriptedMatch(4242, 1200);
+    expect(scriptedMatch(4242, 1200)).toEqual(first);
+    expect(scriptedMatch(4242, 1200)).toEqual(first);
   });
 
   it('diverges when the seed changes', () => {
