@@ -13,9 +13,9 @@ pembanding paritas.
 ```bash
 npm install
 npm run dev            # http://localhost:3000
-npm test               # 255 tes unit/sim/net, headless
+npm test               # semua tes unit, sim, net, dan ledger paritas, tanpa browser
 npm run test:speed     # gerbang 1000x realtime dari rencana M1, file itu saja yang jalan
-npm run test:browser   # 67 tes Playwright: 3 ukuran layar, netplay, relay, artefak produksi
+npm run test:browser   # Playwright: 3 ukuran layar, netplay, relay, artefak build, subpath deploy
 npm run test:perf      # 1 tes budget frame dengan CPU di-throttle 6x, sendirian
 npm run build          # tsc + vite build
 npm audit              # 0 kerentanan; CI gagal bila ada yang high atau critical
@@ -198,8 +198,9 @@ bukan sesuatu yang bisa dibuktikan dari `dist/`.
 
 ## Status verifikasi
 
-Daftar "jangan turun mutu" ada di `docs/PARITY.md`: 116 baris, tiap baris menyebut tes yang
-membuktikannya. `tests/docs/parity.test.ts` menjaga daftar itu sendiri, yaitu nomor baris unik,
+Daftar "jangan turun mutu" ada di `docs/PARITY.md`, satu baris per perilaku, tiap baris menyebut tes
+yang membuktikannya. Jumlah barisnya sengaja tidak ditulis di sini karena angka itu akan basi; yang
+menjaga isinya adalah tesnya sendiri. `tests/docs/parity.test.ts` menjaga daftar itu sendiri, yaitu nomor baris unik,
 klaim perilakunya ada, milestone M0-M7, file yang disebut harus benar-benar ada serta berisi tes,
 dan statusnya hanya A atau P; sebuah P wajib punya alasan di bagian "Masih sebagian". Sebelum tes
 itu ada, audit ini saya kerjakan dengan mata dan ia menemukan baris yang menyebut file yang tidak

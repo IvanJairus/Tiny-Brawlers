@@ -124,6 +124,7 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 114 | Serpihan kayu saat peti pecah | Momen pad mengonsumsi peti memicu serpihan kayu selain kilatan rakit | tests/render/effects.test.ts | M4 | A |
 | 115 | Satu cue berbeda per aksi | ambil, lempar, rakit, tembak, kena, KO memakai patch yang berbeda satu sama lain, dan sting menang tidak dipakai ulang oleh salah satunya | tests/platform/audio.test.ts | M4 | A |
 | 116 | Tayang dari subpath repo | Build yang sama disajikan dari /Tiny-Brawlers/ tanpa fallback SPA: boot sampai layar main, kedua font benar-benar termuat, kanvas memuat frame nyata, dan nol request 404; mengubah base vite ke '/' membuatnya merah | e2e/subpath.spec.ts | M7 | A |
+| 117 | Latensi masukan terkunci | Di link bermusuhan masukan terbaru sudah menjadi otoritas pada tick yang sama saat host menerima: p95 3 tick, maksimum 3 (n=1456 penerapan). Versi berantrean menaikkan keduanya ke 6 dan 7 tick dan membuat tes ini merah | tests/net/net.test.ts | M5 | A |
 
 ## Masih sebagian
 
@@ -137,11 +138,17 @@ prediksinya, melainkan koreksi: begitu lewat 0,75 m klien disnap, jadi batas di 
 terpenuhi oleh prediktor apa pun, termasuk yang useless. Gerbang yang tidak bisa membedakan prediktor bagus dari yang rusak tidak
 ada gunanya, jadi percobaannya saya tarik kembali: tidak ada field wire baru di build ini.
 
-Satu temuan lain yang perlu keputusan anda: klien tidak mungkin mereplikasi lintasan host, karena
+Satu temuan lain, dan jawabannya sudah diukur: klien tidak bisa mereplikasi lintasan host, karena
 host hanya menyimpan masukan terbaru per tick sementara klien melangkah tiap masukan. Di bawah
-jitter, beberapa masukan yang datang berbarengan dipakai host sekali tapi dilangkahi klien beberapa
-kali. Mengubah itu berarti mengubah model masukan host (antrean per tick), dan itu menyentuh rasa
-kontrol di semua mode, bukan hanya jaringan.
+jitter, masukan yang datang berbarengan dipakai host sekali tapi dilangkahi klien beberapa kali,
+terukur 4355 dari 6000 masukan benar-benar menjadi otoritas.
+
+Antrean per slot (keluarkan satu masukan tiap tick, seperti rollback netcode) sudah dicoba dan
+sudah diukur: ia menaikkan penerapan masukan menjadi 5786 dari 6000, tetapi menaikkan latensi
+masukan dari p95 3 tick menjadi p95 6 tick, yaitu sekitar 100 ms menjadi 200 ms. Karena simpul
+prediksi sudah dibatasi oleh snap threshold, tambahan latensi itu tidak membeli apa pun yang bisa
+diamati, jadi antreannya tidak dipakai. Baris 117 menjaga keputusan itu: dengan antrean, tesnya
+merah.
 
 ## Yang sengaja tidak ada
 
