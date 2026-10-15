@@ -62,7 +62,9 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
   const reducedMotion = settings.reducedMotion || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const stage = createStage(container, coarse || settings.quality === 'low');
-  const renderer = new WorldRenderer(stage.scene);
+  const renderer = new WorldRenderer(stage.scene, () => ({
+    coarsePointer: coarse, reducedMotion: settings.reducedMotion
+  }));
   const camera = new IsoCamera(1, { reducedMotion });
   const adaptation = createAdaptation();
   const machine = createMachine(webglAvailable() ? 'title' : 'unsupported');
@@ -289,7 +291,7 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
       audio.cue(event);
       countStats(event);
     }
-    stage.draw(camera.camera);
+    if (!renderer.frozen()) stage.draw(camera.camera);
 
     hudAccumulator += elapsed;
     if (hudAccumulator >= 1000 / 15) {

@@ -86,6 +86,10 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 83 | Turun resolusi otomatis | 60 frame berturut-turut di atas 20ms menurunkan skala render ke 0,75 sekali saja | tests/render/reading-aids.test.ts | M3 | A |
 | 84 | Pause ditolak di netplay | Escape tidak menjeda pertandingan jaringan, di host maupun tamu | e2e/relay.spec.ts, tests/ui/router.test.ts | M4 | A |
 | 85 | Alasan gabung gagal ditampilkan | Kode salah atau ruangan penuh terlihat di layar lobby | tests/net/session.test.ts | M6 | A |
+| 86 | Busur lemparan | Membawa peti di luar jangkauan pad menampilkan garis jalur jatuh, dan ujungnya sama persis dengan integrasi peti sungguhan | tests/render/reading-aids.test.ts, tests/sim/crate.test.ts, e2e/layout.spec.ts | M4 | A |
+| 87 | Flash kerusakan | Tubuh yang kena serangan dibungkus shell putih aditif yang memudar dalam 60 ms | tests/render/reading-aids.test.ts | M4 | A |
+| 88 | Bobot peti dan pop tumbang | Membawa peti memendekkan sekaligus melebarkan badan; KO menaikkan skala badan 30 persen sesaat | tests/render/reading-aids.test.ts | M4 | A |
+| 89 | Hit-stop khusus desktop | Ledakan kuat di dekat kamera menahan gambar 40 ms; mati di sentuh, reduced motion, atau frame di atas 20 ms | tests/render/reading-aids.test.ts | M4 | A |
 | 80 | Tahan throttle 6x | p95 ≤ 20ms dan ≥ 50 fps di viewport ponsel dengan CPU di-throttle 6x | e2e/perf.spec.ts | M7 | A |
 | 79 | Relay signaling nyata | Dua halaman bernegosiasi lewat server WebSocket sungguhan | e2e/relay.spec.ts | M6 | A |
 | 77 | Soak 20 menit tanpa bocor | Roster ≤ 6 per tim, peti ≤ 24, id aktif tidak bertambah tanpa batas | tests/invariants/soak.test.ts | M7 | A |
@@ -93,3 +97,10 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 76 | Alat ukur di perangkat | `?meter=1` menampilkan fps, p50, p95, dan draw call | e2e/production.spec.ts | M7 | A |
 | 73 | Netplay dua halaman | Dua halaman browser menyelesaikan satu pertandingan lewat WebRTC | e2e/netplay.spec.ts | M6 | A |
 | 74 | Simulasi tidak berjalan di layar salah | Tick hanya terjadi saat layar playing | e2e/layout.spec.ts | M4 | A |
+
+## Yang sengaja tidak ada
+
+Rencana bagian 4.5 menyebut "peregangan saat melompat". Simulasi v2 tidak punya
+lompatan, jadi tidak ada yang bisa diregangkan; bahasa badan dibawa oleh squash
+membawa peti (baris 88) dan pop saat tumbang. Tidak ada stub atau tombol mati untuk
+ini, sama seperti gamepad, leaderboard, dan aplikasi native di bagian 9 rencana.

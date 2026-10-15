@@ -15,6 +15,10 @@ export interface ActorView {
   weapon: 'none' | 'pistol' | 'shotgun' | 'grenade' | 'bazooka' | 'medic';
   hpRatio: number;
   phase: number;
+  /** 1 at the moment of a hit, decaying to 0 over the flash window. */
+  flash: number;
+  /** 1 at the moment of a knockout, used for one squash-and-pop frame set. */
+  pop: number;
 }
 
 const HEAD_Y = 1.16;
@@ -22,7 +26,7 @@ const SHOULDER_Y = 1.02;
 const HIP_Y = 0.1;
 
 /**
- * A buddy is six instanced parts, not sixty-seven meshes. Only the torso carries
+ * A buddy is seven instanced parts, not sixty-seven meshes. Only the torso carries
  * team colour, so the head, arms and boots are shared by every team and cost one
  * draw call each for the whole battlefield.
  */
@@ -85,6 +89,7 @@ export class ChibiField {
   private arms: THREE.InstancedMesh;
   private boots: THREE.InstancedMesh;
   private shadows: THREE.InstancedMesh;
+  private flash: THREE.InstancedMesh;
   private weapons = new Map<string, THREE.InstancedMesh>();
   private geometries: THREE.BufferGeometry[] = [];
   private dummy = new THREE.Object3D();
@@ -100,6 +105,11 @@ export class ChibiField {
     const shadowGeo = new THREE.CircleGeometry(0.46, 12);
     shadowGeo.rotateX(-Math.PI / 2);
     this.shadows = this.instanced(shadowGeo, materials.shadow, BUDGET.buddies);
+
+    const flashGeo = new THREE.BoxGeometry(1.04, 1.52, 0.9);
+    flashGeo.translate(0, 0.78, 0);
+    this.flash = this.instanced(flashGeo, materials.hitFlash, BUDGET.buddies);
+    this.flash.name = 'hit_flash';
 
     for (const [kind, build] of Object.entries(WEAPON_SHAPES)) {
       this.weapons.set(kind, this.instanced(mergeParts(build()), materials.painted, BUDGET.buddies));
@@ -126,13 +136,24 @@ export class ChibiField {
     this.arms.count = 0;
     this.boots.count = 0;
     this.shadows.count = 0;
+    this.flash.count = 0;
+    let flashCount = 0;
 
     actors.forEach((actor, slot) => {
       if (slot >= BUDGET.buddies) return;
       const teamIndex = teamSlots.get(actor.team) ?? 0;
       teamSlots.set(actor.team, teamIndex + 1);
       this.drawActor(actor, teamIndex, slot, time, weaponUsed);
+      if (actor.flash > 0) {
+        this.dummy.position.set(actor.x, 0, actor.z);
+        this.dummy.rotation.set(0, actor.heading, 0);
+        const swell = 1.06 + actor.flash * 0.14;
+        this.dummy.scale.set(swell, swell, swell);
+        this.dummy.updateMatrix();
+        this.flash.setMatrixAt(flashCount++, this.dummy.matrix);
+      }
     });
+    this.flash.count = Math.min(flashCount, BUDGET.buddies);
 
     for (const team of TEAM_IDS) this.torsos.get(team)!.count = teamSlots.get(team) ?? 0;
     this.heads.count = Math.min(actors.length, BUDGET.buddies);
@@ -141,7 +162,7 @@ export class ChibiField {
     this.boots.count = this.arms.count;
     for (const [kind, mesh] of this.weapons) mesh.count = weaponUsed.get(kind) ?? 0;
 
-    for (const mesh of [...this.torsos.values(), this.heads, this.arms, this.boots, this.shadows, ...this.weapons.values()]) {
+    for (const mesh of [...this.torsos.values(), this.heads, this.arms, this.boots, this.shadows, this.flash, ...this.weapons.values()]) {
       mesh.instanceMatrix.needsUpdate = true;
     }
   }
@@ -157,20 +178,23 @@ export class ChibiField {
       : Math.sin(time * 2 + actor.phase) * 0.015;
     const squash = walking ? Math.cos(time * 9 + actor.phase) * 0.045 : Math.sin(time * 2 + actor.phase) * 0.02;
     const carrying = actor.state === 'carry';
+    const load = carrying ? 0.08 : 0;
+    const sag = carrying ? -0.07 : 0;
+    const pop = 1 + actor.pop * 0.3;
     const rightX = Math.cos(actor.heading);
     const rightZ = -Math.sin(actor.heading);
     const forwardX = Math.sin(actor.heading);
     const forwardZ = Math.cos(actor.heading);
 
-    this.dummy.position.set(actor.x, bob, actor.z);
+    this.dummy.position.set(actor.x, bob + sag, actor.z);
     this.dummy.rotation.set(ko ? -Math.PI / 2.2 : 0, actor.heading, ko ? 0 : swing * 0.06);
-    this.dummy.scale.set(1 + squash, 1 - squash * 1.6, 1 + squash);
+    this.dummy.scale.set((1 + squash + load) * pop, (1 - squash * 1.6 - load * 2.1) * pop, (1 + squash + load) * pop);
     this.dummy.updateMatrix();
     this.torsos.get(actor.team)!.setMatrixAt(teamIndex, this.dummy.matrix);
 
-    this.dummy.position.set(actor.x, bob, actor.z);
+    this.dummy.position.set(actor.x, bob + sag, actor.z);
     this.dummy.rotation.set(ko ? -Math.PI / 2.2 : 0, actor.heading, 0);
-    this.dummy.scale.set(1, 1, 1);
+    this.dummy.scale.set(pop, pop, pop);
     this.dummy.updateMatrix();
     this.heads.setMatrixAt(slot, this.dummy.matrix);
 
@@ -178,7 +202,7 @@ export class ChibiField {
     for (const side of [-1, 1]) {
       this.dummy.position.set(
         actor.x + rightX * 0.44 * side,
-        SHOULDER_Y + (carrying ? 0.34 : 0) + bob,
+        SHOULDER_Y + (carrying ? 0.34 : 0) + bob + sag,
         actor.z + rightZ * 0.44 * side
       );
       this.dummy.rotation.set(armLift + (carrying ? 0 : swing * 0.7 * side), actor.heading, side * (carrying ? 0.45 : 0.12));

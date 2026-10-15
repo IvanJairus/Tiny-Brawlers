@@ -54,7 +54,13 @@ sedikit.
 | 8 | kubus penuh | Heavy Battle Tank |
 
 Saat membawa peti dan berdiri di dekat pad, satu slot akan ditandai kotak kosong
-berkedip: itu slot yang akan terisi kalau tombol ambil ditekan.
+berkedip: itu slot yang akan terisi kalau tombol ambil ditekan. Berdiri jauh dari pad
+mengganti tanda itu dengan garis putih yang menunjukkan ke mana peti akan jatuh kalau
+dilempar; garisnya dihitung oleh fisika yang sama dengan peti sungguhan, bukan perkiraan.
+
+Badan karakter memendek saat membawa peti dan membesar sesaat saat tumbang, ledakan di
+dekat kamera mengguncang layar dan menahan gambar 40 ms, tapi guncangan dan tahan-gambar
+itu hanya hidup di desktop dengan `prefers-reduced-motion` mati.
 
 Kelas: **Petarung** 130 HP dan rusak 1,25x, **Tabib** 100 HP dengan aura sembuh 25 HP/dtk dalam
 4,5 m, **Pembangun** 90 HP, paling cepat, dan paling jauh melempar.

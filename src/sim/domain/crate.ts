@@ -1,5 +1,5 @@
 import type { EntityId } from '../core/ids';
-import { CRATE_SIZE } from './constants';
+import { CRATE_SIZE, TICK_S } from './constants';
 import type { TeamId } from './teams';
 
 export type CrateState = 'dropping' | 'loose' | 'held' | 'onPad' | 'thrown';
@@ -108,4 +108,30 @@ export function throwCrate(c: CrateRec, dirX: number, dirZ: number, force: numbe
   c.vy = heightBias;
   c.spinZ = force * 0.5;
   c.settled = 0;
+}
+
+export const CARRY_HEIGHT = 1.9;
+export const THROW_LIFT = 5.5;
+const PREVIEW_TICKS = 240;
+
+export interface ArcPoint {
+  x: number;
+  y: number;
+  z: number;
+}
+
+/**
+ * Replays the real crate integrator instead of approximating a parabola, so the
+ * on-screen arc cannot drift away from where the crate actually lands.
+ */
+export function throwPreview(x: number, z: number, heading: number, force: number): ArcPoint[] {
+  const crate = makeCrate(0 as EntityId, x, CARRY_HEIGHT, z);
+  throwCrate(crate, Math.sin(heading), Math.cos(heading), force, THROW_LIFT);
+
+  const points: ArcPoint[] = [{ x: crate.x, y: crate.y, z: crate.z }];
+  for (let i = 0; i < PREVIEW_TICKS && crate.state !== 'loose'; i++) {
+    stepCrate(crate, TICK_S);
+    points.push({ x: crate.x, y: crate.y, z: crate.z });
+  }
+  return points;
 }

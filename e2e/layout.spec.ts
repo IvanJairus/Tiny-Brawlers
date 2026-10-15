@@ -76,16 +76,16 @@ test('touch controls only exist for touch input and are big enough', async ({ pa
 test('a carried crate shows where it will land', async ({ page }) => {
   await startMatch(page);
 
-  const ghostVisible = () => page.evaluate(() => {
+  const visibleBy = (name: string) => page.evaluate((target) => {
     const tb = (window as unknown as { __tb: { stage: { scene: { traverse(fn: (o: { name?: string; visible?: boolean }) => void): void } } } }).__tb;
     let visible: boolean | null = null;
     tb.stage.scene.traverse((mesh) => {
-      if (mesh.name === 'placement_ghost') visible = Boolean(mesh.visible);
+      if (mesh.name === target) visible = Boolean(mesh.visible);
     });
     return visible;
-  });
+  }, name);
 
-  expect(await ghostVisible()).toBe(false);
+  expect(await visibleBy('placement_ghost')).toBe(false);
 
   await page.evaluate(() => {
     const tb = (window as unknown as {
@@ -111,7 +111,21 @@ test('a carried crate shows where it will land', async ({ page }) => {
   });
   await page.waitForTimeout(400);
 
-  expect(await ghostVisible()).toBe(true);
+  expect(await visibleBy('placement_ghost')).toBe(true);
+  expect(await visibleBy('throw_arc')).toBe(false);
+
+  await page.evaluate(() => {
+    const tb = (window as unknown as {
+      __tb: { world: { buddies: Array<{ id: number; x: number; z: number }>; localPlayer: number } };
+    }).__tb;
+    const me = tb.world.buddies.find((b) => b.id === tb.world.localPlayer)!;
+    me.x = 0;
+    me.z = 0;
+  });
+  await page.waitForTimeout(400);
+
+  expect(await visibleBy('placement_ghost')).toBe(false);
+  expect(await visibleBy('throw_arc')).toBe(true);
 });
 
 test('the renderer stays inside the draw-call budget while playing', async ({ page }) => {

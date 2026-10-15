@@ -5,7 +5,7 @@ import {
 } from '../domain/constants';
 import { CLASS_STATS } from '../domain/classes';
 import { applyDamage, distance, knockout, revive, stepBuddy, heal, type BuddyRec } from '../domain/buddy';
-import { attachCrateToBuddy, detachCrate, makeCrate, placeCrateOnPad, stepCrate, throwCrate, type CrateRec } from '../domain/crate';
+import { attachCrateToBuddy, CARRY_HEIGHT, detachCrate, makeCrate, placeCrateOnPad, stepCrate, throwCrate, THROW_LIFT, type CrateRec } from '../domain/crate';
 import { findBestSlot, isSlotFilled, padOrigin, setSlot, slotPosition } from '../domain/pad';
 import { evaluatePad } from '../domain/recipes';
 import { blastOf, isFinished, makeProjectile, stepProjectile, type ProjectileRec } from '../domain/projectile';
@@ -110,7 +110,7 @@ function handleGrab(w: World, b: BuddyRec, cmd: typeof EMPTY_INPUT, prev: typeof
     }
     const dirX = Math.sin(b.heading);
     const dirZ = Math.cos(b.heading);
-    throwCrate(crate, dirX, dirZ, CLASS_STATS[b.cls].throwForce, 5.5);
+    throwCrate(crate, dirX, dirZ, CLASS_STATS[b.cls].throwForce, THROW_LIFT);
     crate.claimTeam = b.team;
     b.carryCrate = NO_ENTITY as EntityId;
     emit(w, { kind: 'throw', entity: crate.id, buddy: b.id, at: { x: b.x, z: b.z } });
@@ -129,7 +129,7 @@ function handleGrab(w: World, b: BuddyRec, cmd: typeof EMPTY_INPUT, prev: typeof
     .sort((x, y) => distance(b, x) - distance(b, y))[0];
   if (!target) return;
   attachCrateToBuddy(target, b.id);
-  target.y = 1.9;
+  target.y = CARRY_HEIGHT;
   b.carryCrate = target.id;
   emit(w, { kind: 'pickup', entity: target.id, buddy: b.id, at: { x: b.x, z: b.z } });
 }
@@ -143,7 +143,7 @@ function stepCrates(w: World, dt: number): void {
         continue;
       }
       c.x = carrier.x;
-      c.y = 1.9 + Math.sin(w.clock * 8) * 0.04;
+      c.y = CARRY_HEIGHT + Math.sin(w.clock * 8) * 0.04;
       c.z = carrier.z;
       continue;
     }

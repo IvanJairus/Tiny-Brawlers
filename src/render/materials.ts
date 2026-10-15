@@ -6,6 +6,7 @@ export interface SharedMaterials {
   shadow: THREE.MeshBasicMaterial;
   particle: THREE.PointsMaterial;
   water: THREE.ShaderMaterial;
+  hitFlash: THREE.MeshBasicMaterial;
 }
 
 export const PALETTE = {
@@ -33,7 +34,7 @@ export const PALETTE = {
 /**
  * One painted material serves the arena, the buddies, the crates and the
  * projectiles: colour is baked into vertices, so variety costs no extra draw
- * calls. Only the four surfaces that genuinely behave differently are separate.
+ * calls. Only the surfaces that genuinely behave differently are separate.
  */
 export function createMaterials(): SharedMaterials {
   return {
@@ -43,7 +44,11 @@ export function createMaterials(): SharedMaterials {
     particle: new THREE.PointsMaterial({
       size: 0.24, vertexColors: true, transparent: true, opacity: 0.95, sizeAttenuation: true
     }),
-    water: createWaterMaterial()
+    water: createWaterMaterial(),
+    hitFlash: new THREE.MeshBasicMaterial({
+      color: 0xffffff, transparent: true, opacity: 0.85,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    })
   };
 }
 

@@ -44,7 +44,9 @@ function actors(n: number): ActorView[] {
     state: (['idle', 'walk', 'carry', 'ko', 'celebrate'] as const)[i % 5],
     weapon: (['none', 'pistol', 'shotgun', 'grenade', 'bazooka', 'medic'] as const)[i % 6],
     hpRatio: 1,
-    phase: i * 0.3
+    phase: i * 0.3,
+    flash: 0,
+    pop: 0
   }));
 }
 
@@ -133,7 +135,7 @@ describe('render budget', () => {
 
     const body = field.group.children[0] as THREE.InstancedMesh;
     expect(body.isInstancedMesh).toBe(true);
-    expect(meshes).toBeLessThanOrEqual(13);
+    expect(meshes).toBeLessThanOrEqual(14);
     expect(body.geometry.attributes.position.count).toBeGreaterThan(24);
     expect(field.group.children.length).toBe(meshes);
   });

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { attachCrateToBuddy, detachCrate, makeCrate, placeCrateOnPad, stepCrate, throwCrate } from '../../src/sim/domain/crate';
+import { attachCrateToBuddy, CARRY_HEIGHT, detachCrate, makeCrate, placeCrateOnPad, stepCrate, throwCrate, throwPreview, THROW_LIFT } from '../../src/sim/domain/crate';
+import { TICK_S } from '../../src/sim/domain/constants';
 import { NO_ENTITY, type EntityId } from '../../src/sim/core/ids';
 import { makeBuddy } from '../../src/sim/domain/buddy';
 
@@ -72,5 +73,27 @@ describe('crate physics', () => {
     expect(c.state).toBe('dropping');
     expect(c.padTeam).toBeNull();
     expect(c.heldBy).toBe(NO_ENTITY as EntityId);
+  });
+
+  it('predicts the throw by replaying the same integrator', () => {
+    const heading = Math.PI / 2;
+    const arc = throwPreview(0, 0, heading, 18);
+
+    const c = crate(0, CARRY_HEIGHT, 0);
+    throwCrate(c, Math.sin(heading), Math.cos(heading), 18, THROW_LIFT);
+    let guard = 0;
+    while (c.state !== 'loose' && guard++ < 300) stepCrate(c, TICK_S);
+
+    const end = arc[arc.length - 1];
+    expect(end.x).toBeCloseTo(c.x, 6);
+    expect(end.z).toBeCloseTo(c.z, 6);
+    expect(arc.length).toBeGreaterThan(10);
+    expect(Math.hypot(c.x, c.z)).toBeGreaterThan(6);
+  });
+
+  it('lands short when thrown straight ahead at a low force', () => {
+    const near = throwPreview(0, 0, 0, 8);
+    const far = throwPreview(0, 0, 0, 18);
+    expect(near[near.length - 1].z).toBeLessThan(far[far.length - 1].z);
   });
 });

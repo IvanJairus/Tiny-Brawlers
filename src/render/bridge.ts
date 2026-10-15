@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { buildArena, type Arena } from './arena';
 import { ChibiField, type ActorView } from './chibi';
-import { CrateField, PlacementGhost, buildRocks, type CrateView } from './props';
+import { CrateField, PlacementGhost, ThrowArc, buildRocks, type CrateView } from './props';
 import { ProjectileField, type ProjectileView } from './projectiles';
 import { ParticlePool, COLOR } from './particles';
 import { TankField, type TankView } from './tanks';
@@ -9,12 +9,16 @@ import { createMaterials, type SharedMaterials } from './materials';
 import { findBestSlot, padOrigin, slotPosition } from '../sim/domain/pad';
 import { PAD } from '../sim/domain/constants';
 import { distance } from '../sim/domain/buddy';
+import { throwPreview } from '../sim/domain/crate';
+import { CLASS_STATS } from '../sim/domain/classes';
+import { TEAM_COLORS } from '../sim/domain/teams';
 import type { IsoCamera } from './camera';
 import type { World } from '../sim/core/world';
 import type { SimEvent } from '../sim/core/events';
 import type { EntityId } from '../sim/core/ids';
 import { NO_ENTITY } from '../sim/core/ids';
 import { BUDGET } from './budget';
+import { blastWorthFreezing, createHitStop } from './hitstop';
 
 interface Interpolated {
   x: number;
@@ -31,6 +35,16 @@ function lerpAngle(a: number, b: number, t: number): number {
 
 const EMPTY_WORLD_STANDIN = { buddies: [], localPlayer: 0 as EntityId } as unknown as World;
 
+const FLASH_S = 0.06;
+const POP_S = 0.18;
+
+export interface FeelOptions {
+  coarsePointer: boolean;
+  reducedMotion: boolean;
+}
+
+const defaultFeel = (): FeelOptions => ({ coarsePointer: false, reducedMotion: false });
+
 export class WorldRenderer {
   private materials: SharedMaterials;
   private arena: Arena;
@@ -41,7 +55,13 @@ export class WorldRenderer {
   private particles: ParticlePool;
   private tanks: TankField;
   private ghost: PlacementGhost;
+  private arc: ThrowArc;
+  private flashUntil = new Map<EntityId, number>();
+  private popUntil = new Map<EntityId, number>();
   private camera: IsoCamera | null = null;
+  private clock = 0;
+  private lastFrameMs = 16;
+  private hitStop = createHitStop();
   private prev = new Map<EntityId, Interpolated>();
   private lastTick = -1;
   private actors: ActorView[] = [];
@@ -51,7 +71,7 @@ export class WorldRenderer {
 
   private worldRef: World = EMPTY_WORLD_STANDIN;
 
-  constructor(private scene: THREE.Scene) {
+  constructor(private scene: THREE.Scene, private feel: () => FeelOptions = defaultFeel) {
     this.materials = createMaterials();
     this.arena = buildArena(this.materials);
     this.chibi = new ChibiField(this.materials);
@@ -61,10 +81,12 @@ export class WorldRenderer {
     this.particles = new ParticlePool(this.materials);
     this.tanks = new TankField(this.materials);
     this.ghost = new PlacementGhost(this.materials);
+    this.arc = new ThrowArc();
 
     scene.add(
       this.arena.group, this.chibi.group, this.crates.mesh, this.rocks,
-      this.projectiles.group, this.particles.points, this.tanks.group, this.ghost.mesh
+      this.projectiles.group, this.particles.points, this.tanks.group,
+      this.ghost.mesh, this.arc.line
     );
   }
 
@@ -72,8 +94,15 @@ export class WorldRenderer {
     this.camera = camera;
   }
 
+  /** True while a nearby blast is holding the picture still. The simulation keeps running. */
+  frozen(): boolean {
+    return this.hitStop.frozen(this.clock);
+  }
+
   sync(world: World, alpha: number, time: number, dt: number): void {
     this.worldRef = world;
+    this.clock = time;
+    this.lastFrameMs = dt * 1000;
     if (world.tick !== this.lastTick) {
       this.lastTick = world.tick;
       this.prev.clear();
@@ -94,7 +123,9 @@ export class WorldRenderer {
         state: b.state,
         weapon: b.weapon === 'medic' ? 'medic' : (b.weapon as ActorView['weapon']),
         hpRatio: b.hp / b.maxHp,
-        phase: (b.id % 17) * 0.37
+        phase: (b.id % 17) * 0.37,
+        flash: this.decay(this.flashUntil, b.id, time, FLASH_S),
+        pop: this.decay(this.popUntil, b.id, time, POP_S)
       });
     }
     this.chibi.sync(this.actors, time);
@@ -123,28 +154,41 @@ export class WorldRenderer {
 
     this.particles.update(dt);
     this.arena.update(time);
-    this.updateGhost(world, time);
+    this.updateCarryAids(world, time);
   }
 
-  /** Preview of the slot a carried crate would fill right now. */
-  private updateGhost(world: World, time: number): void {
+  /** Preview of the slot a carried crate would fill, or of where a throw lands. */
+  private updateCarryAids(world: World, time: number): void {
+    this.ghost.hide();
+    this.arc.hide();
     const me = world.buddies.find((b) => b.id === world.localPlayer);
     if (!me || me.state === 'ko' || me.carryCrate === (NO_ENTITY as EntityId) || world.eliminated[me.team]) {
-      this.ghost.hide();
       return;
     }
+
     const origin = padOrigin(me.team);
-    if (distance(me, origin) >= PAD.halfWidth + 1.3) {
-      this.ghost.hide();
+    const slot = distance(me, origin) < PAD.halfWidth + 1.3
+      ? findBestSlot(world.pads[me.team], me.team, me.x, me.z)
+      : -1;
+    if (slot >= 0) {
+      const place = slotPosition(me.team, slot);
+      this.ghost.showAt(place.x, place.y, place.z, (Math.sin(time * 4) + 1) / 2);
       return;
     }
-    const slot = findBestSlot(world.pads[me.team], me.team, me.x, me.z);
-    if (slot < 0) {
-      this.ghost.hide();
-      return;
+
+    const points = throwPreview(me.x, me.z, me.heading, CLASS_STATS[me.cls].throwForce);
+    this.arc.show(points, TEAM_COLORS[me.team].css);
+  }
+
+  private decay(until: Map<EntityId, number>, id: EntityId, time: number, window: number): number {
+    const endsAt = until.get(id);
+    if (endsAt === undefined) return 0;
+    const left = (endsAt - time) / window;
+    if (left <= 0) {
+      until.delete(id);
+      return 0;
     }
-    const place = slotPosition(me.team, slot);
-    this.ghost.showAt(place.x, place.y, place.z, (Math.sin(time * 4) + 1) / 2);
+    return left;
   }
 
   consume(events: SimEvent[]): void {
@@ -155,6 +199,12 @@ export class WorldRenderer {
           const d = Math.hypot(event.at.x - focus.x, event.at.z - focus.z);
           const strength = Math.max(0, 1 - d / 18) * (event.kind === 'bunkerHit' ? 0.12 : 0.28);
           if (strength > 0.02) this.camera.shake(strength);
+          const feel = this.feel();
+          if (blastWorthFreezing({
+            strength, coarsePointer: feel.coarsePointer, reducedMotion: feel.reducedMotion, frameMs: this.lastFrameMs
+          })) {
+            this.hitStop.trigger(this.clock);
+          }
         }
       }
       switch (event.kind) {
@@ -163,10 +213,16 @@ export class WorldRenderer {
           this.particles.burst(event.at.x, 0.4, event.at.z, COLOR.smoke, 12, 3.4, 0.3, 1.1);
           break;
         case 'damage':
+          this.flashUntil.set(event.entity, this.clock + FLASH_S);
           this.particles.burst(event.at.x, 1.1, event.at.z, COLOR.hit, 7, 3.2, 1.4, 0.32);
           break;
         case 'knockout':
+          this.popUntil.set(event.entity, this.clock + POP_S);
           this.particles.burst(event.at.x, 0.9, event.at.z, COLOR.dirt, 16, 4.4, 1.2, 0.7);
+          break;
+        case 'despawn':
+          this.flashUntil.delete(event.entity);
+          this.popUntil.delete(event.entity);
           break;
         case 'heal':
           this.particles.burst(event.at.x, 1.1, event.at.z, COLOR.heal, 10, 2.2, -0.25, 0.8);

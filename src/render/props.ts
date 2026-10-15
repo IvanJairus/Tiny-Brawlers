@@ -4,6 +4,7 @@ import { PALETTE } from './materials';
 import type { SharedMaterials } from './materials';
 import { BUDGET } from './budget';
 import { CRATE_SIZE, ARENA_HALF } from '../sim/domain/constants';
+import type { ArcPoint } from '../sim/domain/crate';
 
 export interface CrateView {
   x: number;
@@ -119,6 +120,53 @@ export class PlacementGhost {
   dispose(): void {
     this.geometry.dispose();
     (this.mesh.material as THREE.Material).dispose();
+  }
+}
+
+const ARC_CAPACITY = 256;
+
+/**
+ * The predicted flight path of a carried crate. One line object, one draw call:
+ * the points are written from the simulation's own integrator, never guessed here.
+ */
+export class ThrowArc {
+  public readonly line: THREE.Line;
+  private geometry: THREE.BufferGeometry;
+  private material: THREE.LineBasicMaterial;
+  private positions = new Float32Array(ARC_CAPACITY * 3);
+
+  constructor() {
+    this.geometry = new THREE.BufferGeometry();
+    this.geometry.setAttribute('position', new THREE.BufferAttribute(this.positions, 3));
+    this.material = new THREE.LineBasicMaterial({
+      color: 0xfff2cc, transparent: true, opacity: 0.62, depthWrite: false
+    });
+    this.line = new THREE.Line(this.geometry, this.material);
+    this.line.name = 'throw_arc';
+    this.line.frustumCulled = false;
+    this.line.visible = false;
+  }
+
+  show(points: ArcPoint[], colour: string): void {
+    const count = Math.min(points.length, ARC_CAPACITY);
+    for (let i = 0; i < count; i++) {
+      this.positions[i * 3] = points[i].x;
+      this.positions[i * 3 + 1] = points[i].y;
+      this.positions[i * 3 + 2] = points[i].z;
+    }
+    (this.geometry.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
+    this.geometry.setDrawRange(0, count);
+    this.material.color.set(colour);
+    this.line.visible = count > 1;
+  }
+
+  hide(): void {
+    this.line.visible = false;
+  }
+
+  dispose(): void {
+    this.geometry.dispose();
+    this.material.dispose();
   }
 }
 
