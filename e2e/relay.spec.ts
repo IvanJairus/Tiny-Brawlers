@@ -45,6 +45,9 @@ test('two pages negotiate through the websocket relay', async ({ context }) => {
 
   const hostPeers = await host.evaluate(() => (window as unknown as { __tb: { netInfo(): { peers: number } } }).__tb.netInfo().peers);
   expect(hostPeers).toBe(1);
+  await expect.poll(() => host.evaluate(() => (
+    window as unknown as { __tb: { roster(): Array<{ human: boolean }> } }
+  ).__tb.roster().filter((entry) => entry.human).length), { timeout: 20_000 }).toBe(2);
 
   await host.getByRole('button', { name: 'Mulai Pertandingan' }).click();
   await expect.poll(() => guest.evaluate(() => {

@@ -64,8 +64,11 @@ class FakePeerConnection implements PeerConnectionLike {
       if (!remotePc) return;
       if (remotePc.ondatachannel) remotePc.ondatachannel({ channel: remote });
       else remotePc.queueChannel(remote);
-      local.open();
+      // The far side has to be open first: a real DataChannel only reports open
+      // once the peer end can actually receive, and a flush on local open writes
+      // straight into the remote channel.
       remote.open();
+      local.open();
     });
     return local;
   }
@@ -132,6 +135,22 @@ function pair() {
 }
 
 describe('webrtc transport', () => {
+  it('holds a message sent before the channel opened and delivers it after', async () => {
+    const { a, b, settle } = pair();
+    const seen: Uint8Array[] = [];
+    b.onData((_peer, _channel, data) => seen.push(data));
+
+    a.connect('B');
+    a.send('B', 'reliable', new Uint8Array([9, 9]));
+    expect(seen).toHaveLength(0);
+
+    await settle();
+    await new Promise((resolve) => setTimeout(resolve, 5));
+
+    expect(seen).toHaveLength(1);
+    expect(Array.from(seen[0])).toEqual([9, 9]);
+  });
+
   it('opens two channels and routes payloads with the right kind', async () => {
     const { a, b, pump, settle } = pair();
     const seen: Array<[string, string]> = [];

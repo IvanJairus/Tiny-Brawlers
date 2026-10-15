@@ -110,6 +110,7 @@ export function createHostSession(world: World, transport: Transport, options: H
     })),
     step(dt: number, axes: RawAxes): void {
       host.collect();
+      host.noteLocalInput();
       if (localSlot.buddyId) world.inputs.set(localSlot.buddyId, encodeInput((world.seq + world.tick) % 256, axes));
       stepWorld(world, dt);
       sincePublish += dt * 1000;

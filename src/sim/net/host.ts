@@ -36,6 +36,8 @@ export interface Host {
   begin(): void;
   publish(events: SimEvent[]): void;
   collect(): void;
+  /** The host's own player never sends an input message, so it has to be marked alive locally. */
+  noteLocalInput(): void;
   humanCount(): number;
   code(): string;
 }
@@ -190,7 +192,14 @@ export function createHost(world: World, transport: Transport, options: HostOpti
     begin() {
       if (started) return;
       started = true;
-      for (const slot of slots) slot.bot = slot.peerId === null;
+      // The takeover clock measures silence, so it has to start at kickoff. Left
+      // at zero, every connected slot looked 20 seconds stale on the first
+      // snapshot and the host turned its own player into a bot.
+      const moment = now();
+      for (const slot of slots) {
+        slot.bot = slot.peerId === null;
+        slot.lastInputAt = moment;
+      }
       assignBuddies();
       for (const slot of slots) {
         if (slot.peerId !== null) {
@@ -220,7 +229,11 @@ export function createHost(world: World, transport: Transport, options: HostOpti
         if (slot.bot || slot.peerId === null) continue;
         if (!world.inputs.has(slot.buddyId)) world.inputs.set(slot.buddyId, EMPTY_INPUT);
       }
-    }
+    },
+
+    noteLocalInput() {
+      slots[0].lastInputAt = now();
+    },
   };
 
   transport.onData((peerId, channel, data) => host.handle(peerId, channel, data));

@@ -103,7 +103,10 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 77 | Soak 20 menit tanpa bocor | Roster ≤ 6 per tim, peti ≤ 24, id aktif tidak bertambah tanpa batas | tests/invariants/soak.test.ts | M7 | A |
 | 78 | Sesi panjang di browser | 45 detik bermain nyata tidak menambah node DOM atau heap | e2e/production.spec.ts | M7 | A |
 | 76 | Alat ukur di perangkat | `?meter=1` menampilkan fps, p50, p95, dan draw call | e2e/production.spec.ts | M7 | A |
-| 73 | Netplay dua halaman | Dua halaman browser menyelesaikan satu pertandingan lewat WebRTC | e2e/netplay.spec.ts | M6 | A |
+| 73 | Netplay dua halaman | Dua halaman browser menyelesaikan satu pertandingan lewat WebRTC, dan kursi kedua benar-benar terisi (roster host menunjuk 2 manusia, tamu mengontrol buddy yang ada di host) | e2e/netplay.spec.ts | M6 | A |
+| 98 | Pesan sebelum channel terbuka | join yang dikirim sebelum data channel open tidak hilang, melainkan keluar saat open | tests/net/webrtc.test.ts, e2e/netplay.spec.ts | M5 | A |
+| 99 | Host tidak diambil alih AI | Setelah 30 detik waktu link, buddy host tetap ownedByPlayer dan bukan bot | tests/net/session.test.ts | M5 | A |
+| 100 | Tamu yang tabnya ditutup jadi bot | Di dua halaman nyata: host kembali ke 1 manusia, tanpa peti hantu, dan tick terus jalan | e2e/netplay.spec.ts | M6 | A |
 | 74 | Simulasi tidak berjalan di layar salah | Tick hanya terjadi saat layar playing | e2e/layout.spec.ts | M4 | A |
 
 ## Yang sengaja tidak ada

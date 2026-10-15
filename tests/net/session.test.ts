@@ -99,6 +99,25 @@ describe('netplay session', () => {
     expect(guest.world.buddies.length).toBe(0);
   });
 
+  it('keeps the host driving its own buddy through a long match', () => {
+    const { hub, host, guest } = build();
+    hub.advance(60);
+    guest.start();
+    host.start();
+    hub.advance(60);
+
+    for (let i = 0; i < 900; i++) {
+      host.step(TICK_S, WALK);
+      guest.step(TICK_S, STILL);
+      hub.advance(TICK_S * 1000);
+    }
+
+    const local = host.world.buddies.find((b) => b.id === host.world.localPlayer);
+    expect(local?.isBot).toBe(false);
+    expect(local?.ownedByPlayer).toBe(true);
+    expect(host.roster()[0].human).toBe(true);
+  });
+
   it('names a dead relay instead of leaving the host waiting', () => {
     const hub = new LoopbackHub(CLEAN_LINK, 1);
     const world = createWorld({ seed: 77 });

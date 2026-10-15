@@ -41,6 +41,8 @@ export interface DataChannelLike {
 
 export type PeerConnectionFactory = () => PeerConnectionLike;
 
+const PENDING_LIMIT = 32;
+
 /**
  * Signaling and data are deliberately separate: the broker only swaps SDP, and
  * the game owns its own data channels, so the one-channel-per-connection limit of
@@ -52,6 +54,7 @@ export class WebRtcTransport implements Transport {
   private dataHandler: (peerId: string, channel: Channel, data: Uint8Array) => void = () => undefined;
   private upHandler: (peerId: string) => void = () => undefined;
   private downHandler: (peerId: string) => void = () => undefined;
+  private pending = new Map<string, Array<{ channel: Channel; data: Uint8Array }>>();
   private closed = false;
 
   constructor(
@@ -85,7 +88,22 @@ export class WebRtcTransport implements Transport {
   send(peerId: string, channel: Channel, data: Uint8Array): void {
     const entry = this.peers.get(peerId);
     const dc = channel === 'fast' ? entry?.fast : entry?.reliable;
-    if (dc && dc.readyState === 'open') dc.send(data);
+    if (dc && dc.readyState === 'open') {
+      dc.send(data);
+      return;
+    }
+    // A guest sends its join the moment the page asks for one, which is before
+    // the data channel has finished opening. Dropping it left a connected player
+    // watching a match it had no slot in.
+    const queue = this.pending.get(peerId) ?? [];
+    if (queue.length < PENDING_LIMIT) this.pending.set(peerId, [...queue, { channel, data }]);
+  }
+
+  private flush(peerId: string): void {
+    const queue = this.pending.get(peerId);
+    if (!queue) return;
+    this.pending.delete(peerId);
+    for (const item of queue) this.send(peerId, item.channel, item.data);
   }
 
   broadcast(channel: Channel, data: Uint8Array): void {
@@ -179,8 +197,16 @@ export class WebRtcTransport implements Transport {
 
   private wireChannel(channel: DataChannelLike, kind: Channel): void {
     channel.binaryType = 'arraybuffer';
-    channel.onopen = () => this.upHandler(this.ownerOf(channel));
-    if (channel.readyState === 'open') this.upHandler(this.ownerOf(channel));
+    channel.onopen = () => {
+      const peerId = this.ownerOf(channel);
+      this.upHandler(peerId);
+      this.flush(peerId);
+    };
+    if (channel.readyState === 'open') {
+      const peerId = this.ownerOf(channel);
+      this.upHandler(peerId);
+      this.flush(peerId);
+    }
     channel.onclose = () => this.removePeer(this.ownerOf(channel));
     channel.onmessage = (event) => {
       const bytes = event.data instanceof Uint8Array ? event.data : new Uint8Array(event.data);
@@ -232,6 +258,7 @@ export class WebRtcTransport implements Transport {
     const entry = this.peers.get(peerId);
     if (!entry) return;
     this.peers.delete(peerId);
+    this.pending.delete(peerId);
     try {
       entry.reliable?.close();
       entry.fast?.close();

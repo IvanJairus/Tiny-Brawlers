@@ -91,6 +91,10 @@ export function createClient(transport: Transport, options: ClientOptions): Clie
       if (peerId !== hostPeerId && channel === 'fast') return;
 
       if (channel === 'fast') {
+        // A refused peer must not keep watching: the host broadcasts snapshots to
+        // the room, and without this a guest that was turned away at the door
+        // still renders a live match and gets pushed to the playing screen.
+        if (client.phase === 'refused') return;
         if (data[0] !== MSG.snapshot) return;
         const snapshot = decodeSnapshotSafe(data.subarray(1));
         if (!snapshot) {
@@ -148,9 +152,11 @@ export function createClient(transport: Transport, options: ClientOptions): Clie
           client.phase = 'refused';
           break;
         case 'roster':
+          if (client.phase === 'refused') break;
           if (client.phase === 'joining') client.phase = 'lobby';
           break;
         case 'start':
+          if (client.phase === 'refused') break;
           client.phase = 'playing';
           break;
         case 'replaced':

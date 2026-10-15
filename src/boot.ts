@@ -40,6 +40,7 @@ export interface DebugHandle {
   hash(): number;
   view(): ViewState | null;
   zoom(): number;
+  roster(): Array<{ team: string; name: string; human: boolean; ready: boolean; latencyMs: number }>;
   send(event: MachineEvent): void;
   advance(ticks: number): void;
 }
@@ -383,6 +384,7 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
       hash: () => hashWorld(world),
       view: () => view,
       zoom: () => camera.zoom,
+      roster: () => session.roster(),
       send: (event: MachineEvent) => {
         if (machine.can(event)) machine.send(event);
       },
