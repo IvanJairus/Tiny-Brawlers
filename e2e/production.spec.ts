@@ -28,6 +28,33 @@ test('the deployed bundle boots without errors', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+test('the audio context is only created by the gesture that starts play', async ({ page }) => {
+  await page.addInitScript(() => {
+    const Real = window.AudioContext;
+    const counter = window as unknown as { __audioContexts: number };
+    counter.__audioContexts = 0;
+    class Counting extends Real {
+      constructor(...args: ConstructorParameters<typeof AudioContext>[]) {
+        super(...args);
+        counter.__audioContexts++;
+      }
+    }
+    window.AudioContext = Counting as unknown as typeof AudioContext;
+  });
+
+  const count = () => page.evaluate(() => (window as unknown as { __audioContexts: number }).__audioContexts);
+
+  await page.goto('/');
+  await expect.poll(() => page.evaluate(() => document.body.dataset.screen), { timeout: 15_000 }).toBe('title');
+  expect(await count()).toBe(0);
+
+  await page.getByRole('button', { name: 'Main', exact: true }).click();
+  expect(await count()).toBe(0);
+  await startSoloMatch(page);
+
+  expect(await count()).toBe(1);
+});
+
 test('the deployed bundle lays out correctly on a phone', async ({ page }) => {
   await page.setViewportSize({ width: 740, height: 360 });
   await startSoloMatch(page);

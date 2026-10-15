@@ -8,7 +8,7 @@ import { ParticlePool } from '../../src/render/particles';
 import { TankField, type TankView } from '../../src/render/tanks';
 import { createMaterials } from '../../src/render/materials';
 import { BUDGET, overBudget } from '../../src/render/budget';
-import { TEAM_COLORS, TEAM_IDS, type TeamId } from '../../src/sim/domain/teams';
+import { TEAM_IDS, type TeamId } from '../../src/sim/domain/teams';
 import type { ProjectileKind } from '../../src/sim/domain/projectile';
 
 function sceneCounters(scene: THREE.Scene) {
@@ -117,20 +117,24 @@ describe('render budget', () => {
     }
   });
 
-  it('names team colours the way they look', () => {
-    expect(TEAM_COLORS.blue.css).toMatch(/^#2f/);
-    expect(TEAM_COLORS.cyan.css).toMatch(/^#00c/);
-    expect(TEAM_COLORS.red.label).toBe('Merah');
-    expect(TEAM_COLORS.blue.label).toBe('Biru');
-    expect(TEAM_COLORS.yellow.label).toBe('Kuning');
-    expect(TEAM_COLORS.cyan.label).toBe('Sian');
-  });
-
   it('never exceeds instance capacity when the battlefield is crowded', () => {
     expect(() => chibi.sync(actors(BUDGET.buddies + 12), 2)).not.toThrow();
     expect(() => crates.sync(Array.from({ length: 60 }, () => ({ x: 0, y: 1, z: 0, spin: 0, scale: 1 })))).not.toThrow();
     expect(() => projectiles.sync(Array.from({ length: 90 }, () => ({ kind: 'shell' as ProjectileKind, x: 0, y: 1, z: 0, heading: 0 })))).not.toThrow();
     const counters = sceneCounters(scene);
     expect(overBudget(counters), JSON.stringify(counters)).toEqual([]);
+  });
+
+  it('draws every buddy from the same merged meshes', () => {
+    const field = new ChibiField(createMaterials());
+    const meshes = field.group.children.length;
+    field.sync(actors(1), 0);
+    field.sync(actors(BUDGET.buddies), 0);
+
+    const body = field.group.children[0] as THREE.InstancedMesh;
+    expect(body.isInstancedMesh).toBe(true);
+    expect(meshes).toBeLessThanOrEqual(13);
+    expect(body.geometry.attributes.position.count).toBeGreaterThan(24);
+    expect(field.group.children.length).toBe(meshes);
   });
 });

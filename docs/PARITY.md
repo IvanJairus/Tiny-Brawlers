@@ -21,7 +21,7 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 11 | Kelas Constructor | HP 90, kecepatan 8,2, faktor bawa 0,95, lempar 18 | tests/sim/buddy.test.ts | M2 | A |
 | 12 | Penalti membawa peti | Kecepatan turun sesuai faktor kelas | tests/sim/buddy.test.ts | M2 | A |
 | 13 | Batas arena | Karakter tidak keluar pulau lewat rumput | tests/sim/buddy.test.ts | M2 | A |
-| 14 | Deteksi void | Keluar batas memicu jatuh dan kembali ke basis | tests/sim/step.ts (recoverFromVoid) | M2 | A |
+| 14 | Deteksi void | Buddy di luar 46 m dikembalikan ke basis dan tumbang, peti yang hilang di luar terhapus dan id-nya dilepas | tests/sim/step.test.ts | M2 | A |
 | 15 | KO dan respawn | Tumbang 5 detik, hidup lagi 40 persen HP dengan kekebalan | tests/sim/buddy.test.ts, tests/sim/step.test.ts | M2 | A |
 | 16 | Peti jatuh dan diam | Gravitasi, satu lantunan, lalu istirahat | tests/sim/crate.test.ts | M2 | A |
 | 17 | Peti di kepala | Peti ikut pembawanya dan tidak diintegrasikan | tests/sim/crate.test.ts | M2 | A |
@@ -48,7 +48,7 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 38 | Kerusakan bunker | Hanya tembok tim lawan yang berkurang, tidak oleh temannya | tests/sim/step.test.ts | M2 | A |
 | 39 | Eliminasi tim | Bunker rata dan semua tumbang | tests/sim/step.test.ts | M2 | A |
 | 40 | Akhir pertandingan membekukan sim | Tidak ada tick, spawn, atau event setelah laga usai | tests/invariants/defects.test.ts | M2 | A |
-| 41 | Baku tambah pasukan | Unit baru lahir berkala selama bunker utuh | tests/sim/step.ts (tickReinforcements) | M2 | A |
+| 41 | Pasukan bala bantuan | Tiap tim yang belum kalah memanggil satu fighter baru setiap 20 detik sampai skuad penuh (6) | tests/sim/step.test.ts | M2 | A |
 | 42 | Tank bisa dikendarai | Naik, kemudi, tembak, terusir saat pengemudi tumbang | tests/sim/step.test.ts | M2 | A |
 | 43 | Bangkai tank dibersihkan | Entitas hilang dan id-nya dilepas | tests/sim/step.test.ts | M2 | A |
 | 44 | Meriam tank satu frame dunia | Sudut menara dunia, bukan lokal | tests/invariants/defects.test.ts | M2 | A |
@@ -57,18 +57,18 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 47 | Bot melawan dan mengambil peti | AI memakai senjata, memburu peti, mengisi pad | tests/invariants/defects.test.ts | M2 | A |
 | 48 | Input kuantan tetap | Stream sentuh dan keyboard identik menghasilkan dunia identik | tests/sim/input-parity.test.ts | M4 | A |
 | 49 | Mesin tanpa nama | Sim tidak punya nama node scene graph untuk di-assert | tests/layers.test.ts | M0 | A |
-| 50 | Arena satu draw call statis | Pulau, bunker, karung pasir, pad digabung | tests/render/budget.test.ts | M3 | - A |
-| 51 | Anggaran draw call | DC ≤ 60, material ≤ 12, geometry ≤ 30 | tests/render/budget.test.ts | M3 | - A |
-| 52 | Air di GPU | Gelombang di vertex shader, bukan CPU | tests/render/budget.test.ts | M3 | - A |
-| 53 | Chibi multi-part merge | Karakter 2-3 mesh, bukan 67 | tests/render/budget.test.ts | M3 | - A |
-| 54 | Palet tim benar | Nama tim dan warna cocok | tests/render/palette.test.ts | M3 | - A |
+| 50 | Arena satu draw call statis | Pulau, bunker, karung pasir, pad digabung | tests/render/budget.test.ts | M3 | A |
+| 51 | Anggaran draw call | DC ≤ 60, material ≤ 12, geometry ≤ 30 | tests/render/budget.test.ts | M3 | A |
+| 52 | Air di GPU | Gelombang di vertex shader, bukan CPU | tests/render/water.test.ts | M3 | A |
+| 53 | Chibi multi-part merge | Bagian tubuh digabung jadi satu geometri, 13 mesh melayani 24 buddy dan tidak tumbuh mengikuti jumlah buddy | tests/render/budget.test.ts | M3 | A |
+| 54 | Palet tim benar | Nama tim dan warna cocok, tanpa tekstur | tests/render/palette.test.ts | M3 | A |
 | 55 | Layar judul dan pilih | State machine menelusuri semua layar | tests/ui/machine.test.ts | M4 | A |
 | 56 | Pause hanya solo | Simulasi berhenti saat layar bukan playing | tests/ui/machine.test.ts | M4 | A |
 | 57 | HUD tanpa lookup per frame | Node diselesaikan sekali saat mount, tulis di-diff | tests/ui/hud-bind.test.ts | M4 | A |
 | 58 | Tidak ada bocor horizontal | scrollWidth = lebar viewport di 3 ukuran | e2e/layout.spec.ts | M4 | A |
 | 59 | Target sentuh 44px | Semua kontrol sentuh ≥ 44px dengan jarak | e2e/layout.spec.ts | M4 | A |
 | 60 | Kontrol sentuh hanya di sentuh | `pointer: coarse` menjadi satu-satunya pemicu | e2e/layout.spec.ts | M4 | A |
-| 61 | Audio unlock oleh gesture | Context dibuat hanya di dalam gesture mulai | src/boot.ts + e2e tanpa warning | M7 | A |
+| 61 | Audio unlock oleh gesture | Tidak ada AudioContext sebelum dan sesudah tombol pertama ditekan, persis satu setelah pertandingan mulai | e2e/production.spec.ts | M7 | A |
 | 62 | Pool suara | Maksimal 8 cue per detik, 12 voice dengan oldest-steal, dedup 40ms per lokasi | tests/platform/audio.test.ts | M7 | A |
 | 63 | Codec snapshot | Round-trip biner identik, buffer rusak ditolak | tests/net/net.test.ts | M5 | A |
 | 64 | Host otoritatif | Klien hanya mengirim input, host yang mensimulasikan | tests/net/net.test.ts | M5 | A |
@@ -77,7 +77,7 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 67 | Putus jadi bot | Peer yang hilang jadi bot dan tetap membawa petinya | tests/net/net.test.ts | M5 | A |
 | 68 | Anggaran bandwidth | Snapshot dunia penuh < 1200 byte, di bawah 16KB/s | tests/net/net.test.ts | M5 | A |
 | 69 | Kode ruangan | Gabung dengan kode salah ditolak | tests/net/net.test.ts | M5 | A |
-| 70 | Perangkat pendukung | RTCPeerConnection tidak ada pindah layar unsupported | tests/platform/audio.test.ts | M6 | A |
+| 70 | Perangkat pendukung | RTCPeerConnection tidak ada pindah layar unsupported | tests/platform/audio.test.ts, tests/ui/machine.test.ts | M6 | A |
 | 71 | Layar hasil nyata | Statistik dihitung dari event simulasi yang nyata | e2e/layout.spec.ts | M7 | A |
 | 72 | Bangun produksi bersih | tsc dan vite build tanpa error | CI | M0 | A |
 | 75 | Artefak produksi benar-benar jalan | Build hasil `vite build` dihidupkan lewat preview: boot, layout ponsel, frame nyata, tanpa error konsol | e2e/production.spec.ts | M7 | A |

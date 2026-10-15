@@ -5,6 +5,11 @@ import { buildPad } from '../../src/sim/core/step';
 import { maskOf, padOrigin, totalCrates } from '../../src/sim/domain/pad';
 import { NO_ENTITY, type EntityId } from '../../src/sim/core/ids';
 import { findCrate } from '../../src/sim/core/world';
+import { tickReinforcements } from '../../src/sim/domain/match';
+import { TEAM_IDS, type TeamId } from '../../src/sim/domain/teams';
+import {
+  BASE_COORDINATES, REINFORCEMENT_INTERVAL_S, SQUAD_SIZE_MAX, VOID_DISTANCE
+} from '../../src/sim/domain/constants';
 
 function playerAtPad(w: ReturnType<typeof testWorld>) {
   const origin = padOrigin('red');
@@ -342,5 +347,62 @@ describe('match state', () => {
     expect(w.crates.some((c) => c.id === firedId)).toBe(false);
     const expectedLive = w.buddies.length + w.crates.length + w.tanks.length;
     expect(w.ids.liveCount()).toBe(expectedLive);
+  });
+});
+
+describe('island bounds and reinforcements', () => {
+  it('recalls a buddy that ends up past the shoreline', () => {
+    const w = testWorld();
+    const b = addBuddy(w, 'red', 'fighter', VOID_DISTANCE + 14, 0);
+
+    run(w, 0.1);
+
+    expect(Math.hypot(b.x, b.z)).toBeLessThan(VOID_DISTANCE);
+    expect(b.state).toBe('ko');
+    expect(b.koTimer).toBeGreaterThan(0);
+  });
+
+  it('swallows a crate lost in the void and frees its id', () => {
+    const w = testWorld();
+    const crateId = addCrate(w, VOID_DISTANCE + 10, 0);
+    const before = w.ids.liveCount();
+
+    run(w, 0.1);
+
+    expect(w.crates.some((c) => c.id === crateId)).toBe(false);
+    expect(w.ids.liveCount()).toBeLessThan(before);
+  });
+
+  it('leaves a crate alone while it still falls over the island', () => {
+    const w = testWorld();
+    const crateId = addCrate(w, 5, 5, 9);
+
+    run(w, 0.1);
+
+    expect(w.crates.some((c) => c.id === crateId)).toBe(true);
+  });
+
+  it('fields a fresh fighter for every surviving team on the clock', () => {
+    const w = testWorld();
+    w.eliminated.blue = true;
+    w.troopTimer = 0.1;
+
+    tickReinforcements(w, 0.2);
+
+    for (const team of TEAM_IDS) {
+      const size = w.buddies.filter((b) => b.team === team).length;
+      expect(size, team).toBe(team === 'blue' ? 0 : 1);
+    }
+    expect(w.troopTimer).toBe(REINFORCEMENT_INTERVAL_S);
+  });
+
+  it('stops calling troops once a squad is at full strength', () => {
+    const w = testWorld();
+    for (let i = 0; i < SQUAD_SIZE_MAX; i++) addBuddy(w, 'red', 'fighter', 2, 2 + i * 0.5);
+    w.troopTimer = 0.1;
+
+    tickReinforcements(w, 0.2);
+
+    expect(w.buddies.filter((b) => b.team === 'red').length).toBe(SQUAD_SIZE_MAX);
   });
 });
