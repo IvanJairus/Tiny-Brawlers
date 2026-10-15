@@ -275,6 +275,25 @@ dan satu baris ledger yang masih P (batas simpul prediksi 0,75 m). Selama baris 
 Dua yang pertama butuh perangkat, jadi angka performa ponsel sengaja tidak diklaim; yang terakhir
 butuh keputusan desain, lihat di atas.
 
+Empat langkah yang tersisa, dengan perintah persisnya:
+
+1. **60 fps di HP anda (gerbang M3).** `npm run dev -- --host`, catat alamat network yang
+   ditampilkan, lalu di HP yang satu Wi-Fi buka `http://<ip>:3000/?meter=1`. Panel di atas-tengah
+   layar adalah angka perangkat itu: fps, p50, p95, dan draw call. Suhu anda catat sendiri.
+2. **Netplay lintas perangkat (gerbang M6).** `npm run signal` di mesin yang sama, lalu buka
+   `http://<ip>:3000/?signal=ws://<ip>:8080` di kedua perangkat dan masuk dengan kode ruangan.
+   Ulangi dengan HP di 4G; kalau tidak tembus NAT, jalankan relay dengan `TURN_URL`,
+   `TURN_USER`, `TURN_PASS` terisi (lihat bagian Main bersama teman).
+3. **Terima baseline visual (gerbang M7).** `npm run test:visual`, lalu lihat
+   `test-results/visual-review/`: tujuh permukaan UI di dua viewport. Baseline yang sekarang
+   ada di `e2e/visual.spec.ts-snapshots` milik darwin; kalau anda menerima tampilannya,
+   `npm run visual:baseline` menyimpannya ulang.
+4. **Tayang (gerbang M7).** `pages.yml` membangun `dist` dan menerbitkan ke GitHub Pages dari
+   branch `v2-pages`. Jalur subpath sudah diuji di `e2e/subpath.spec.ts`; yang belum adalah
+   push branch itu, dan itu saya tahan sampai anda izinkan.
+
+Setelah 1 dan 2 selesai, sisa M7 tinggal nomor 3 dan 4 plus satu baris `P` di ledger.
+
 Belum ada satu pun langkah CI yang pernah berjalan untuk cabang ini, termasuk langkah
 `test:speed` yang menagih 1000x realtime di runner. Angka 2278-4284x berasal dari mesin ini
 (n=5, CPU sendiri), bukan dari runner. Gerbangnya merah atau hijau di sana baru terbukti setelah
