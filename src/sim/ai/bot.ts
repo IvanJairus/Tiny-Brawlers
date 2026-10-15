@@ -1,0 +1,182 @@
+import type { World } from '../core/world';
+import type { EntityId } from '../core/ids';
+import type { BuddyRec } from '../domain/buddy';
+import type { CrateRec } from '../domain/crate';
+import { encodeInput, type RawAxes } from '../input/actions';
+import { findBestSlot, isSlotFilled, padOrigin, slotPosition, totalCrates } from '../domain/pad';
+import { evaluatePad } from '../domain/recipes';
+import { distance } from '../domain/buddy';
+import { BASE_COORDINATES } from '../domain/constants';
+import { TEAM_IDS, type TeamId } from '../domain/teams';
+
+export interface BotMemory {
+  wanted: string;
+  rotation: number;
+  idleTimer: number;
+}
+
+/**
+ * Slot sets the bots aim for when filling the pad. Without a target shape a bot
+ * builds on its very first crate, which is how six of the seven recipes stopped
+ * ever appearing in AI play.
+ */
+export const RECIPE_SLOTS: Record<string, number[]> = {
+  pistol: [0],
+  shotgun: [0, 1],
+  grenade: [0, 4],
+  medicUnit: [0, 1, 4],
+  medkit: [0, 1, 2],
+  bazooka: [0, 1, 2, 3],
+  commando: [0, 1, 4, 5],
+  tank: [0, 1, 2, 3, 4, 5, 6, 7]
+};
+
+const BUILD_ORDER = ['pistol', 'shotgun', 'grenade', 'medicUnit', 'medkit', 'bazooka', 'commando', 'tank'];
+
+export function makeBotMemory(): BotMemory {
+  return { wanted: 'pistol', rotation: 0, idleTimer: 0 };
+}
+
+function maskFor(slots: number[]): number {
+  return slots.reduce((m, s) => m | (1 << s), 0);
+}
+
+export function nextWanted(memory: BotMemory): string {
+  memory.rotation = (memory.rotation + 1) % BUILD_ORDER.length;
+  memory.wanted = BUILD_ORDER[memory.rotation];
+  return memory.wanted;
+}
+
+/**
+ * The build target belongs to the team's pad, not the individual bot, so four
+ * bots carrying for one pad all aim at the same shape and the pad walks through
+ * the whole recipe table instead of rebuilding pistols forever.
+ */
+export function teamWanted(w: World, team: TeamId): string {
+  return BUILD_ORDER[w.padRotation[team] % BUILD_ORDER.length];
+}
+
+export function advanceTeamWanted(w: World, team: TeamId): void {
+  w.padRotation[team] = (w.padRotation[team] + 1) % BUILD_ORDER.length;
+}
+
+function steer(from: { x: number; z: number }, to: { x: number; z: number }, raw: RawAxes, arrive = 0.05): void {
+  const dx = to.x - from.x;
+  const dz = to.z - from.z;
+  const len = Math.hypot(dx, dz);
+  if (len < arrive) {
+    raw.moveX = 0;
+    raw.moveY = 0;
+    return;
+  }
+  raw.moveX = dx / len;
+  raw.moveY = dz / len;
+}
+
+function nearestEnemy(w: World, me: BuddyRec): BuddyRec | null {
+  let best: BuddyRec | null = null;
+  let bestD = Infinity;
+  for (const b of w.buddies) {
+    if (b.team === me.team || b.state === 'ko' || w.eliminated[b.team]) continue;
+    const d = distance(me, b);
+    if (d < bestD) { bestD = d; best = b; }
+  }
+  return bestD < 14 ? best : null;
+}
+
+function nearestLooseCrate(w: World, me: BuddyRec): CrateRec | null {
+  let best: CrateRec | null = null;
+  let bestD = Infinity;
+  for (const c of w.crates) {
+    if (c.state !== 'loose' && !(c.state === 'thrown' && c.settled > 0.3)) continue;
+    const d = distance(me, c);
+    if (d < bestD) { bestD = d; best = c; }
+  }
+  return best;
+}
+
+export function botInput(w: World, me: BuddyRec, memory: BotMemory, seq: number): RawAxes {
+  const raw: RawAxes = { moveX: 0, moveY: 0, aimX: 0, aimY: 0, attack: false, grab: false, build: false, zoom: 0 };
+  if (me.state === 'ko') return raw;
+
+  const enemy = me.weapon !== 'none' ? nearestEnemy(w, me) : null;
+  const fighting = enemy !== null;
+
+  if (fighting && enemy) {
+    steer(me, enemy, raw);
+    raw.aimX = enemy.x - me.x;
+    raw.aimY = enemy.z - me.z;
+    const aimLen = Math.hypot(raw.aimX, raw.aimY) || 1;
+    raw.aimX /= aimLen;
+    raw.aimY /= aimLen;
+    raw.attack = true;
+    return raw;
+  }
+
+  const hostileTeam = nextHostileTeam(w, me.team, seq);
+
+  if (me.carryCrate !== (0 as EntityId)) {
+    const mask = w.pads[me.team];
+    memory.wanted = teamWanted(w, me.team);
+    const target = RECIPE_SLOTS[memory.wanted] ?? RECIPE_SLOTS.pistol;
+    const desired = maskFor(target);
+    const origin = padOrigin(me.team);
+    const atPad = distance(me, origin) < 3.2;
+    const shapeReady = totalCrates(mask) === target.length && (mask & desired) === mask;
+    const diverged = (mask & ~desired) !== 0;
+
+    // The button is released while walking so the arrival can register as a new
+    // press: holding it from the pickup onwards would throw the crate instead.
+    if ((shapeReady || diverged || totalCrates(mask) >= 8) && atPad) {
+      raw.moveX = 0;
+      raw.moveY = 0;
+      raw.build = evaluatePad(mask).id !== 'empty';
+      return raw;
+    }
+
+    const slot = target.find((q) => !isSlotFilled(mask, q));
+    const world = slot === undefined ? origin : slotPosition(me.team, slot);
+    steer(me, world, raw, 0.35);
+    // Standing on the intended slot is what decides it: placement resolves to the
+    // nearest free quadrant, so a loose approach would drop the crate elsewhere
+    // and make the shape diverge from the recipe the team is building.
+    if (slot === undefined ? distance(me, world) < 0.6 : distance(me, world) < 0.6) raw.grab = true;
+    return raw;
+  }
+
+  const loose = nearestLooseCrate(w, me);
+  if (loose) {
+    steer(me, loose, raw);
+    if (distance(me, loose) < 1.4) raw.grab = true;
+    return raw;
+  }
+
+  const tank = w.tanks.find((t) => t.team === me.team && !t.destroyed && t.driver === (0 as EntityId));
+  if (tank) {
+    steer(me, tank, raw);
+    if (distance(me, tank) < 2) raw.grab = true;
+    return raw;
+  }
+
+  if (hostileTeam) steer(me, BASE_COORDINATES[hostileTeam], raw);
+  else steer(me, padOrigin(me.team), raw);
+  return raw;
+}
+
+function nextHostileTeam(w: World, mine: TeamId, seq: number): TeamId | null {
+  let count = 0;
+  for (const t of TEAM_IDS) if (!w.eliminated[t] && t !== mine) count++;
+  if (count === 0) return null;
+  let index = 0;
+  const pick = seq % count;
+  for (const t of TEAM_IDS) {
+    if (t === mine || w.eliminated[t]) continue;
+    if (index === pick) return t;
+    index++;
+  }
+  return null;
+}
+
+export function encodeBotInput(seq: number, raw: RawAxes): ReturnType<typeof encodeInput> {
+  return encodeInput(seq, raw);
+}

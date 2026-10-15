@@ -1,0 +1,48 @@
+:root {
+  --team-red: #ff4757;
+  --team-blue: #2f7bff;
+  --team-yellow: #ffc21a;
+  --team-cyan: #00c8d4;
+
+  --grass: #4cd137;
+  --grass-dark: #44a832;
+  --sky: #8fd3ff;
+  --cliff: #5d4037;
+
+  --ink: #16202b;
+  --panel: #fffaf0;
+  --panel-shade: #e8dcc8;
+  --text-strong: #16202b;
+  --text-dim: #5b6b7a;
+  --alert: #d80031;
+  --good: #1a9e4d;
+
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --outline: 2px solid var(--ink);
+  --shadow-hard: 0 4px 0 rgba(22, 32, 43, 0.35);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  --tap-min: 44px;
+  --tap-gap: 10px;
+
+  --font-display: 'Baloo 2', 'Trebuchet MS', system-ui, sans-serif;
+  --font-text: 'Nunito Sans', system-ui, -apple-system, sans-serif;
+
+  --text-xs: clamp(11px, 1.6vh, 13px);
+  --text-sm: clamp(13px, 1.9vh, 15px);
+  --text-md: clamp(15px, 2.3vh, 18px);
+  --text-lg: clamp(20px, 3.4vh, 30px);
+  --text-xl: clamp(28px, 6vh, 56px);
+
+  --hud-safe-top: env(safe-area-inset-top, 0px);
+  --hud-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --hud-safe-left: env(safe-area-inset-left, 0px);
+  --hud-safe-right: env(safe-area-inset-right, 0px);
+}
