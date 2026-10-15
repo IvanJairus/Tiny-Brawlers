@@ -156,8 +156,10 @@ perubahan copy di daftar hasil lolos dan baseline lama tetap terpakai tanpa ada 
 dijaga oleh tes anggaran draw call dan tes baca layar, dan tiap jalan tetap menyimpan tangkapan
 viewport penuh di `test-results/visual-review/` untuk dinilai manusia.
 
-Yang dibuktikan otomatis: aturan lapisan, determinisme sim, 7 resep, invarian cacat lama, codec
-dan sesi netplay di link ber-jitter, anggaran render, tidak ada bocor horizontal dan tidak ada
+Yang dibuktikan otomatis: aturan lapisan, determinisme sim, 7 resep, invarian cacat lama, codec,
+dan sesi netplay termasuk harness 1 host plus 3 klien selama 5 menit waktu link dengan 60 ms delay,
+60 ms jitter, loss 3 persen dan duplikasi 2 persen (lag snapshot maksimum 3 tick terukur), anggaran
+render, tidak ada bocor horizontal dan tidak ada
 tumpang tindih HUD di 1440x900 / 740x360 / 390x844, dua halaman browser main satu pertandingan,
 dan build hasil `vite build` benar-benar dijalankan lewat `vite preview` tanpa error konsol.
 Kebocoran jangka panjang diuji dengan 20 menit simulasi (roster, peti, dan id aktif tetap terbatas)

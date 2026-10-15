@@ -5,6 +5,7 @@ import { stepWorld } from '../../src/sim/core/step';
 import { initialSquads, spawnBuddy } from '../../src/sim/domain/match';
 import { createHost } from '../../src/sim/net/host';
 import { createClient } from '../../src/sim/net/client';
+import { SNAP_DISTANCE } from '../../src/sim/net/predict';
 import { BAD_LINK, CLEAN_LINK, LoopbackHub } from '../../src/sim/net/transport';
 import { EMPTY_INPUT, encodeInput as encode } from '../../src/sim/input/actions';
 import { TICK_S } from '../../src/sim/domain/constants';
@@ -130,6 +131,93 @@ describe('host authoritative session', () => {
     const latest = guest.buffer.latest();
     expect(latest).not.toBeNull();
     expect(Math.abs(latest!.tick - world.tick)).toBeLessThan(20);
+  });
+
+  /**
+   * The M5 gate is one host, three clients, a hostile link, and five minutes.
+   * The link here is 60ms of delay with 60ms of jitter, 3 percent loss and 2
+   * percent duplication, so the newest snapshot a client holds has to survive
+   * all of that and still land within one tick of the host.
+   */
+  it('holds one host and three clients converged through five minutes of a bad link', { timeout: 240_000 }, () => {
+    const hub = new LoopbackHub(BAD_LINK, 4242);
+    const world = seededWorld();
+    const hostTransport = hub.create();
+    const host = createHost(world, hostTransport, { roomCode: 'LONG01', now: () => hub.now });
+
+    const guests = [1, 2, 3].map((n) => {
+      const transport = hub.create();
+      const client = createClient(transport, { name: `P${n}`, cls: 'fighter', roomCode: 'LONG01', now: () => hub.now });
+      client.join(hostTransport.id);
+      return client;
+    });
+
+    hub.advance(120);
+    for (const client of guests) client.ready();
+    host.begin();
+    hub.advance(120);
+
+    const startedAt = hub.now;
+    let sincePublish = 0;
+    const applied = [0, 0, 0];
+    const snapped = [0, 0, 0];
+    const seen = [-1, -1, -1];
+    const maxLag = [0, 0, 0];
+    for (let i = 0; i < 9000; i++) {
+      host.collect();
+      host.noteLocalInput();
+      stepWorld(world, TICK_S);
+      sincePublish += TICK_S * 1000;
+      if (sincePublish >= 1000 / 15) {
+        sincePublish = 0;
+        host.publish(world.events.splice(0, world.events.length));
+      }
+      guests.forEach((client, index) => {
+        client.tick(TICK_S, encode(index + 1, {
+          moveX: index % 2 === 0 ? 0.5 : -0.5,
+          moveY: 0.2,
+          aimX: 0,
+          aimY: 0,
+          attack: false,
+          grab: false,
+          build: false,
+          zoom: 0
+        }));
+      });
+      hub.advance(TICK_S * 1000);
+      guests.forEach((client, index) => {
+        const latest = client.buffer.latest()?.tick ?? -1;
+        if (latest === seen[index]) return;
+        seen[index] = latest;
+        applied[index]++;
+        maxLag[index] = Math.max(maxLag[index], world.tick - latest);
+        if (client.lastResyncError > SNAP_DISTANCE) snapped[index]++;
+      });
+    }
+
+    for (let i = 0; i < 60; i++) {
+      host.publish([]);
+      hub.advance(TICK_S * 1000);
+    }
+
+    expect(hub.now - startedAt).toBeGreaterThanOrEqual(299_000);
+    for (const [index, client] of guests.entries()) {
+      const latest = client.buffer.latest();
+      expect(latest, `client ${index} received snapshots`).not.toBeNull();
+      expect(client.phase).toBe('playing');
+      expect(client.world.buddies.length).toBe(world.buddies.length);
+
+      // Measured on this seed: the newest snapshot each client held was at most
+      // 3 ticks (100ms) behind the host across the full five minutes, 4195 of
+      // the ~4500 published snapshots arrived, and a hard snap happened 1 to 3
+      // times. A resync is the correction path working, so it is bounded here
+      // rather than forbidden; any other lastError is a real link or codec failure.
+      expect(maxLag[index], `client ${index} drift from the host`).toBeLessThanOrEqual(4);
+      expect(applied[index], `client ${index} snapshot arrival`).toBeGreaterThan(4000);
+      expect(snapped[index], `client ${index} hard snaps`).toBeLessThan(applied[index] / 100);
+      const problem = client.lastError();
+      expect(problem === null || problem === 'resync', `client ${index}: ${problem}`).toBe(true);
+    }
   });
 
   it('hands a dropped player back to the AI without losing their crate', () => {

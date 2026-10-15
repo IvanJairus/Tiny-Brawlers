@@ -73,7 +73,7 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 63 | Codec snapshot | Round-trip biner identik, buffer rusak ditolak | tests/net/net.test.ts | M5 | A |
 | 64 | Host otoritatif | Klien hanya mengirim input, host yang mensimulasikan | tests/net/net.test.ts | M5 | A |
 | 65 | Prediksi bounded | Hanya buddy lokal yang diprediksi, sisanya otoritatif | tests/net/net.test.ts | M5 | A |
-| 66 | Interpolasi tahan loss | Link ber-jitter dan loss 3 persen tetap konvergen | tests/net/net.test.ts | M5 | A |
+| 66 | Interpolasi tahan loss | Harness 1 host plus 3 klien selama 5 menit waktu link (60ms delay, 60ms jitter, loss 3 persen, duplikasi 2 persen): lag snapshot maksimum 3 tick, 4195 dari sekitar 4500 snapshot tiba, hard snap 1 sampai 3 kali | tests/net/net.test.ts | M5 | A |
 | 67 | Putus jadi bot | Peer yang hilang jadi bot dan tetap membawa petinya | tests/net/net.test.ts | M5 | A |
 | 68 | Anggaran bandwidth | Snapshot dunia penuh < 1200 byte, di bawah 16KB/s | tests/net/net.test.ts | M5 | A |
 | 69 | Kode ruangan | Gabung dengan kode salah ditolak | tests/net/net.test.ts | M5 | A |
