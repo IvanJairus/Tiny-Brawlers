@@ -175,7 +175,10 @@ berat, tapi bukan pengganti pengukuran di HP: CPU ponsel kelas menengah punya ka
 (GPU, bandwidth memori, thermal). Gerbang perangkat tetap berstatus belum terverifikasi.
 
 Tiga kali jalan di mesin ini dengan mesin kosong memberi p95 16,7 sampai 16,8 ms pada 59 sampai
-60 fps (n=3, `npm run test:perf`, 2026-10-15). Dua jalan lain mencatat p95 33,3 ms, dan keduanya
+60 fps (n=3, `npm run test:perf`, 2026-10-15). Angka yang sama keluar setelah proyek perf diubah ke
+`deviceScaleFactor: 2`, kerapatan piksel yang ditargetkan rencana ini (n=3: 16,7, 16,7, 16,8 ms):
+yang membatasi frame di sini adalah main thread, bukan jumlah piksel, jadi gerbangnya tidak sedang
+kebetulan lulus karena menggambar terlalu sedikit. Dua jalan lain mencatat p95 33,3 ms, dan keduanya
 terjadi segera sesudah suite browser lain selesai di mesin yang sama. Gerbang ini sensitif terhadap
 beban sampingan, jadi jalankan `test:perf` sendirian dan jangan menambah retry untuk menutupinya.
 

@@ -57,12 +57,12 @@ export default defineConfig({
     {
       name: 'phone-landscape',
       testMatch: DEV_SPECS,
-      use: { ...devices['Desktop Chrome'], viewport: { width: 740, height: 360 }, hasTouch: true, isMobile: true, baseURL: `http://localhost:${DEV_PORT}` }
+      use: { ...devices['Desktop Chrome'], viewport: { width: 740, height: 360 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true, baseURL: `http://localhost:${DEV_PORT}` }
     },
     {
       name: 'phone-portrait',
       testMatch: DEV_SPECS,
-      use: { ...devices['Desktop Chrome'], viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, baseURL: `http://localhost:${DEV_PORT}` }
+      use: { ...devices['Desktop Chrome'], viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true, baseURL: `http://localhost:${DEV_PORT}` }
     },
     {
       name: 'production',

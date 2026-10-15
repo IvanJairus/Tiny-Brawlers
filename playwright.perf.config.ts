@@ -25,7 +25,7 @@ export default defineConfig({
   projects: [
     {
       name: 'perf-throttled',
-      use: { ...devices['Desktop Chrome'], viewport: { width: 740, height: 360 }, hasTouch: true, isMobile: true }
+      use: { ...devices['Desktop Chrome'], viewport: { width: 740, height: 360 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true }
     }
   ]
 });

@@ -473,3 +473,29 @@ test('every modal is readable, and only the results screen is frosted', async ({
     expect(probe.results).toBe(expected === 'results');
   }
 });
+
+test('a phone viewport really renders at two pixels per css pixel', async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.use.hasTouch, 'only the touch projects claim a device pixel ratio');
+  await startMatch(page);
+
+  const buffer = await page.evaluate(() => {
+    const canvas = document.querySelector('#stage canvas') as HTMLCanvasElement | null;
+    return {
+      dpr: window.devicePixelRatio,
+      device: (window.navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? null,
+      coarse: window.matchMedia('(pointer: coarse)').matches,
+      cssWidth: canvas ? Math.round(canvas.getBoundingClientRect().width) : 0,
+      bufferWidth: canvas?.width ?? 0,
+      bufferHeight: canvas?.height ?? 0
+    };
+  });
+
+  console.log(`layout: dpr ${buffer.dpr}, coarse ${buffer.coarse}, css ${buffer.cssWidth} -> buffer ${buffer.bufferWidth}`);
+  expect(buffer.dpr).toBe(2);
+  expect(buffer.coarse).toBe(true);
+  // scene.ts caps a coarse-pointer device at 1.5, so the backing store must be
+  // larger than the css box but not the full 2x.
+  expect(buffer.bufferWidth).toBeGreaterThan(buffer.cssWidth);
+  expect(buffer.bufferWidth).toBeLessThanOrEqual(Math.round(buffer.cssWidth * 2));
+  expect(buffer.bufferWidth).toBe(Math.round(buffer.cssWidth * 1.5));
+});
