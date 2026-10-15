@@ -12,6 +12,9 @@ export class BuddyEntity {
   public isCarryingCrate: boolean = false;
   public isKnocked: boolean = false;
   public reviveProgress: number = 0; // 0 to 100
+  public isInTank: boolean = false;
+  public mountedTankId: string | null = null;
+  public drivingVehicleId: string | null = null; // Support for vehicle driver tracking
 
   constructor(id: string, team: TeamId, classType: BuddyClass, startPos: Vector3D = { x: 0, y: 0, z: 0 }) {
     this.id = id;

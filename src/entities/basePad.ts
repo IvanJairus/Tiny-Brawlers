@@ -1,13 +1,94 @@
-import { RecipeResult, StackingRecipeDef, TeamId } from '../types';
+import { RecipeResult, StackingRecipeDef, TeamId, Vector3D } from '../types';
+
+export interface PadSlotCoordinate {
+  slotIndex: number;
+  quadrant: number; // 0: NW, 1: NE, 2: SW, 3: SE
+  layer: number;    // 0: Bottom (y=0.55), 1: Top (y=1.50)
+  local: Vector3D;
+  world: Vector3D;
+}
 
 export class StackingPad {
   public teamId: TeamId;
   public slots: boolean[] = new Array(8).fill(false);
   public origin: { x: number; z: number };
 
+  // Pad Physical Geometry Constants
+  public static readonly PAD_SURFACE_Y = 0.10;
+  public static readonly LAYER_0_Y = 0.55;
+  public static readonly LAYER_1_Y = 1.50;
+  public static readonly QUADRANT_OFFSET = 0.55;
+  public static readonly PAD_HALF_WIDTH = 2.10;
+
   constructor(teamId: TeamId, originX: number = 0, originZ: number = 0) {
     this.teamId = teamId;
     this.origin = { x: originX, z: originZ };
+  }
+
+  /**
+   * Calculates exact local and world 3D coordinates for any slot index (0..7).
+   */
+  public getSlotCoordinates(slotIndex: number): PadSlotCoordinate {
+    if (slotIndex < 0 || slotIndex >= 8) {
+      throw new Error(`Invalid slot index: ${slotIndex}. Must be 0 to 7.`);
+    }
+
+    const layer = slotIndex >= 4 ? 1 : 0;
+    const quadrant = slotIndex % 4;
+
+    const localX = (quadrant % 2 === 1) ? StackingPad.QUADRANT_OFFSET : -StackingPad.QUADRANT_OFFSET;
+    const localZ = quadrant >= 2 ? StackingPad.QUADRANT_OFFSET : -StackingPad.QUADRANT_OFFSET;
+    const localY = layer === 1 ? StackingPad.LAYER_1_Y : StackingPad.LAYER_0_Y;
+
+    return {
+      slotIndex,
+      quadrant,
+      layer,
+      local: { x: localX, y: localY, z: localZ },
+      world: {
+        x: this.origin.x + localX,
+        y: localY,
+        z: this.origin.z + localZ
+      }
+    };
+  }
+
+  /**
+   * Intelligently resolves the nearest valid slot for an incoming position (player or thrown crate).
+   * Sorts quadrants by proximity, checks Layer 0 first, then Layer 1 if bottom is occupied.
+   * Returns -1 if pad is full (8/8).
+   */
+  public findBestSlotForPosition(worldX: number, worldZ: number): number {
+    const dx = worldX - this.origin.x;
+    const dz = worldZ - this.origin.z;
+
+    const quadrants = [
+      { index: 0, x: -StackingPad.QUADRANT_OFFSET, z: -StackingPad.QUADRANT_OFFSET }, // NW
+      { index: 1, x:  StackingPad.QUADRANT_OFFSET, z: -StackingPad.QUADRANT_OFFSET }, // NE
+      { index: 2, x: -StackingPad.QUADRANT_OFFSET, z:  StackingPad.QUADRANT_OFFSET }, // SW
+      { index: 3, x:  StackingPad.QUADRANT_OFFSET, z:  StackingPad.QUADRANT_OFFSET }  // SE
+    ];
+
+    // Sort quadrants by ascending Euclidean distance
+    quadrants.sort((a, b) => {
+      const distA = (dx - a.x) * (dx - a.x) + (dz - a.z) * (dz - a.z);
+      const distB = (dx - b.x) * (dx - b.x) + (dz - b.z) * (dz - b.z);
+      return distA - distB;
+    });
+
+    // For nearest quadrant: check bottom slot first; if occupied, check top slot
+    for (const q of quadrants) {
+      const bottomSlot = q.index;
+      const topSlot = q.index + 4;
+      if (!this.slots[bottomSlot]) {
+        return bottomSlot;
+      }
+      if (!this.slots[topSlot]) {
+        return topSlot;
+      }
+    }
+
+    return -1; // Pad is completely filled
   }
 
   // Set slot with gravity and structural validation
@@ -43,7 +124,9 @@ export class StackingPad {
     this.slots.fill(false);
   }
 
-  // Evaluate the current 2x2x2 formation
+  /**
+   * Official Recipe Evaluator mapping all 7 Team Buddies configurations.
+   */
   public evaluate(): RecipeResult {
     const count = this.totalCrates;
 
@@ -57,7 +140,7 @@ export class StackingPad {
       };
     }
 
-    // 8 Crates: Full Cube
+    // Recipe 7: 8 Crates (Full 2x2x2 Solid Cube) -> Heavy Battle Tank
     if (count === 8) {
       return {
         title: 'Heavy Battle Tank',
@@ -68,7 +151,7 @@ export class StackingPad {
       };
     }
 
-    // 4 Crates Flat (All Layer 0 filled)
+    // Recipe 5: 4 Crates Flat (All Layer 0 filled, Layer 1 empty) -> Rocket Bazooka
     if (count === 4 && this.isFlat2x2()) {
       return {
         title: 'Rocket Bazooka',
@@ -79,7 +162,7 @@ export class StackingPad {
       };
     }
 
-    // 4 Crates Wall (2x1x2 vertical plane)
+    // Recipe 6: 4 Crates Wall (2x1x2 vertical plane) -> Commando Buddy
     if (count === 4 && this.isWall2x1x2()) {
       return {
         title: 'Commando Buddy',
@@ -90,7 +173,7 @@ export class StackingPad {
       };
     }
 
-    // 3 Crates (2 on bottom + 1 on top)
+    // Recipe 4A: 3 Crates (2 on bottom + 1 on top) -> Medic Buddy unit
     if (count === 3 && this.isMedicFormula()) {
       return {
         title: 'Medic Buddy',
@@ -101,7 +184,18 @@ export class StackingPad {
       };
     }
 
-    // 2 Crates Vertical Stack (1x1x2)
+    // Recipe 4B: 3 Crates Flat (3 on Layer 0) -> Medic Syringe (Medkit)
+    if (count === 3 && this.isMedicFlat()) {
+      return {
+        title: 'Medic Syringe (Medkit)',
+        category: 'weapon',
+        itemType: 'medic',
+        dps: 0,
+        description: 'Suntikan penyembuh instan untuk memulihkan HP diri atau kawan.'
+      };
+    }
+
+    // Recipe 3: 2 Crates Vertical Stack (1x1x2) -> Pineapple Grenades
     if (count === 2 && this.isVerticalStack()) {
       return {
         title: 'Granat Nanas (x5)',
@@ -112,7 +206,7 @@ export class StackingPad {
       };
     }
 
-    // 2 Crates Horizontal Line (2x1x1)
+    // Recipe 2: 2 Crates Horizontal Line (2x1x1) -> Shotgun
     if (count === 2 && this.isHorizontalLine()) {
       return {
         title: 'Shotgun Penghancur',
@@ -123,7 +217,7 @@ export class StackingPad {
       };
     }
 
-    // 1 Crate (Any single slot)
+    // Recipe 1: 1 Crate (Any single slot) -> Pistol
     if (count === 1) {
       return {
         title: 'Pistol Standard',
@@ -144,6 +238,13 @@ export class StackingPad {
     };
   }
 
+  /**
+   * Alias for evaluate() to guarantee contract interoperability.
+   */
+  public evaluateRecipe(): RecipeResult {
+    return this.evaluate();
+  }
+
   public isFlat2x2(): boolean {
     return this.slots[0] && this.slots[1] && this.slots[2] && this.slots[3] &&
            !this.slots[4] && !this.slots[5] && !this.slots[6] && !this.slots[7];
@@ -160,6 +261,12 @@ export class StackingPad {
     const bottomCount = [this.slots[0], this.slots[1], this.slots[2], this.slots[3]].filter(Boolean).length;
     const topCount = [this.slots[4], this.slots[5], this.slots[6], this.slots[7]].filter(Boolean).length;
     return bottomCount === 2 && topCount === 1;
+  }
+
+  public isMedicFlat(): boolean {
+    const bottomCount = [this.slots[0], this.slots[1], this.slots[2], this.slots[3]].filter(Boolean).length;
+    const topCount = [this.slots[4], this.slots[5], this.slots[6], this.slots[7]].filter(Boolean).length;
+    return bottomCount === 3 && topCount === 0;
   }
 
   public isVerticalStack(): boolean {
