@@ -64,6 +64,7 @@ export const T = {
   unsupportedHint: 'Coba Chrome atau Safari terbaru, atau buka dari koneksi yang mengizinkan WebRTC.',
   disconnectedTitle: 'Terputus dari host',
   disconnectedBody: 'Koneksi ke host pertandingan tertutup.',
+  disconnectedHint: 'Laga anda berhenti di sini. Host mengubah buddy anda jadi bot, jadi tidak ada yang hilang. Masuk lagi dengan kode ruangan yang sama untuk mendapatkan buddy itu kembali.',
   reconnect: 'Coba lagi',
   rotateTitle: 'Putar perangkat',
   rotateBody: 'Main paling nyaman dalam mode landscape.',

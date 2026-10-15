@@ -35,8 +35,9 @@
   --ink: #16202b;
   --panel: #fffaf0;
   --panel-shade: #e8dcc8;
+  --panel-fade: rgba(255, 250, 240, 0.92);
   --text-strong: #16202b;
-  --text-dim: #5b6b7a;
+  --text-dim: #4a5a68;
   --alert: #d80031;
   --good: #1a9e4d;
 

@@ -361,8 +361,14 @@
   justify-content: start;
 }
 
+/* Contract 5.3: solid toy panels, blur reserved for the results modal. A dark
+   translucent scrim made the dim hint line unreadable over a bright sky. */
 .screen-modal {
-  background: rgba(22, 32, 43, 0.55);
+  background: var(--panel);
+}
+
+.screen-results {
+  background: var(--panel-fade);
   backdrop-filter: blur(6px);
 }
 

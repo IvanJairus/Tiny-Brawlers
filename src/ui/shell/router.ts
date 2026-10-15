@@ -77,7 +77,7 @@ export function createRouter(host: HTMLElement, ctx: ScreenContext): Router {
           instance = mountNotice(host, screen, T.unsupportedTitle, T.unsupportedBody, T.unsupportedHint, () => ctx.send('recover'));
           break;
         case 'disconnected':
-          instance = mountNotice(host, screen, T.disconnectedTitle, T.disconnectedBody, '', () => ctx.send('recover'));
+          instance = mountNotice(host, screen, T.disconnectedTitle, T.disconnectedBody, T.disconnectedHint, () => ctx.send('recover'));
           break;
         case 'lobby':
           lobbyView = mountLobby(host, ctx, ctx.lobby);

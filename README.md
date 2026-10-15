@@ -15,7 +15,7 @@ npm install
 npm run dev            # http://localhost:3000
 npm test               # 255 tes unit/sim/net, headless
 npm run test:speed     # gerbang 1000x realtime dari rencana M1, file itu saja yang jalan
-npm run test:browser   # 63 tes Playwright: 3 ukuran layar, netplay, relay, artefak produksi
+npm run test:browser   # 66 tes Playwright: 3 ukuran layar, netplay, relay, artefak produksi
 npm run test:perf      # 1 tes budget frame dengan CPU di-throttle 6x, sendirian
 npm run build          # tsc + vite build
 npm audit              # 0 kerentanan; CI gagal bila ada yang high atau critical
@@ -167,6 +167,18 @@ rata dan semua anggotanya tumbang, dan satu-satunya cara mempercepat waktu simul
 handle yang justru tidak ikut di-build. Jadi layar hasil teruji di dev server dan tetap jadi langkah
 playtest manual di build, sampai keputusan batas waktu laga di bagian Status verifikasi diambil.
 
+Kontras teks modal diukur dari warna yang benar-benar dipakai browser: warna teks dihitung, lalu
+latar belakangnya dilacak naik ke elemen pertama yang opaque, dan rasio WCAG-nya ditagih 4,5:1 per
+bagian teks. Yang terukur sekarang: paused 15,82:1, confirming 15,82:1, results 10,14:1, disconnected
+15,82/15,82/6,83:1.
+
+Kenapa tidak cukup dengan menguji nilai token atau screenshot: layar notice dulu memakai scrim gelap
+transparan dengan teks gelap, dan itu terbaca di screenshot sebagai baris aksi yang nyaris tidak
+terlihat. Gerbang pixel tidak menangkapnya sama sekali saat warna baris itu diganti merah murni,
+karena perubahannya cuma 1.748 piksel, di bawah ambang 0,15 persen. Dan tes yang membaca token CSS
+bisa hijau walaupun elemen aslinya tidak memakai token itu. Jadi yang ditagih adalah computed style,
+di `e2e/layout.spec.ts`.
+
 ## Deploy
 
 Build bersifat portabel: `base` relatif, jadi `dist/` bisa diletakkan di root domain maupun di
@@ -178,7 +190,7 @@ npm run build && npx serve dist    # cek lokal hasil yang sama dengan yang akan 
 
 ## Status verifikasi
 
-Daftar "jangan turun mutu" ada di `docs/PARITY.md`: 110 baris, tiap baris menyebut tes yang
+Daftar "jangan turun mutu" ada di `docs/PARITY.md`: 112 baris, tiap baris menyebut tes yang
 membuktikannya. `tests/docs/parity.test.ts` menjaga daftar itu sendiri, yaitu nomor baris unik,
 klaim perilakunya ada, milestone M0-M7, file yang disebut harus benar-benar ada serta berisi tes,
 dan statusnya hanya A atau P; sebuah P wajib punya alasan di bagian "Masih sebagian". Sebelum tes

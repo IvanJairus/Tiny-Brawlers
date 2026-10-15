@@ -405,3 +405,71 @@ test('the HUD reports the same health the simulation holds', async ({ page }) =>
   expect(matched).toBeGreaterThanOrEqual(4);
 });
 
+
+const PROBE = () => {
+  const numbers = (value: string): number[] => (value.match(/[\d.]+/g) ?? []).map(Number);
+  const alpha = (rgb: number[]): number => (rgb.length > 3 ? rgb[3] : 1);
+  const luminance = (rgb: number[]): number => {
+    const channel = (v: number): number => (v / 255 <= 0.03928 ? v / 255 / 12.92 : ((v / 255 + 0.055) / 1.055) ** 2.4);
+    return 0.2126 * channel(rgb[0]) + 0.7152 * channel(rgb[1]) + 0.0722 * channel(rgb[2]);
+  };
+  const modal = document.querySelector('.screen-modal') as HTMLElement | null;
+  const parts: { part: string; ratio: number }[] = [];
+  for (const selector of ['.screen-title', '.screen-body', '.screen-hint']) {
+    const el = document.querySelector(selector) as HTMLElement | null;
+    if (!el) continue;
+    const text = numbers(getComputedStyle(el).color);
+    let backdrop = [255, 255, 255];
+    for (let node: HTMLElement | null = el; node; node = node.parentElement) {
+      const layers = numbers(getComputedStyle(node).backgroundColor);
+      if (!layers.length) continue;
+      const a = alpha(layers);
+      if (a === 0) continue;
+      backdrop = layers.map((v, i) => v * a + backdrop[i] * (1 - a));
+      if (a === 1) break;
+    }
+    const ink = text.slice(0, 3).map((v, i) => v * alpha(text) + backdrop[i] * (1 - alpha(text)));
+    const first = luminance(ink);
+    const second = luminance(backdrop.slice(0, 3));
+    parts.push({ part: selector, ratio: (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05) });
+  }
+  return {
+    parts,
+    frosted: modal ? getComputedStyle(modal).backdropFilter : 'none',
+    results: modal ? modal.classList.contains('screen-results') : false
+  };
+};
+
+test('every modal is readable, and only the results screen is frosted', async ({ page }) => {
+  const screen = () => page.evaluate(() => document.body.dataset.screen);
+  const send = (event: string) =>
+    page.evaluate((name) => {
+      (window as unknown as { __tb: { send(event: string): void } }).__tb.send(name);
+    }, event);
+
+  for (const [event, expected] of [
+    ['pause', 'paused'],
+    ['leave', 'confirming'],
+    ['finished', 'results'],
+    ['dropped', 'disconnected']
+  ] as const) {
+    // A fresh match each time: the screens only chain forward, so unwinding one
+    // to reach the next would need a transition per case.
+    await page.goto('/?seed=4242');
+    await expect.poll(screen, { timeout: 15_000 }).toBe('title');
+    await page.getByRole('button', { name: 'Main', exact: true }).click();
+    await page.getByRole('button', { name: /Petarung/ }).click();
+    await page.getByRole('button', { name: 'Main', exact: true }).last().click();
+    await expect.poll(screen, { timeout: 15_000 }).toBe('playing');
+
+    await send(event);
+    await expect.poll(screen, { timeout: 10_000 }).toBe(expected);
+    const probe = await page.evaluate(PROBE);
+    console.log(`ui: ${expected} ${probe.parts.map((p) => `${p.part} ${p.ratio.toFixed(2)}:1`).join(' | ')} frosted=${probe.frosted}`);
+    expect(probe.parts.length, `${expected} must show readable text somewhere`).toBeGreaterThanOrEqual(1);
+    for (const part of probe.parts) expect(part.ratio, `${expected} ${part.part}`).toBeGreaterThanOrEqual(4.5);
+    const blurred = probe.frosted !== 'none' && probe.frosted !== '';
+    expect(blurred, `${expected} frosted=${probe.frosted}`).toBe(expected === 'results');
+    expect(probe.results).toBe(expected === 'results');
+  }
+});
