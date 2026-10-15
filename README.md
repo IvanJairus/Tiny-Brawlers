@@ -177,8 +177,13 @@ dan statusnya hanya A atau P; sebuah P wajib punya alasan di bagian "Masih sebag
 itu ada, audit ini saya kerjakan dengan mata dan ia menemukan baris yang menyebut file yang tidak
 pernah ada; sekarang kesalahan seperti itu merah.
 
-Satu baris sengaja berstatus P: batas simpul prediksi 0,75 m dari rencana bagian 4.3. Alasannya
-tertulis di ledger, dan ia butuh perubahan format wire untuk bisa diukur, jadi itu keputusan anda.
+Satu baris sengaja berstatus P: batas simpul prediksi 0,75 m dari rencana bagian 4.3. Saya bangun
+pengukurannya (host mengakui nomor input terbaru di snapshot, klien membandingkan pada seq yang sama),
+lalu menghapusnya lagi: simpul terbesar 0,867-0,982 m, tetapi prediktor yang dirusak sampai tidak
+bergerak sama sekali hanya 0,989-1,227 m di link yang sama. Yang menahan angka itu kecil adalah
+koreksi snap, bukan mutu prediksi, jadi batas di kisaran itu bukan gerbang. Karena kodenya sudah
+dihapus, dua angka di atas tidak bisa anda ukur ulang dari build ini; ia catatan hasil eksperimen. Sejarahnya ada di
+`docs/PARITY.md` bagian Masih sebagian.
 
 Baseline visual: `npm run test:visual` membandingkan tujuh permukaan UI (judul, pilih kelas, HUD,
 pause, konfirmasi keluar, terputus, hasil) di dua viewport, 1440x900 dan 740x360, dengan PNG di
@@ -204,7 +209,8 @@ serta 45 detik bermain nyata di browser (jumlah node DOM dan heap tidak naik).
 Yang belum: 60 fps pada perangkat ponsel nyata, netplay lintas perangkat di jaringan seluler,
 dan satu baris ledger yang masih P (batas simpul prediksi 0,75 m). Selama baris itu P, gerbang M7
 "PARITY.md 100 persen" belum tercapai.
-Keduanya butuh perangkat, jadi angka performa ponsel sengaja tidak diklaim.
+Dua yang pertama butuh perangkat, jadi angka performa ponsel sengaja tidak diklaim; yang terakhir
+butuh keputusan desain, lihat di atas.
 
 Belum ada satu pun langkah CI yang pernah berjalan untuk cabang ini, termasuk langkah
 `test:speed` yang menagih 1000x realtime di runner. Angka 2278-4284x berasal dari mesin ini

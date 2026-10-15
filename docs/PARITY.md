@@ -114,22 +114,27 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 104 | Reduced motion dan tanpa animasi tanpa pemicu | Dengan prefers-reduced-motion: reduce tidak ada transisi UI yang lebih dari 1 ms dan tidak ada animasi CSS tak berujung; probe yang sama membuktikan transisi nyata ada saat motion normal | e2e/layout.spec.ts | M4 | A |
 | 105 | Paritas dijaga mesin | Setiap baris ledger punya nomor unik, klaim perilaku, milestone M0-M7, menyebut file tes yang benar-benar ada serta berisi tes, dan berstatus A atau P; kalau P, alasannya harus tertulis di bagian Masih sebagian | tests/docs/parity.test.ts | M7 | A |
 | 106 | Konvergensi setelah stall 400 ms | Di link bermusuhan (60ms delay, 60ms jitter, loss 3%, dup 2%) klien kembali memegang snapshot dari setelah stall dalam 133,3 ms waktu link dan tertinggal 3 tick (n=1, seed 5; gerbang 250 ms dan 5 tick), dan isi snapshot yang dipegangnya persis sama dengan state host untuk tick itu | tests/net/net.test.ts | M5 | A |
-| 107 | Simpul prediksi ≤0,75 m | Rencana 4.3 menuntut simpul prediksi buddy tidak pernah lewat 0,75 m setelah loss acak; belum terukur karena error yang dipakai klien membandingkan posisi dari dua saat berbeda | tests/net/net.test.ts | M5 | P |
+| 107 | Simpul prediksi ≤0,75 m | Rencana 4.3 menuntut simpul prediksi tidak pernah lewat 0,75 m setelah loss acak. Terukur 0,867-0,982 m (dan 0,989-1,227 m untuk prediktor yang dirusak sampai tidak bergerak, jadi batas di kisaran itu tidak membuktikan mutu prediksi); angka itu dari eksperimen yang sudah ditarik sehingga tidak bisa direproduksi dari build ini, alasannya di bagian Masih sebagian | tests/net/net.test.ts | M5 | P |
 | 108 | Bot mencapai tujuh resep pad | Laga 5 menit semua-bot di seed 20260 membangun pistol, shotgun, grenade, medic_unit, medic, bazooka, dan commando tanpa satu pun manusia menekan tombol | tests/sim/bots.test.ts | M4 | A |
 | 109 | Tank dirakit AI sendiri | Pad delapan peti benar-benar selesai dan keluar tank tanpa manusia: 5 dari 8 seed sesudah perbaikan, 2 dari 8 sebelumnya, dan angka itu dicetak oleh tesnya sendiri | tests/sim/bots.test.ts | M4 | A |
 
 ## Masih sebagian
 
-**Baris 107, Simpul prediksi ≤0,75 m.** Klien menghitung error dengan membandingkan
-posisi hasil prediksi sesaat sebelum snapshot dipakai, dengan posisi otoritatif pada
-tick snapshot itu. Snapshot datang 15 Hz sedangkan prediksi jalan 30 Hz, jadi selisih
-ini memuat jarak yang memang ditempuh buddy selama waktu link, bukan hanya salah prediksi.
-Di link 60 ms + jitter 60 ms, dua snapshot yang hilang berturut-turut sudah cukup untuk
-melewati 0,75 m walau prediksinya benar. Angka yang sekarang tercatat di harness lima
-menit adalah 1 sampai 3 hard snap per klien (baris 66), dan itu ukuran frekuensi, bukan
-jarak terjauh. Membandingkan pada saat yang sama butuh nomor input yang diakui host
-dikirim balik di snapshot; itu perubahan format wire, jadi saya catat, bukan saya kerjakan
-diam-diam.
+**Baris 107, Simpul prediksi ≤0,75 m.** Klausa ini sudah diuji dan hasilnya bukan lolos atau
+gagal, melainkan bahwa angka itu tidak bisa menjadi gerbang mutu. Saya tambahkan pengakuan
+nomor input ke snapshot supaya klien membandingkan posisinya pada *seq* yang sama, lalu mengukur
+selama lima menit di link 60 ms + jitter 60 ms: simpul terbesar 0,867 sampai 0,982 meter. Masalahnya,
+prediktor yang sengaja dirusak sampai tidak bergerak sama sekali (mengabaikan masukan) hanya
+naik ke 0,989 sampai 1,227 meter di link yang sama. Yang menahan angka itu tetap kecil bukan
+prediksinya, melainkan koreksi: begitu lewat 0,75 m klien disnap, jadi batas di kisaran 1,3 m
+terpenuhi oleh prediktor apa pun, termasuk yang useless. Gerbang yang tidak bisa membedakan prediktor bagus dari yang rusak tidak
+ada gunanya, jadi percobaannya saya tarik kembali: tidak ada field wire baru di build ini.
+
+Satu temuan lain yang perlu keputusan anda: klien tidak mungkin mereplikasi lintasan host, karena
+host hanya menyimpan masukan terbaru per tick sementara klien melangkah tiap masukan. Di bawah
+jitter, beberapa masukan yang datang berbarengan dipakai host sekali tapi dilangkahi klien beberapa
+kali. Mengubah itu berarti mengubah model masukan host (antrean per tick), dan itu menyentuh rasa
+kontrol di semua mode, bukan hanya jaringan.
 
 ## Yang sengaja tidak ada
 
