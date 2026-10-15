@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { decodeInput, encodeInput, encodeSnapshot, decodeSnapshot, applySnapshot } from '../../src/sim/net/codec';
 import { createWorld, hashWorld } from '../../src/sim/core/world';
+import type { World } from '../../src/sim/core/world';
 import { stepWorld } from '../../src/sim/core/step';
 import { initialSquads, spawnBuddy } from '../../src/sim/domain/match';
 import { createHost } from '../../src/sim/net/host';
@@ -131,6 +132,71 @@ describe('host authoritative session', () => {
     const latest = guest.buffer.latest();
     expect(latest).not.toBeNull();
     expect(Math.abs(latest!.tick - world.tick)).toBeLessThan(20);
+  });
+
+  /**
+   * Plan 4.3 asks for hash convergence within one tick after a 400 ms stall.
+   * Measured on the hostile link, where it can actually fail: 60 ms of delay
+   * plus 60 ms of jitter plus loss and reorder means a client can be handed a
+   * stale snapshot, or none at all for a while. Two things are checked, the
+   * recovery time in link milliseconds and that whatever snapshot the client
+   * finally holds really is the host state for the tick it claims.
+   */
+  it('converges the client back onto the host state after a 400 ms stall', () => {
+    const hub = new LoopbackHub(BAD_LINK, 5);
+    const world = seededWorld();
+    const hostTransport = hub.create();
+    const host = createHost(world, hostTransport, { roomCode: 'CONV01', now: () => hub.now });
+    const guestTransport = hub.create();
+    const guest = createClient(guestTransport, { name: 'Empat', cls: 'fighter', roomCode: 'CONV01', now: () => hub.now });
+    guest.join(hostTransport.id);
+    hub.advance(120);
+    guest.ready();
+    host.begin();
+    hub.advance(120);
+
+    const views = new Map<number, string>();
+    const wireView = (w: World): string => JSON.stringify(decodeSnapshot(encodeSnapshot(w)));
+    let sincePublish = 0;
+    const step = (publish: boolean): void => {
+      host.collect();
+      host.noteLocalInput();
+      stepWorld(world, TICK_S);
+      guest.tick(TICK_S, encode(0, { moveX: 0, moveY: 0, aimX: 0, aimY: 0, attack: false, grab: false, build: false, zoom: 0 }));
+      hub.advance(TICK_S * 1000);
+      sincePublish += TICK_S * 1000;
+      if (!publish || sincePublish < 1000 / 15) return;
+      sincePublish = 0;
+      views.set(world.tick, wireView(world));
+      host.publish([]);
+    };
+
+    for (let i = 0; i < 300; i++) step(true);
+
+    const stalledUntil = (() => {
+      for (let i = 0; i < 12; i++) step(false);
+      return world.tick;
+    })();
+    const stallEndedAt = hub.now;
+
+    let recoveredAt = -1;
+    let gap = -1;
+    for (let i = 0; i < 120 && recoveredAt < 0; i++) {
+      step(true);
+      const held = guest.buffer.latest();
+      if (held && held.tick > stalledUntil) {
+        recoveredAt = hub.now;
+        gap = world.tick - held.tick;
+      }
+    }
+
+    const recovery = recoveredAt - stallEndedAt;
+    console.log(`net: after a 400ms stall the client held a fresh snapshot after ${recovery}ms of link time, ${gap} ticks behind`);
+    expect(recoveredAt, 'no snapshot from after the stall ever reached the client').toBeGreaterThanOrEqual(0);
+    expect(recovery, 'the client took longer than one snapshot period plus the link delay').toBeLessThanOrEqual(250);
+    expect(gap, 'the client was further behind than delay plus jitter allows').toBeLessThanOrEqual(5);
+    const held = guest.buffer.latest()!;
+    expect(JSON.stringify(held), 'the snapshot the client holds is not the host state for its tick').toBe(views.get(held.tick));
   });
 
   /**

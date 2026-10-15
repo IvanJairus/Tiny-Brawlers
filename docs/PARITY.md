@@ -113,6 +113,7 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 103 | Navigasi keyboard penuh di menu | Tab dan Shift+Tab berputar di dalam layar tanpa pernah keluar (fokus = none), setiap layar merebut fokus saat dibuka, dan Enter menyelesaikan rute judul → pilih kelas → main → jeda → lanjut di tiga ukuran | e2e/layout.spec.ts | M4 | A |
 | 104 | Reduced motion dan tanpa animasi tanpa pemicu | Dengan prefers-reduced-motion: reduce tidak ada transisi UI yang lebih dari 1 ms dan tidak ada animasi CSS tak berujung; probe yang sama membuktikan transisi nyata ada saat motion normal | e2e/layout.spec.ts | M4 | A |
 | 105 | Paritas dijaga mesin | Setiap baris ledger punya status A, nomor unik, klaim perilaku, milestone M0-M7, dan menyebut file tes yang benar-benar ada serta berisi tes | tests/docs/parity.test.ts | M7 | A |
+| 106 | Konvergensi setelah stall 400 ms | Di link bermusuhan (60ms delay, 60ms jitter, loss 3%, dup 2%) klien kembali memegang snapshot dari setelah stall dalam 133,3 ms waktu link dan tertinggal 3 tick (n=1, seed 5; gerbang 250 ms dan 5 tick), dan isi snapshot yang dipegangnya persis sama dengan state host untuk tick itu | tests/net/net.test.ts | M5 | A |
 
 ## Yang sengaja tidak ada
 
