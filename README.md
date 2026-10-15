@@ -13,7 +13,7 @@ pembanding paritas.
 ```bash
 npm install
 npm run dev            # http://localhost:3000
-npm test               # 244 tes unit/sim/net, headless
+npm test               # 249 tes unit/sim/net, headless
 npm run test:speed     # gerbang 1000x realtime dari rencana M1, file itu saja yang jalan
 npm run test:browser   # 59 tes Playwright: 3 ukuran layar, netplay, relay, artefak produksi
 npm run test:perf      # 1 tes budget frame dengan CPU di-throttle 6x, sendirian
@@ -154,6 +154,12 @@ npm run build && npx serve dist    # cek lokal hasil yang sama dengan yang akan 
 ```
 
 ## Status verifikasi
+
+Daftar "jangan turun mutu" ada di `docs/PARITY.md`: 105 baris, tiap baris menyebut tes yang
+membuktikannya. `tests/docs/parity.test.ts` menjaga daftar itu sendiri, yaitu status harus A, nomor
+baris unik, klaim perilakunya ada, dan file yang disebut harus benar-benar ada serta berisi tes.
+Sebelum tes itu ada, audit ini saya kerjakan dengan mata dan ia menemukan baris yang menyebut file
+yang tidak pernah ada; sekarang kesalahan seperti itu merah.
 
 Baseline visual: `npm run test:visual` membandingkan tujuh permukaan UI (judul, pilih kelas, HUD,
 pause, konfirmasi keluar, terputus, hasil) di dua viewport, 1440x900 dan 740x360, dengan PNG di

@@ -79,7 +79,7 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 69 | Kode ruangan | Gabung dengan kode salah ditolak | tests/net/net.test.ts | M5 | A |
 | 70 | Perangkat pendukung | RTCPeerConnection tidak ada pindah layar unsupported | tests/platform/audio.test.ts, tests/ui/machine.test.ts | M6 | A |
 | 71 | Layar hasil nyata | Statistik dihitung dari event simulasi yang nyata | e2e/layout.spec.ts | M7 | A |
-| 72 | Bangun produksi bersih | tsc dan vite build tanpa error | CI | M0 | A |
+| 72 | Bangun produksi bersih | tsc dan vite build tanpa error; artefak produksi yang diuji suite datang dari hasil build, jadi build yang gagal menyeret seluruh suite production | playwright.config.ts, e2e/production.spec.ts | M0 | A |
 | 75 | Artefak produksi benar-benar jalan | Build hasil `vite build` dihidupkan lewat preview: boot, layout ponsel, frame nyata, tanpa error konsol | e2e/production.spec.ts | M7 | A |
 | 81 | Preview slot penempatan | Peti yang dibawa menunjukkan slot tujuan di pad | e2e/layout.spec.ts, tests/render/reading-aids.test.ts | M3 | A |
 | 82 | Guncangan kamera | Ledakan dekat kamera mengguncang, yang jauh tidak | tests/render/reading-aids.test.ts | M4 | A |
@@ -112,6 +112,7 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 102 | Tampilan ASCII debug | `?ascii=1` menampilkan grid 65x33 plus tick/hp/hidup, setiap baris ≤ 65 karakter, dan panel tidak keluar dari layar di 1440x900, 740x360, 390x844 | tests/sim/ascii.test.ts, e2e/layout.spec.ts | M2 | A |
 | 103 | Navigasi keyboard penuh di menu | Tab dan Shift+Tab berputar di dalam layar tanpa pernah keluar (fokus = none), setiap layar merebut fokus saat dibuka, dan Enter menyelesaikan rute judul → pilih kelas → main → jeda → lanjut di tiga ukuran | e2e/layout.spec.ts | M4 | A |
 | 104 | Reduced motion dan tanpa animasi tanpa pemicu | Dengan prefers-reduced-motion: reduce tidak ada transisi UI yang lebih dari 1 ms dan tidak ada animasi CSS tak berujung; probe yang sama membuktikan transisi nyata ada saat motion normal | e2e/layout.spec.ts | M4 | A |
+| 105 | Paritas dijaga mesin | Setiap baris ledger punya status A, nomor unik, klaim perilaku, milestone M0-M7, dan menyebut file tes yang benar-benar ada serta berisi tes | tests/docs/parity.test.ts | M7 | A |
 
 ## Yang sengaja tidak ada
 
