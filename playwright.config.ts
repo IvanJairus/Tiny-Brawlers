@@ -2,10 +2,15 @@ import { defineConfig, devices } from '@playwright/test';
 
 const DEV_PORT = 4173;
 const PROD_PORT = 4174;
-const DEV_SPECS = ['layout.spec.ts', 'netplay.spec.ts', 'relay.spec.ts', 'perf.spec.ts'];
+const DEV_SPECS = ['layout.spec.ts', 'netplay.spec.ts', 'relay.spec.ts'];
+// The throttled measurement is timed against a budget, so it runs from its own
+// config with a single worker: sharing a pool with the rest of the suite makes
+// contention, not the game, decide the result. See playwright.perf.config.ts.
+const PERF_SPECS = ['perf.spec.ts'];
 
 export default defineConfig({
   testDir: 'e2e',
+  testIgnore: PERF_SPECS,
   timeout: 30_000,
   fullyParallel: false,
   reporter: [['list']],
