@@ -86,6 +86,42 @@ const ROCK_SPOTS: Array<{ x: number; z: number; r: number }> = [
   { x: -29, z: 29, r: 1.45 }, { x: 29, z: 29, r: 1.5 }
 ];
 
+/**
+ * Where a carried crate would land. The old build had this as a hologram and it
+ * was one of the few genuinely useful reading aids, so it stays: without it a
+ * player cannot tell which of the eight slots a press will fill.
+ */
+export class PlacementGhost {
+  public readonly mesh: THREE.Mesh;
+  private geometry: THREE.BufferGeometry;
+
+  constructor(materials: SharedMaterials) {
+    this.geometry = new THREE.BoxGeometry(CRATE_SIZE, CRATE_SIZE, CRATE_SIZE);
+    const material = new THREE.MeshBasicMaterial({
+      color: 0xfff2cc, transparent: true, opacity: 0.32, depthWrite: false
+    });
+    this.mesh = new THREE.Mesh(this.geometry, material);
+    this.mesh.name = 'placement_ghost';
+    this.mesh.visible = false;
+    void materials;
+  }
+
+  showAt(x: number, y: number, z: number, pulse: number): void {
+    this.mesh.visible = true;
+    this.mesh.position.set(x, y, z);
+    (this.mesh.material as THREE.MeshBasicMaterial).opacity = 0.2 + pulse * 0.18;
+  }
+
+  hide(): void {
+    this.mesh.visible = false;
+  }
+
+  dispose(): void {
+    this.geometry.dispose();
+    (this.mesh.material as THREE.Material).dispose();
+  }
+}
+
 export function buildRocks(materials: SharedMaterials): THREE.InstancedMesh {
   const geometry = mergeParts([
     { geometry: new THREE.IcosahedronGeometry(1, 0), color: PALETTE.rock, scale: [1.15, 0.8, 0.95] }

@@ -73,6 +73,47 @@ test('touch controls only exist for touch input and are big enough', async ({ pa
   }
 });
 
+test('a carried crate shows where it will land', async ({ page }) => {
+  await startMatch(page);
+
+  const ghostVisible = () => page.evaluate(() => {
+    const tb = (window as unknown as { __tb: { stage: { scene: { traverse(fn: (o: { name?: string; visible?: boolean }) => void): void } } } }).__tb;
+    let visible: boolean | null = null;
+    tb.stage.scene.traverse((mesh) => {
+      if (mesh.name === 'placement_ghost') visible = Boolean(mesh.visible);
+    });
+    return visible;
+  });
+
+  expect(await ghostVisible()).toBe(false);
+
+  await page.evaluate(() => {
+    const tb = (window as unknown as {
+      __tb: {
+        world: {
+          ids: { alloc(): number };
+          buddies: Array<{ id: number; carryCrate: number; x: number; z: number; state: string }>;
+          crates: unknown[];
+          localPlayer: number;
+        };
+      }
+    }).__tb;
+    const me = tb.world.buddies.find((b) => b.id === tb.world.localPlayer)!;
+    const origin = { x: -21.2 * 0.66, z: -21.2 * 0.66 };
+    me.x = origin.x;
+    me.z = origin.z;
+    const id = tb.world.ids.alloc();
+    tb.world.crates.push({
+      id, x: me.x, y: 1.9, z: me.z, vx: 0, vy: 0, vz: 0, spin: 0, spinZ: 0,
+      state: 'held', heldBy: me.id, padTeam: null, padSlot: -1, claimTeam: null, settled: 0, dead: false
+    });
+    me.carryCrate = id;
+  });
+  await page.waitForTimeout(400);
+
+  expect(await ghostVisible()).toBe(true);
+});
+
 test('the renderer stays inside the draw-call budget while playing', async ({ page }) => {
   await startMatch(page);
   await page.keyboard.down('KeyD');

@@ -8,6 +8,8 @@ export interface Stage {
   renderer: THREE.WebGLRenderer;
   scene: THREE.Scene;
   resize(): void;
+  setRenderScale(scale: number): void;
+  renderScale(): number;
   draw(camera: THREE.Camera): void;
   dispose(): void;
   info(): { calls: number; triangles: number; programs: number };
@@ -15,7 +17,9 @@ export interface Stage {
 
 export function createStage(container: HTMLElement, coarsePointer: boolean): Stage {
   const renderer = new THREE.WebGLRenderer({ antialias: !coarsePointer, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, coarsePointer ? 1.5 : 2));
+  const baseRatio = Math.min(window.devicePixelRatio, coarsePointer ? 1.5 : 2);
+  let scale = 1;
+  renderer.setPixelRatio(baseRatio);
   renderer.shadowMap.enabled = false;
   container.appendChild(renderer.domElement);
   renderer.domElement.style.display = 'block';
@@ -39,6 +43,14 @@ export function createStage(container: HTMLElement, coarsePointer: boolean): Sta
     renderer,
     scene,
     resize,
+    renderScale: () => scale,
+    setRenderScale(value: number) {
+      const next = Math.max(0.6, Math.min(1, value));
+      if (next === scale) return;
+      scale = next;
+      renderer.setPixelRatio(baseRatio * scale);
+      resize();
+    },
     draw: (camera: THREE.Camera) => renderer.render(scene, camera),
     dispose() {
       renderer.dispose();

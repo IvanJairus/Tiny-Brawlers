@@ -74,7 +74,10 @@ export const T = {
   netCodeLabel: 'Kode ruangan',
   netWaiting: 'Menunggu pemain',
   netStart: 'Mulai Pertandingan',
-  netFull: 'Ruangan penuh',
+  netFull: 'Ruangan penuh, tidak bisa bergabung',
+  netBadCode: 'Kode ruangan tidak cocok',
+  netLate: 'Pertandingan sudah dimulai, tidak bisa bergabung',
+  netReplaced: 'Slot kamu sudah diambil alih AI',
   netYou: 'Kamu'
 } as const;
 

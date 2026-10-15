@@ -81,6 +81,11 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 71 | Layar hasil nyata | Statistik dihitung dari event simulasi yang nyata | e2e/layout.spec.ts | M7 | A |
 | 72 | Bangun produksi bersih | tsc dan vite build tanpa error | CI | M0 | A |
 | 75 | Artefak produksi benar-benar jalan | Build hasil `vite build` dihidupkan lewat preview: boot, layout ponsel, frame nyata, tanpa error konsol | e2e/production.spec.ts | M7 | A |
+| 81 | Preview slot penempatan | Peti yang dibawa menunjukkan slot tujuan di pad | e2e/layout.spec.ts, tests/render/reading-aids.test.ts | M3 | A |
+| 82 | Guncangan kamera | Ledakan dekat kamera mengguncang, yang jauh tidak | tests/render/reading-aids.test.ts | M4 | A |
+| 83 | Turun resolusi otomatis | 60 frame berturut-turut di atas 20ms menurunkan skala render ke 0,75 sekali saja | tests/render/reading-aids.test.ts | M3 | A |
+| 84 | Pause ditolak di netplay | Escape tidak menjeda pertandingan jaringan, di host maupun tamu | e2e/relay.spec.ts, tests/ui/router.test.ts | M4 | A |
+| 85 | Alasan gabung gagal ditampilkan | Kode salah atau ruangan penuh terlihat di layar lobby | tests/net/session.test.ts | M6 | A |
 | 80 | Tahan throttle 6x | p95 ≤ 20ms dan ≥ 50 fps di viewport ponsel dengan CPU di-throttle 6x | e2e/perf.spec.ts | M7 | A |
 | 79 | Relay signaling nyata | Dua halaman bernegosiasi lewat server WebSocket sungguhan | e2e/relay.spec.ts | M6 | A |
 | 77 | Soak 20 menit tanpa bocor | Roster ≤ 6 per tim, peti ≤ 24, id aktif tidak bertambah tanpa batas | tests/invariants/soak.test.ts | M7 | A |

@@ -24,6 +24,8 @@ import { projectView, type ViewState } from './sim/core/view';
 import { loadSettings, saveSettings } from './platform/storage';
 import type { BuddyClass } from './sim/domain/classes';
 import { overBudget } from './render/budget';
+import { T } from './ui/i18n/id';
+import { createAdaptation } from './render/adaptation';
 import { SFX } from './platform/audio/patches';
 
 const T_LOBBY_WAITING = 'Menunggu pemain lain';
@@ -34,7 +36,7 @@ export interface DebugHandle {
   screen(): string;
   fps(): number;
   budgetProblems(): string[];
-  netInfo(): { kind: string; code: string | null; peers: number; links: unknown };
+  netInfo(): { kind: string; code: string | null; peers: number; links: unknown; scale?: number };
   hash(): number;
   view(): ViewState | null;
 }
@@ -62,6 +64,7 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
   const stage = createStage(container, coarse || settings.quality === 'low');
   const renderer = new WorldRenderer(stage.scene);
   const camera = new IsoCamera(1, { reducedMotion });
+  const adaptation = createAdaptation();
   const machine = createMachine(webglAvailable() ? 'title' : 'unsupported');
   const store = createHudStore();
   const hud = buildHud(document);
@@ -144,6 +147,8 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
     router.lobby()?.setRoster(session.roster());
   }
 
+  renderer.attachCamera(camera);
+
   const router = createRouter(uiHost, {
     send: (event) => machine.send(event),
     startWith: (cls) => {
@@ -156,6 +161,7 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
       if (machine.can('loaded')) machine.send('loaded');
       refreshRoster();
     },
+    canPause: () => session.kind === 'solo',
     netplay: detectCapabilities().webrtc,
     lobby: lobbyActions,
     settings,
@@ -171,7 +177,7 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
   hud.onAction('grab', () => { touchPressed.grab = true; });
   hud.onAction('shoot', () => { touchPressed.shoot = true; });
   hud.onAction('build', () => { touchPressed.build = true; });
-  hud.onAction('pause', () => { if (machine.can('pause')) machine.send('pause'); });
+  hud.onAction('pause', () => { if (session.kind === 'solo' && machine.can('pause')) machine.send('pause'); });
   hud.onAction('restart', () => { if (machine.can('again')) machine.send('again'); });
 
   const onPointerUp = (): void => {
@@ -181,13 +187,6 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
   };
   window.addEventListener('pointerup', onPointerUp);
   window.addEventListener('pointercancel', onPointerUp);
-
-  const onKey = (event: KeyboardEvent): void => {
-    if (event.key !== 'Escape') return;
-    if (machine.screen === 'playing' && machine.can('pause')) machine.send('pause');
-    else if (machine.screen === 'paused' && machine.can('resume')) machine.send('resume');
-  };
-  window.addEventListener('keydown', onKey);
 
   hud.root.classList.toggle('is-coarse', coarse);
   uiHost.prepend(hud.root);
@@ -210,6 +209,7 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
   router.show(machine.screen, view);
   hud.setVisible(false);
 
+  let lastNetError: string | null = null;
   let steps = 0;
   const stepper = createStepper((dt) => {
     session.step(dt, mergeAxes());
@@ -262,6 +262,18 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
     if (isTicking(machine.screen)) stepper.push(elapsed);
     else stepper.reset();
 
+    if (machine.screen === 'lobby') {
+      const problem = session.error();
+      if (problem && problem !== lastNetError) {
+        lastNetError = problem;
+        router.lobby()?.setPhase(
+          problem === 'full' ? T.netFull
+            : problem === 'code' ? T.netBadCode
+              : problem === 'rejoin' ? T.netLate : problem
+        );
+      }
+    }
+
     if (machine.screen === 'lobby' && session.kind !== 'solo' && session.phase() === 'playing') {
       world = session.world;
       if (machine.can('loaded')) machine.send('loaded');
@@ -296,6 +308,8 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
         entities: world.buddies.length + world.crates.length + world.projectiles.length + world.tanks.length
       }, now);
     }
+
+    if (adaptation.sample(elapsed)) stage.setRenderScale(adaptation.scale);
 
     frames++;
     if (now - fpsWindow >= 500) {
@@ -339,6 +353,7 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
       netInfo: () => ({
         kind: session.kind,
         code: session.code(),
+        scale: stage.renderScale(),
         peers: netLink ? (netLink.transport as unknown as { peerCount?(): number }).peerCount?.() ?? -1 : 0,
         links: (netLink?.transport as unknown as { diagnose?(): unknown })?.diagnose?.() ?? []
       }),
@@ -356,7 +371,6 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
     router.dispose();
     window.removeEventListener('resize', onResize);
     window.removeEventListener('wheel', onWheel);
-    window.removeEventListener('keydown', onKey);
     window.removeEventListener('pointerup', onPointerUp);
     window.removeEventListener('pointercancel', onPointerUp);
     audio.dispose();

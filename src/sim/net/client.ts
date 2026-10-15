@@ -143,6 +143,10 @@ export function createClient(transport: Transport, options: ClientOptions): Clie
           lastError = 'code';
           client.phase = 'refused';
           break;
+        case 'rejoin':
+          lastError = 'rejoin';
+          client.phase = 'refused';
+          break;
         case 'roster':
           if (client.phase === 'joining') client.phase = 'lobby';
           break;

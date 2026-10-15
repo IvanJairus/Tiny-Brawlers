@@ -40,4 +40,12 @@ test('two pages negotiate through the websocket relay', async ({ context }) => {
   }), { timeout: 30_000 }).toBeGreaterThan(0);
 
   expect(errors).toEqual([]);
+
+  await expect.poll(() => guest.evaluate(() => document.body.dataset.screen), { timeout: 15_000 }).toBe('playing');
+  await guest.keyboard.press('Escape');
+  await guest.waitForTimeout(600);
+  expect(await guest.evaluate(() => document.body.dataset.screen)).toBe('playing');
+  await host.keyboard.press('Escape');
+  await host.waitForTimeout(600);
+  expect(await host.evaluate(() => document.body.dataset.screen)).toBe('playing');
 });

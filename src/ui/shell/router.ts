@@ -21,7 +21,7 @@ export function createRouter(host: HTMLElement, ctx: ScreenContext): Router {
 
   const onKeyDown = (event: KeyboardEvent): void => {
     if (event.key !== 'Escape' || !mounted) return;
-    if (mounted.screen === 'playing') ctx.send('pause');
+    if (mounted.screen === 'playing' && ctx.canPause()) ctx.send('pause');
     else if (mounted.screen === 'paused') ctx.send('resume');
   };
 
@@ -46,6 +46,8 @@ export function createRouter(host: HTMLElement, ctx: ScreenContext): Router {
       }
     });
   };
+
+  window.addEventListener('keydown', onKeyDown);
 
   return {
     show(screen, view) {

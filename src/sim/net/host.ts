@@ -17,6 +17,7 @@ export interface HostSlot {
   ready: boolean;
   bot: boolean;
   buddyId: EntityId;
+  lastPeerId: string | null;
   lastInputAt: number;
   seq: number;
 }
@@ -63,6 +64,7 @@ export function createHost(world: World, transport: Transport, options: HostOpti
     ready: index === 0,
     bot: true,
     buddyId: NO_ENTITY as EntityId,
+    lastPeerId: null,
     lastInputAt: 0,
     seq: 0
   }));
@@ -119,16 +121,30 @@ export function createHost(world: World, transport: Transport, options: HostOpti
 
       if (message.t === 'join') {
         // The buddy id is only known once squads exist, so it is sent again at start.
-        const free = slots.find((slot) => slot.peerId === null);
-        if (!free || started) {
-          sendTo(peerId, 'reliable', { t: 'full' });
+        // After the match begins only a peer that already held a slot may re-enter it.
+        const free = started
+          ? slots.find((slot) => slot.peerId === null && slot.lastPeerId === peerId)
+          : slots.find((slot) => slot.peerId === null);
+        if (!free) {
+          sendTo(peerId, 'reliable', { t: started ? 'rejoin' : 'full' });
           return;
         }
         if ((message.code ?? '').toUpperCase() !== options.roomCode.toUpperCase()) {
           sendTo(peerId, 'reliable', { t: 'refused' });
           return;
         }
+        // A slot that was taken over by AI keeps its buddy, so the same player
+        // reconnecting gets their original soldier back rather than a new one.
+        if (free.buddyId !== (NO_ENTITY as EntityId)) {
+          const existing = world.buddies.find((b) => b.id === free.buddyId);
+          if (existing) {
+            existing.isBot = false;
+            existing.ownedByPlayer = true;
+          }
+          free.bot = false;
+        }
         free.peerId = peerId;
+        free.lastPeerId = peerId;
         free.name = (message.name ?? 'Pemain').slice(0, 16);
         free.cls = BUDDY_CLASSES.includes(message.cls as BuddyClass) ? (message.cls as BuddyClass) : free.cls;
         sendTo(peerId, 'reliable', {

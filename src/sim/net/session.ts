@@ -24,6 +24,7 @@ export interface Session {
   roster(): RosterEntry[];
   code(): string | null;
   phase(): 'idle' | 'joining' | 'lobby' | 'playing' | 'refused';
+  error(): string | null;
   step(dt: number, axes: RawAxes): void;
   publish(events: SimEvent[]): void;
   start(): void;
@@ -48,6 +49,7 @@ export function createSoloSession(seed: number, cls: BuddyClass, localTeam = 're
     world,
     code: () => null,
     phase: () => 'playing',
+    error: () => null,
     roster: () => world.buddies.filter((b) => !b.isBot).map((b) => ({
       team: b.team, name: 'Kamu', human: true, ready: true, latencyMs: 0
     })),
@@ -88,6 +90,7 @@ export function createHostSession(world: World, transport: Transport, options: H
     world,
     code: () => options.roomCode,
     phase: () => (host.started ? 'playing' : 'lobby'),
+    error: () => null,
     roster: () => host.slots.map((slot) => ({
       team: slot.team,
       name: slot.peerId === null ? `Bot ${slot.team}` : slot.name,
@@ -136,6 +139,7 @@ export function createClientSession(transport: Transport, options: ClientSession
     world: client.world,
     code: () => options.roomCode,
     phase: () => client.phase,
+    error: () => client.lastError(),
     roster: () => [{ team: client.team ?? 'blue', name: options.name, human: true, ready: true, latencyMs: client.rtt() }],
     step(dt: number, axes: RawAxes): void {
       const cmd: InputCmd = axes.moveX === 0 && axes.moveY === 0 && !axes.attack && !axes.grab && !axes.build

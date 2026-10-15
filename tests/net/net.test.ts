@@ -175,6 +175,52 @@ describe('host authoritative session', () => {
     }
   });
 
+  it('refuses a stranger once the match has started', () => {
+    const hub = new LoopbackHub(CLEAN_LINK, 33);
+    const world = createWorld({ seed: 707 });
+    initialSquads(world, 2);
+    const hostTransport = hub.create();
+    const host = createHost(world, hostTransport, { roomCode: 'LOCK01', now: () => hub.now });
+    host.begin();
+    const stranger = hub.create();
+    host.handle(stranger.id, 'reliable', new TextEncoder().encode(JSON.stringify({
+      t: 'join', name: 'Orang', cls: 'fighter', code: 'LOCK01'
+    })));
+    expect(host.slots.some((slot) => slot.peerId === stranger.id)).toBe(false);
+    expect(host.humanCount()).toBe(1);
+  });
+
+  it('gives a reconnecting player their original buddy back', () => {
+    const hub = new LoopbackHub(CLEAN_LINK, 21);
+    const world = createWorld({ seed: 606 });
+    initialSquads(world, 2);
+    const hostTransport = hub.create();
+    const host = createHost(world, hostTransport, { roomCode: 'BACK01', now: () => hub.now });
+    const guestTransport = hub.create();
+    host.handle(guestTransport.id, 'reliable', new TextEncoder().encode(JSON.stringify({
+      t: 'join', name: 'Dua', cls: 'fighter', code: 'BACK01'
+    })));
+    host.begin();
+    hub.advance(40);
+
+    const slot = host.slots[1];
+    expect(slot.peerId).toBe(guestTransport.id);
+    const buddy = world.buddies.find((b) => b.id === slot.buddyId)!;
+    expect(buddy.isBot).toBe(false);
+
+    host.peerDown(guestTransport.id);
+    expect(slot.bot).toBe(true);
+    expect(buddy.isBot).toBe(true);
+
+    host.handle(guestTransport.id, 'reliable', new TextEncoder().encode(JSON.stringify({
+      t: 'join', name: 'Dua', cls: 'fighter', code: 'BACK01'
+    })));
+    expect(slot.peerId).toBe(guestTransport.id);
+    expect(slot.bot).toBe(false);
+    expect(buddy.isBot).toBe(false);
+    expect(buddy.ownedByPlayer).toBe(true);
+  });
+
   it('fills unused slots with bots so a two player match still plays', () => {
     const hub = new LoopbackHub(CLEAN_LINK, 3);
     const world = seededWorld();

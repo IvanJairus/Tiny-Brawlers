@@ -53,6 +53,9 @@ sedikit.
 | 4 | dinding 2x1x2 | Commando Buddy (unit AI) |
 | 8 | kubus penuh | Heavy Battle Tank |
 
+Saat membawa peti dan berdiri di dekat pad, satu slot akan ditandai kotak kosong
+berkedip: itu slot yang akan terisi kalau tombol ambil ditekan.
+
 Kelas: **Petarung** 130 HP dan rusak 1,25x, **Tabib** 100 HP dengan aura sembuh 25 HP/dtk dalam
 4,5 m, **Pembangun** 90 HP, paling cepat, dan paling jauh melempar.
 

@@ -1,11 +1,15 @@
 import * as THREE from 'three';
 import { buildArena, type Arena } from './arena';
 import { ChibiField, type ActorView } from './chibi';
-import { CrateField, buildRocks, type CrateView } from './props';
+import { CrateField, PlacementGhost, buildRocks, type CrateView } from './props';
 import { ProjectileField, type ProjectileView } from './projectiles';
 import { ParticlePool, COLOR } from './particles';
 import { TankField, type TankView } from './tanks';
 import { createMaterials, type SharedMaterials } from './materials';
+import { findBestSlot, padOrigin, slotPosition } from '../sim/domain/pad';
+import { PAD } from '../sim/domain/constants';
+import { distance } from '../sim/domain/buddy';
+import type { IsoCamera } from './camera';
 import type { World } from '../sim/core/world';
 import type { SimEvent } from '../sim/core/events';
 import type { EntityId } from '../sim/core/ids';
@@ -25,6 +29,8 @@ function lerpAngle(a: number, b: number, t: number): number {
   return a + delta * t;
 }
 
+const EMPTY_WORLD_STANDIN = { buddies: [], localPlayer: 0 as EntityId } as unknown as World;
+
 export class WorldRenderer {
   private materials: SharedMaterials;
   private arena: Arena;
@@ -34,12 +40,16 @@ export class WorldRenderer {
   private projectiles: ProjectileField;
   private particles: ParticlePool;
   private tanks: TankField;
+  private ghost: PlacementGhost;
+  private camera: IsoCamera | null = null;
   private prev = new Map<EntityId, Interpolated>();
   private lastTick = -1;
   private actors: ActorView[] = [];
   private crateViews: CrateView[] = [];
   private projectileViews: ProjectileView[] = [];
   private tankViews: TankView[] = [];
+
+  private worldRef: World = EMPTY_WORLD_STANDIN;
 
   constructor(private scene: THREE.Scene) {
     this.materials = createMaterials();
@@ -50,11 +60,20 @@ export class WorldRenderer {
     this.projectiles = new ProjectileField(this.materials);
     this.particles = new ParticlePool(this.materials);
     this.tanks = new TankField(this.materials);
+    this.ghost = new PlacementGhost(this.materials);
 
-    scene.add(this.arena.group, this.chibi.group, this.crates.mesh, this.rocks, this.projectiles.group, this.particles.points, this.tanks.group);
+    scene.add(
+      this.arena.group, this.chibi.group, this.crates.mesh, this.rocks,
+      this.projectiles.group, this.particles.points, this.tanks.group, this.ghost.mesh
+    );
+  }
+
+  attachCamera(camera: IsoCamera): void {
+    this.camera = camera;
   }
 
   sync(world: World, alpha: number, time: number, dt: number): void {
+    this.worldRef = world;
     if (world.tick !== this.lastTick) {
       this.lastTick = world.tick;
       this.prev.clear();
@@ -104,10 +123,40 @@ export class WorldRenderer {
 
     this.particles.update(dt);
     this.arena.update(time);
+    this.updateGhost(world, time);
+  }
+
+  /** Preview of the slot a carried crate would fill right now. */
+  private updateGhost(world: World, time: number): void {
+    const me = world.buddies.find((b) => b.id === world.localPlayer);
+    if (!me || me.state === 'ko' || me.carryCrate === (NO_ENTITY as EntityId) || world.eliminated[me.team]) {
+      this.ghost.hide();
+      return;
+    }
+    const origin = padOrigin(me.team);
+    if (distance(me, origin) >= PAD.halfWidth + 1.3) {
+      this.ghost.hide();
+      return;
+    }
+    const slot = findBestSlot(world.pads[me.team], me.team, me.x, me.z);
+    if (slot < 0) {
+      this.ghost.hide();
+      return;
+    }
+    const place = slotPosition(me.team, slot);
+    this.ghost.showAt(place.x, place.y, place.z, (Math.sin(time * 4) + 1) / 2);
   }
 
   consume(events: SimEvent[]): void {
     for (const event of events) {
+      if (this.camera && (event.kind === 'explosion' || event.kind === 'bunkerHit')) {
+        const focus = this.focusOn(this.worldRef);
+        if (focus) {
+          const d = Math.hypot(event.at.x - focus.x, event.at.z - focus.z);
+          const strength = Math.max(0, 1 - d / 18) * (event.kind === 'bunkerHit' ? 0.12 : 0.28);
+          if (strength > 0.02) this.camera.shake(strength);
+        }
+      }
       switch (event.kind) {
         case 'explosion':
           this.particles.burst(event.at.x, 0.6, event.at.z, COLOR.fire, 26, 7, 1, 0.55);
@@ -154,6 +203,7 @@ export class WorldRenderer {
       this.arena.group, this.chibi.group, this.crates.mesh, this.rocks,
       this.projectiles.group, this.particles.points, this.tanks.group
     );
+    this.ghost.dispose();
     this.arena.dispose();
     this.chibi.dispose();
     this.crates.dispose();

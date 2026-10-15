@@ -8,6 +8,7 @@ export interface ScreenContext {
   send: (event: Parameters<import('./machine').Machine['send']>[0]) => void;
   startWith: (cls: BuddyClass) => void;
   netplay: boolean;
+  canPause(): boolean;
   lobby: LobbyActions;
   settings: { sound: boolean; music: boolean; quality: 'high' | 'low'; reducedMotion: boolean };
   setSetting: (key: 'sound' | 'music' | 'quality' | 'reducedMotion', value: boolean | string) => void;

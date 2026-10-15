@@ -70,6 +70,21 @@ describe('netplay session', () => {
     }
   });
 
+  it('reports why a join was refused', () => {
+    const hub = new LoopbackHub(CLEAN_LINK, 11);
+    const world = createWorld({ seed: 3 });
+    initialSquads(world, 2);
+    const hostTransport = hub.create();
+    const guestTransport = hub.create();
+    createHostSession(world, hostTransport, { roomCode: 'RIGHT1', cls: 'fighter', name: 'A', now: () => hub.now });
+    const guest = createClientSession(guestTransport, {
+      roomCode: 'WRONG1', cls: 'fighter', name: 'B', hostPeerId: hostTransport.id, now: () => hub.now
+    });
+    hub.advance(80);
+    expect(guest.error()).toBe('code');
+    expect(guest.phase()).toBe('refused');
+  });
+
   it('refuses a guest with the wrong room code', () => {
     const hub = new LoopbackHub(CLEAN_LINK, 5);
     const world = createWorld({ seed: 7 });
