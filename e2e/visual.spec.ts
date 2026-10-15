@@ -1,29 +1,35 @@
 import { expect, test, type TestInfo } from '@playwright/test';
 
 /**
- * Pixel comparison for the interface surfaces. The shot is the #ui box, which is
- * transparent, so the arena behind it is in the picture too and its animation
- * phase (water, idle bob, pad pulse) is not frozen. That is what the 1.5 percent
- * budget absorbs: this gate catches layout, chrome and art changes, and it will
- * not notice a small shift in a wave crest.
+ * Pixel comparison for the interface surfaces. The canvas is hidden before each
+ * shot so the comparison is DOM only: the arena behind the transparent UI box
+ * animates on a wall clock, and that phase is not frozen by this build.
  */
 
 type Page = import('@playwright/test').Page;
 
 const ui = (page: Page) => page.locator('#ui');
 
+/**
+ * 1.5 percent of a 1440x900 frame is about 19k pixels, which is what let a copy
+ * change on the results list pass while the committed baseline still showed the
+ * old words. With the canvas out of the shot, only text and boxes remain, so the
+ * budget can be two orders of magnitude tighter.
+ */
+const DIFF_RATIO = 0.0015;
+
 function shot(name: string) {
-  return { maxDiffPixelRatio: 0.015, animations: 'disabled' as const, name };
+  return { maxDiffPixelRatio: DIFF_RATIO, animations: 'disabled' as const, name };
 }
 
 /**
- * Pins the interface layer and drops a full viewport shot next to it, for a human
- * to look at. The baseline covers the #ui box only; the review image shows the
- * whole frame, including the arena outside the HUD padding.
+ * Writes a full viewport shot for a human first, then hides the arena and pins
+ * the interface layer.
  */
 async function pin(page: Page, name: string, info: TestInfo): Promise<void> {
-  await expect(ui(page)).toHaveScreenshot(`${name}.png`, shot(`${name}.png`));
   await page.screenshot({ path: `test-results/visual-review/${info.project.name}-${name}.png` });
+  await page.addStyleTag({ content: '#stage canvas { visibility: hidden }' });
+  await expect(ui(page)).toHaveScreenshot(`${name}.png`, shot(`${name}.png`));
 }
 
 async function send(page: Page, event: string): Promise<void> {
@@ -97,9 +103,11 @@ test('the results screen of a finished match', async ({ page }, info) => {
   // Everything else on the screen is real: the stats come from the drained
   // event log of those 900 ticks.
   await page.evaluate(() => {
-    const tb = (window as unknown as { __tb: { world: { over: boolean; winner: string | null } } }).__tb;
-    tb.world.over = true;
-    tb.world.winner = 'red';
+    (window as unknown as { __tb: { world: { winner: string | null } } }).__tb.world.winner = 'red';
+  });
+  await advance(page, 0);
+  await page.evaluate(() => {
+    (window as unknown as { __tb: { world: { over: boolean } } }).__tb.world.over = true;
   });
   await send(page, 'finished');
   await pin(page, 'results', info);

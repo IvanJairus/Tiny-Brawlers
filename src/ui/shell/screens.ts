@@ -1,5 +1,6 @@
 import { T } from '../i18n/id';
 import type { BuddyClass } from '../../sim/domain/classes';
+import { TEAM_COLORS } from '../../sim/domain/teams';
 import type { ViewState } from '../../sim/core/view';
 import type { Screen } from './machine';
 import type { LobbyActions } from './lobby';
@@ -168,7 +169,7 @@ export function mountResults(host: HTMLElement, ctx: ScreenContext, view: ViewSt
     add(T.statTime, `${view.stats.survived} ${T.secondsSuffix}`);
     const teams = Object.keys(view.bunkerHp) as Array<keyof typeof view.bunkerHp>;
     for (const team of teams) {
-      add(`${T.teamLabel} ${team}`, view.eliminated[team] ? 'x' : `${Math.max(0, Math.round(view.bunkerHp[team]))}`);
+      add(`${T.teamLabel} ${TEAM_COLORS[team].label}`, view.eliminated[team] ? 'x' : `${Math.max(0, Math.round(view.bunkerHp[team]))}`);
     }
   }
   root.appendChild(stats);

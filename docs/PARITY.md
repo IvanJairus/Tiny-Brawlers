@@ -88,7 +88,7 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 92 | Jalan keluar saat netplay | Tombol HUD berubah jadi Keluar, konfirmasi mengembalikan pemain ke judul dan menutup koneksi | e2e/netplay.spec.ts | M6 | A |
 | 93 | Zoom di kedua jalur input | Tombol + dan - muncul hanya di sentuh dan mengubah jarak kamera; di desktop scroll dan tombol +/- tetap bekerja | e2e/layout.spec.ts, tests/sim/input-parity.test.ts, tests/ui/hud-bind.test.ts | M4 | A |
 | 94 | Ring stick tidak mencaplok tombol | Rect ring tidak memotong satu pun tombol aksi pada 1440x900, 740x360, dan 390x844 | e2e/layout.spec.ts | M4 | A |
-| 95 | Baseline visual UI | Tujuh permukaan UI di dua viewport (1440x900 dan 740x360) dibandingkan PNG yang di-commit dengan ambang 1,5 persen, dan dua jalan beruntun hasilnya identik | e2e/visual.spec.ts | M7 | A |
+| 95 | Baseline visual UI | Tujuh permukaan UI di dua viewport (1440x900 dan 740x360) dibandingkan PNG yang di-commit, canvas disembunyikan supaya yang diuji murni DOM, ambang 0,15 persen; tiga jalan beruntun identik | e2e/visual.spec.ts | M7 | A |
 | 85 | Alasan gabung gagal ditampilkan | Kode salah atau ruangan penuh terlihat di layar lobby | tests/net/session.test.ts | M6 | A |
 | 86 | Busur lemparan | Membawa peti di luar jangkauan pad menampilkan garis jalur jatuh, dan ujungnya sama persis dengan integrasi peti sungguhan | tests/render/reading-aids.test.ts, tests/sim/crate.test.ts, e2e/layout.spec.ts | M4 | A |
 | 87 | Flash kerusakan | Tubuh yang kena serangan dibungkus shell putih aditif yang memudar dalam 60 ms | tests/render/reading-aids.test.ts | M4 | A |

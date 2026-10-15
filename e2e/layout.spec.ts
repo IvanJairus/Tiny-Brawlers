@@ -209,6 +209,9 @@ test('a full match can be played to a result screen', async ({ page }) => {
   expect(finished).toBe(true);
   await expect.poll(() => page.evaluate(() => document.body.dataset.screen), { timeout: 5000 }).toBe('results');
   await expect(page.getByRole('button', { name: 'Main Lagi' })).toBeVisible();
+  await expect(page.locator('.stat-list dt')).toHaveText([
+    'Rakitan', 'Tumbang', 'Peti dikirim', /^Bertahan/, 'Tim Merah', 'Tim Biru', 'Tim Kuning', 'Tim Sian'
+  ]);
 });
 
 test('the HUD reports the same health the simulation holds', async ({ page }) => {
