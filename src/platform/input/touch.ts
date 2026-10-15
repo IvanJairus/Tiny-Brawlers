@@ -42,9 +42,10 @@ export function createTouch(target: Window & typeof globalThis = window): TouchS
     originY = event.clientY;
     dx = 0;
     dy = 0;
-    ring?.style.setProperty('opacity', '1');
+    area.classList.add('is-active');
     if (ring) {
-      ring.style.left = `${event.clientX - rect.left}px`;
+      ring.style.left = `${event.clientX - rect.left - 59}px`;
+      ring.style.bottom = 'auto';
       ring.style.top = `${event.clientY - rect.top}px`;
     }
     if (knob) knob.style.transform = 'translate(0px, 0px)';
@@ -69,7 +70,12 @@ export function createTouch(target: Window & typeof globalThis = window): TouchS
     dx = 0;
     dy = 0;
     if (knob) knob.style.transform = 'translate(0px, 0px)';
-    ring?.style.setProperty('opacity', '0');
+    area?.classList.remove('is-active');
+    if (ring) {
+      ring.style.left = '';
+      ring.style.top = '';
+      ring.style.bottom = '';
+    }
   };
 
   return {

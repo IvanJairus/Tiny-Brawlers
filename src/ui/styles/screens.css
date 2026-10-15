@@ -228,18 +228,40 @@
 
 .stick-ring {
   position: absolute;
+  left: 74px;
+  bottom: 66px;
   width: 118px;
   height: 118px;
-  margin: -59px 0 0 -59px;
+  margin: 0;
   border: 2px dashed rgba(22, 32, 43, 0.45);
   border-radius: 50%;
-  opacity: 0;
+  opacity: 0.35;
   transition: opacity 120ms ease-out;
+}
+
+.stick-ring::after {
+  content: 'geser';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(22, 32, 43, 0.55);
+}
+
+.stick-zone.is-active .stick-ring {
+  opacity: 1;
+}
+
+.stick-zone.is-active .stick-ring::after {
+  content: '';
 }
 
 .stick-knob {
   position: absolute;
-  inset: 50% auto auto 50%;
+  left: 50%;
+  top: 50%;
   width: 54px;
   height: 54px;
   margin: -27px 0 0 -27px;
@@ -448,7 +470,12 @@
   }
 
   .hud-top {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 320px) auto minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .card-player {
+    max-width: 320px;
   }
 
   .card-pad {

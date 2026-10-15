@@ -60,6 +60,9 @@ export class IsoCamera {
 
   updateAspect(aspect: number): void {
     this.camera.aspect = aspect;
+    // A landscape phone is a short window: widening the vertical field keeps the
+    // buddy and its surroundings on screen instead of cropping to the fort.
+    this.camera.fov = aspect > 1.9 ? 58 : aspect > 1.4 ? 52 : 46;
     this.camera.updateProjectionMatrix();
   }
 }

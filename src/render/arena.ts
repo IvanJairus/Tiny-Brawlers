@@ -67,25 +67,6 @@ function bunkerParts(team: TeamId): Part[] {
 
   // Sandbags read as a stacked wall: flat-sided bags in two offset rows, not
   // loose cylinders scattered around the entrance.
-  // A parapet of bags laid flat against the fort face, two courses, staggered
-  // only by half a bag so the joints read as masonry rather than scattered boxes.
-  const bag = box(1.42, 0.4, 0.66);
-  for (let row = 0; row < 2; row++) {
-    const y = 0.21 + row * 0.4;
-    for (let i = 0; i < 5; i++) {
-      const offset = (i - 2) * 1.44 + (row % 2 ? 0.72 : 0);
-      if (Math.abs(offset) > 3.1) continue;
-      const px = Math.cos(towardCentre) * 3.78 - Math.sin(towardCentre) * offset;
-      const pz = Math.sin(towardCentre) * 3.78 + Math.cos(towardCentre) * offset;
-      parts.push({
-        geometry: bag,
-        color: row === 0 ? PALETTE.sand : 0xc0a071,
-        position: at(px, y, pz),
-        rotation: [0, -towardCentre, 0]
-      });
-    }
-  }
-
   return parts;
 }
 
