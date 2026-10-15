@@ -14,8 +14,9 @@ pembanding paritas.
 npm install
 npm run dev            # http://localhost:3000
 npm test               # 168 tes unit/sim/net, headless
-npm run test:browser   # 24 tes Playwright di 3 ukuran layar
+npm run test:browser   # 29 tes Playwright: 3 ukuran layar dev + artefak produksi
 npm run build          # tsc + vite build
+npm run preview        # sajikan hasil build seperti saat tayang
 ```
 
 ## Kendali
@@ -93,11 +94,35 @@ sudah berubah tapi gambar belum" tidak punya tempat untuk terjadi.
 Anggaran render diuji di `tests/render/budget.test.ts`: draw call ≤ 60, material ≤ 12, geometry
 ≤ 30, triangle ≤ 45k, tanpa shadow map. Terukur di medan penuh: 25 draw call dan 5 material.
 
+## Mengukur di perangkat sendiri
+
+Buka game dengan `?meter=1` untuk menampilkan fps, p50, p95, dan jumlah draw call langsung di
+layar. Ini satu-satunya cara jujur menjawab "apakah lancar di HP ini", karena devtools tidak bisa
+dipasang di ponsel saat bermain.
+
+```bash
+npm run dev            # catat alamat network yang ditampilkan, misalnya http://192.168.1.2:3000
+# di ponsel yang satu Wi-Fi: http://192.168.1.2:3000/?meter=1
+```
+
+Angka yang terlihat di sana adalah angka perangkat itu. Angka dari headless Chromium di laptop
+tidak mewakili ponsel, dan sengaja tidak dipakai sebagai bukti.
+
+## Deploy
+
+Build bersifat portabel: `base` relatif, jadi `dist/` bisa diletakkan di root domain maupun di
+bawah subpath repo. Hosting harus HTTPS karena WebRTC dan broker signaling menolak halaman `http`.
+
+```bash
+npm run build && npx serve dist    # cek lokal hasil yang sama dengan yang akan tayang
+```
+
 ## Status verifikasi
 
 Yang dibuktikan otomatis: aturan lapisan, determinisme sim, 7 resep, invarian cacat lama, codec
 dan sesi netplay di link ber-jitter, anggaran render, tidak ada bocor horizontal dan tidak ada
-tumpang tindih HUD di 1440x900 / 740x360 / 390x844, dua halaman browser main satu pertandingan.
+tumpang tindih HUD di 1440x900 / 740x360 / 390x844, dua halaman browser main satu pertandingan,
+dan build hasil `vite build` benar-benar dijalankan lewat `vite preview` tanpa error konsol.
 
 Yang belum: 60 fps pada perangkat ponsel nyata, dan netplay lintas perangkat di jaringan seluler.
 Keduanya butuh perangkat, jadi angka performa ponsel sengaja tidak diklaim.

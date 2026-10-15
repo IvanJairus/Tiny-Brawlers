@@ -54,3 +54,24 @@ body {
     transition-duration: 0.001ms !important;
   }
 }
+
+.meter {
+  position: fixed;
+  top: calc(var(--space-2) + var(--hud-safe-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(22, 32, 43, 0.82);
+  color: #d8ffe4;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  font: 700 11px/1.35 var(--font-text);
+  white-space: pre;
+  pointer-events: none;
+}
+
+.meter.is-slow {
+  color: #ffd6d6;
+  border-color: rgba(255, 120, 120, 0.7);
+}

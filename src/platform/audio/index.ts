@@ -26,11 +26,12 @@ const EVENT_TO_PATCH: Record<string, keyof typeof SFX> = {
   revive: 'heal'
 };
 
-export function createGameAudio(): GameAudio {
-  const graph = createAudioGraph();
+export function createGameAudio(injected?: AudioGraph): GameAudio {
+  const graph = injected ?? createAudioGraph();
   const bgm = createBgm(graph);
   let enabled = true;
   let musicEnabled = true;
+  const recent = new Map<string, number>();
 
   return {
     graph,
@@ -39,6 +40,17 @@ export function createGameAudio(): GameAudio {
       if (!enabled) return;
       const patchName = EVENT_TO_PATCH[event.kind];
       if (!patchName) return;
+      const at = 'at' in event ? event.at : null;
+      if (at) {
+        // One blast damages several buddies on the same tick; without this the
+        // first hit would stack five identical cues in the same millisecond.
+        const key = `${event.kind}:${Math.round(at.x)}:${Math.round(at.z)}`;
+        const now = performance.now();
+        const last = recent.get(key);
+        if (last !== undefined && now - last < 40) return;
+        recent.set(key, now);
+        if (recent.size > 64) recent.clear();
+      }
       const patch = patchName === 'shoot' && event.kind === 'shot' && event.weapon === 'shotgun' ? SFX.shotgun : SFX[patchName];
       graph.play(patch);
     },

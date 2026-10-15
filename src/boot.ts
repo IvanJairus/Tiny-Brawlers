@@ -10,6 +10,7 @@ import { createSoloSession, createHostSession, createClientSession, type Session
 import { openHostRoom, joinRoom, type NetLink } from './platform/net';
 import { detectCapabilities } from './platform/browsercheck';
 import { createGameAudio } from './platform/audio';
+import { createMeter, type Meter } from './platform/meter';
 import type { SimEvent } from './sim/core/events';
 import type { LobbyActions } from './ui/shell/lobby';
 import { TICK_S } from './sim/domain/constants';
@@ -68,6 +69,8 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
   const touch = createTouch();
   const stats = { built: 0, knockouts: 0, cratesDelivered: 0 };
   const audio = createGameAudio();
+  const meter: Meter | null = new URLSearchParams(window.location.search).get('meter') === '1' ? createMeter() : null;
+  if (meter) document.body.appendChild(meter.element);
   audio.setEnabled(settings.sound);
   audio.setMusic(settings.music);
   const touchPressed = { grab: false, shoot: false, build: false };
@@ -282,6 +285,16 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
       view = projectView(world, stats);
       store.set(view);
       hud.update(view);
+    }
+
+    if (meter) {
+      const info = stage.info();
+      meter.sample({
+        frameMs: elapsed,
+        drawCalls: info.calls,
+        triangles: info.triangles,
+        entities: world.buddies.length + world.crates.length + world.projectiles.length + world.tanks.length
+      }, now);
     }
 
     frames++;

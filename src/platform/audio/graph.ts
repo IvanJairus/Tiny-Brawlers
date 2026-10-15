@@ -10,8 +10,20 @@ export interface AudioGraph {
   suspend(): void;
   setMaster(volume: number): void;
   play(patch: Patch, at?: number): void;
+  activeVoices(): number;
+  startedCues(): number;
   dispose(): void;
 }
+
+export type ContextFactory = () => AudioContext | null;
+
+export const browserContext: ContextFactory = () => {
+  try {
+    return new AudioContext({ latencyHint: 'interactive' });
+  } catch {
+    return null;
+  }
+};
 
 export interface Patch {
   type: OscillatorType;
@@ -32,8 +44,9 @@ const CUES_PER_SECOND = 8;
  * previous audio module into a 580-line file that could stall the audio thread
  * during a firefight.
  */
-export function createAudioGraph(): AudioGraph {
+export function createAudioGraph(factory: ContextFactory = browserContext): AudioGraph {
   let context: AudioContext | null = null;
+  let cues = 0;
   let master: GainNode | null = null;
   let limiter: DynamicsCompressorNode | null = null;
   const pool: Voice[] = [];
@@ -42,8 +55,10 @@ export function createAudioGraph(): AudioGraph {
 
   const ensure = (): AudioContext | null => {
     if (context) return context;
+    const created = factory();
+    if (!created) return null;
+    context = created;
     try {
-      context = new AudioContext({ latencyHint: 'interactive' });
       master = context.createGain();
       master.gain.value = volume;
       limiter = context.createDynamicsCompressor();
@@ -53,6 +68,7 @@ export function createAudioGraph(): AudioGraph {
       master.connect(limiter).connect(context.destination);
     } catch {
       context = null;
+      master = null;
     }
     return context;
   };
@@ -116,9 +132,12 @@ export function createAudioGraph(): AudioGraph {
       } catch {
         // Already scheduled in this context; the pooled voice is reused next time.
       }
+      cues++;
       const slot = pool[pool.length - 1];
       if (slot) slot.endsAt = now + patch.duration;
     },
+    activeVoices: () => pool.length,
+    startedCues: () => cues,
     dispose() {
       for (const voice of pool) {
         try {
