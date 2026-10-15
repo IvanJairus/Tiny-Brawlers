@@ -9,7 +9,7 @@ import { attachCrateToBuddy, detachCrate, makeCrate, placeCrateOnPad, stepCrate,
 import { findBestSlot, isSlotFilled, padOrigin, setSlot, slotPosition } from '../domain/pad';
 import { evaluatePad } from '../domain/recipes';
 import { blastOf, isFinished, makeProjectile, stepProjectile, type ProjectileRec } from '../domain/projectile';
-import { damageBunker, refreshElimination, spawnBuddy, tickReinforcements, tickRespawns } from '../domain/match';
+import { canRecruit, damageBunker, refreshElimination, spawnBuddy, tickReinforcements, tickRespawns } from '../domain/match';
 import { aimTurret, makeTank, stepTank, TANK_MAX_HP, type TankRec } from '../domain/tank';
 import {
   GRENADE_DAMAGE, MEDKIT_HEAL, ROCKET_DAMAGE, TANK_SHELL_COOLDOWN, TANK_SHELL_DAMAGE, damageOf, weaponOf
@@ -224,10 +224,14 @@ export function buildPad(w: World, team: TeamId, builder?: BuddyRec): string {
       for (const b of w.buddies) if (b.team === team && b.state !== 'ko') heal(b, MEDKIT_HEAL);
       break;
     case 'medic_unit':
-      spawnBuddy(w, team, 'healer', true);
-      break;
     case 'commando':
-      spawnBuddy(w, team, 'fighter', true);
+      // A spawned unit occupies a roster slot. When the squad is already full the
+      // recipe still pays out, as a field heal, instead of growing the roster.
+      if (canRecruit(w, team)) {
+        spawnBuddy(w, team, recipe.itemType === 'medic_unit' ? 'healer' : 'fighter', true);
+      } else {
+        for (const b of w.buddies) if (b.team === team && b.state !== 'ko') heal(b, 40);
+      }
       break;
     case 'tank': {
       const existing = w.tanks.filter((t) => !t.destroyed).length;
@@ -490,6 +494,15 @@ function reap(w: World): void {
   for (const p of w.projectiles) if (p.dead || isFinished(p)) w.ids.free(p.id);
   for (const t of w.tanks) if (t.destroyed) w.ids.free(t.id);
 
+  for (const b of w.buddies) {
+    if (!b.remove) continue;
+    w.ids.free(b.id);
+    w.inputs.delete(b.id);
+    w.prevInputs.delete(b.id);
+    w.botMemory.delete(b.id);
+    emit(w, { kind: 'despawn', entity: b.id });
+  }
+  w.buddies = w.buddies.filter((b) => !b.remove);
   w.crates = w.crates.filter((c) => !c.dead);
   w.projectiles = w.projectiles.filter((p) => !p.dead && !isFinished(p));
   w.tanks = w.tanks.filter((t) => !t.destroyed);

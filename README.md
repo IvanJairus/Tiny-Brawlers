@@ -14,7 +14,7 @@ pembanding paritas.
 npm install
 npm run dev            # http://localhost:3000
 npm test               # 168 tes unit/sim/net, headless
-npm run test:browser   # 29 tes Playwright: 3 ukuran layar dev + artefak produksi
+npm run test:browser   # 30 tes Playwright: 3 ukuran layar dev + artefak produksi
 npm run build          # tsc + vite build
 npm run preview        # sajikan hasil build seperti saat tayang
 ```
@@ -123,6 +123,8 @@ Yang dibuktikan otomatis: aturan lapisan, determinisme sim, 7 resep, invarian ca
 dan sesi netplay di link ber-jitter, anggaran render, tidak ada bocor horizontal dan tidak ada
 tumpang tindih HUD di 1440x900 / 740x360 / 390x844, dua halaman browser main satu pertandingan,
 dan build hasil `vite build` benar-benar dijalankan lewat `vite preview` tanpa error konsol.
+Kebocoran jangka panjang diuji dengan 20 menit simulasi (roster, peti, dan id aktif tetap terbatas)
+serta 45 detik bermain nyata di browser (jumlah node DOM dan heap tidak naik).
 
 Yang belum: 60 fps pada perangkat ponsel nyata, dan netplay lintas perangkat di jaringan seluler.
 Keduanya butuh perangkat, jadi angka performa ponsel sengaja tidak diklaim.

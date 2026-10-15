@@ -28,6 +28,7 @@ export interface BuddyRec {
   invuln: number;
   isBot: boolean;
   ownedByPlayer: boolean;
+  remove: boolean;
 }
 
 export function makeBuddy(
@@ -39,7 +40,7 @@ export function makeBuddy(
     hp: stats.maxHp, maxHp: stats.maxHp,
     state: 'idle', weapon: 'none', grenades: 0, rockets: 0, medkits: 0,
     carryCrate: 0 as EntityId, koTimer: 0, fireCooldown: 0, invuln: 0,
-    isBot, ownedByPlayer: false
+    isBot, ownedByPlayer: false, remove: false
   };
 }
 

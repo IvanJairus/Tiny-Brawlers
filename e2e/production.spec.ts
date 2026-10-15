@@ -77,6 +77,29 @@ test('the on-device performance meter reports frame time', async ({ page }) => {
   expect(text).toMatch(/draw \d+/);
 });
 
+test('a long session does not grow the DOM or leak heap', async ({ page }) => {
+  test.setTimeout(120_000);
+  await startSoloMatch(page);
+  await page.waitForTimeout(5000);
+
+  const nodesAt = () => page.evaluate(() => document.querySelectorAll('*').length);
+  const heapAt = () => page.evaluate(() => {
+    const memory = (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory;
+    return memory ? memory.usedJSHeapSize : 0;
+  });
+
+  const before = { nodes: await nodesAt(), heap: await heapAt() };
+  await page.keyboard.down('KeyD');
+  await page.waitForTimeout(45_000);
+  await page.keyboard.up('KeyD');
+  const after = { nodes: await nodesAt(), heap: await heapAt() };
+
+  expect(after.nodes).toBeLessThan(before.nodes + 40);
+  if (before.heap > 0 && after.heap > 0) {
+    expect(after.heap).toBeLessThan(before.heap * 1.8);
+  }
+});
+
 test('the production build ships no debug handle', async ({ page }) => {
   await page.goto('/');
   await page.waitForTimeout(1000);

@@ -1,7 +1,7 @@
 import type { EntityId } from '../core/ids';
 import type { World } from '../core/world';
 import { emit } from '../core/world';
-import { BASE_COORDINATES, BUNKER_MAX_HP, REINFORCEMENT_INTERVAL_S, RESPAWN_S } from './constants';
+import { BASE_COORDINATES, BUNKER_MAX_HP, REINFORCEMENT_INTERVAL_S, RESPAWN_S, SQUAD_SIZE_MAX } from './constants';
 import { CLASS_STATS, type BuddyClass } from './classes';
 import { makeBuddy, type BuddyRec } from './buddy';
 import { TEAM_IDS, type TeamId } from './teams';
@@ -49,9 +49,10 @@ export function refreshElimination(w: World): void {
   for (const team of TEAM_IDS) {
     if (w.eliminated[team]) continue;
     const bunkerDown = w.bunkerHp[team] <= 0;
-    const anyAlive = w.buddies.some((b) => b.team === team && b.state !== 'ko');
+    const anyAlive = w.buddies.some((b) => b.team === team && b.state !== 'ko' && !b.remove);
     if (bunkerDown && !anyAlive) {
       w.eliminated[team] = true;
+      for (const b of w.buddies) if (b.team === team) b.remove = true;
       w.pads[team] = 0;
       w.padCrates[team] = [];
       emit(w, { kind: 'eliminated', team });
@@ -76,6 +77,14 @@ export function respawnDelayFor(buddy: BuddyRec): number {
   return RESPAWN_S;
 }
 
+export function squadSize(w: World, team: TeamId): number {
+  return w.buddies.filter((b) => b.team === team && !b.remove).length;
+}
+
+export function canRecruit(w: World, team: TeamId): boolean {
+  return squadSize(w, team) < SQUAD_SIZE_MAX;
+}
+
 export function tickRespawns(w: World, dt: number): void {
   for (const b of w.buddies) {
     if (b.state !== 'ko' || w.eliminated[b.team]) continue;
@@ -83,8 +92,13 @@ export function tickRespawns(w: World, dt: number): void {
       b.koTimer = Math.max(0, b.koTimer - dt);
       continue;
     }
-    const alive = w.buddies.filter((x) => x.team === b.team && x.state !== 'ko').length;
-    if (alive >= 6) continue;
+    const alive = w.buddies.filter((x) => x.team === b.team && x.state !== 'ko' && !x.remove).length;
+    if (alive >= SQUAD_SIZE_MAX) {
+      // The roster is full: a body that cannot come back is retired, otherwise
+      // knocked-out buddies pile up in the array for the rest of the match.
+      if (b.id !== w.localPlayer) b.remove = true;
+      continue;
+    }
     const base = BASE_COORDINATES[b.team];
     b.x = base.x * 0.74 + w.rngWorld.float(-2, 2);
     b.z = base.z * 0.74 + w.rngWorld.float(-2, 2);
@@ -101,8 +115,7 @@ export function tickReinforcements(w: World, dt: number): void {
   if (w.troopTimer > 0) return;
   w.troopTimer = REINFORCEMENT_INTERVAL_S;
   for (const team of aliveTeams(w)) {
-    const size = w.buddies.filter((b) => b.team === team && b.state !== 'ko').length;
-    if (size < 6) spawnBuddy(w, team, 'fighter', true);
+    if (squadSize(w, team) < SQUAD_SIZE_MAX) spawnBuddy(w, team, 'fighter', true);
   }
 }
 
