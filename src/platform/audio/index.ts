@@ -6,6 +6,7 @@ import type { SimEvent } from '../../sim/core/events';
 export interface GameAudio {
   graph: AudioGraph;
   bgm: Bgm;
+  beginPlayback(): void;
   cue(event: SimEvent): void;
   setEnabled(enabled: boolean): void;
   setMusic(enabled: boolean): void;
@@ -49,7 +50,10 @@ export function createGameAudio(): GameAudio {
     setMusic(value: boolean): void {
       musicEnabled = value;
       if (!value) bgm.stop();
-      else if (enabled) bgm.start();
+    },
+    beginPlayback(): void {
+      graph.resume();
+      if (enabled && musicEnabled) bgm.start();
     },
     dispose(): void {
       bgm.stop();

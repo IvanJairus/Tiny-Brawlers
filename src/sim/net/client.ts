@@ -93,7 +93,10 @@ export function createClient(transport: Transport, options: ClientOptions): Clie
       if (channel === 'fast') {
         if (data[0] !== MSG.snapshot) return;
         const snapshot = decodeSnapshotSafe(data.subarray(1));
-        if (!snapshot) return;
+        if (!snapshot) {
+          lastError = `codec:${data.length}`;
+          return;
+        }
         if (buffer.latest() && snapshot.tick <= buffer.latest()!.tick) return;
         const predicted = world.buddies.find((b) => b.id === world.localPlayer);
         const predictedX = predicted?.x ?? 0;

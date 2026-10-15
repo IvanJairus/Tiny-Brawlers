@@ -18,6 +18,7 @@ export interface PeerConnectionLike {
   createOffer(): Promise<{ type: RTCSdpType; sdp: string }>;
   createAnswer(): Promise<{ type: RTCSdpType; sdp: string }>;
   setLocalDescription(description: RTCSessionDescriptionInit): Promise<void>;
+  readonly localDescription: RTCSessionDescriptionInit | null;
   setRemoteDescription(description: RTCSessionDescriptionInit): Promise<void>;
   addIceCandidate(candidate: RTCIceCandidateInit): Promise<void>;
   onicecandidate: ((event: { candidate: RTCIceCandidateInit | null }) => void) | null;
@@ -66,10 +67,13 @@ export class WebRtcTransport implements Transport {
     const entry = this.createEntry(peerId);
     entry.reliable = this.openChannel(peerId, entry, 'game-reliable', { ordered: true });
     entry.fast = this.openChannel(peerId, entry, 'game-fast', { ordered: false, maxRetransmits: 1 });
-    void entry.pc.createOffer().then((offer) => {
-      void entry.pc.setLocalDescription(offer);
-      this.signalling.send(peerId, { t: 'offer', type: offer.type, sdp: offer.sdp });
-    });
+    void entry.pc.createOffer().then((offer) => entry.pc.setLocalDescription(offer))
+      .then(() => {
+        const description = entry.pc.localDescription;
+        if (!description?.sdp) throw new Error('no local description');
+        this.signalling.send(peerId, { t: 'offer', type: description.type ?? 'offer', sdp: description.sdp });
+      })
+      .catch((error: unknown) => console.error('webrtc offer failed', error));
   }
 
   accept(peerId: string): void {
@@ -103,6 +107,15 @@ export class WebRtcTransport implements Transport {
     return this.peers.size;
   }
 
+  diagnose(): Array<{ peer: string; state: string; reliable: string; fast: string }> {
+    return [...this.peers.entries()].map(([peer, entry]) => ({
+      peer,
+      state: entry.pc.connectionState,
+      reliable: entry.reliable?.readyState ?? 'none',
+      fast: entry.fast?.readyState ?? 'none'
+    }));
+  }
+
   close(): void {
     this.closed = true;
     for (const peerId of [...this.peers.keys()]) {
@@ -117,11 +130,25 @@ export class WebRtcTransport implements Transport {
       pc, reliable: null, fast: null
     };
     pc.onicecandidate = (event) => {
-      if (event.candidate) this.signalling.send(peerId, { t: 'ice', candidate: event.candidate });
+      const candidate = event.candidate as RTCIceCandidateInit | null;
+      if (!candidate) return;
+      // Plain data only: an RTCIceCandidate instance cannot be structured-cloned
+      // by BroadcastChannel, and the relay has to JSON it anyway.
+      this.signalling.send(peerId, {
+        t: 'ice',
+        candidate: {
+          candidate: candidate.candidate,
+          sdpMid: candidate.sdpMid ?? undefined,
+          sdpMLineIndex: candidate.sdpMLineIndex ?? undefined
+        }
+      });
     };
     pc.onconnectionstatechange = () => {
       if (pc.connectionState === 'failed' || pc.connectionState === 'closed') this.removePeer(peerId);
     };
+    // Attached at creation: a real peer connection can announce the remote
+    // channels while the answer is still being negotiated.
+    pc.ondatachannel = (event) => this.adoptChannel(peerId, event.channel);
     this.peers.set(peerId, entry);
     return entry;
   }
@@ -133,9 +160,22 @@ export class WebRtcTransport implements Transport {
     return channel;
   }
 
+  private adoptChannel(peerId: string, channel: DataChannelLike): void {
+    const entry = this.peers.get(peerId);
+    const label = (channel as unknown as { label?: string }).label ?? '';
+    const kind: Channel = label.includes('fast') ? 'fast' : 'reliable';
+    this.owners.set(channel, peerId);
+    if (entry) {
+      if (kind === 'fast') entry.fast = channel;
+      else entry.reliable = channel;
+    }
+    this.wireChannel(channel, kind);
+  }
+
   private wireChannel(channel: DataChannelLike, kind: Channel): void {
     channel.binaryType = 'arraybuffer';
     channel.onopen = () => this.upHandler(this.ownerOf(channel));
+    if (channel.readyState === 'open') this.upHandler(this.ownerOf(channel));
     channel.onclose = () => this.removePeer(this.ownerOf(channel));
     channel.onmessage = (event) => {
       const bytes = event.data instanceof Uint8Array ? event.data : new Uint8Array(event.data);
@@ -160,25 +200,21 @@ export class WebRtcTransport implements Transport {
     }
 
     if (message.t === 'offer' && message.sdp) {
-      void entry.pc.setRemoteDescription({ type: message.type ?? 'offer', sdp: message.sdp }).then(() => {
-        entry!.pc.ondatachannel = (event: { channel: DataChannelLike }) => {
-          const label = (event.channel as unknown as { label?: string }).label ?? '';
-          this.owners.set(event.channel, from);
-          const kind: Channel = label.includes('fast') ? 'fast' : 'reliable';
-          if (kind === 'fast') entry!.fast = event.channel;
-          else entry!.reliable = event.channel;
-          this.wireChannel(event.channel, kind);
-        };
-        return entry!.pc.createAnswer();
-      }).then((answer) => {
-        void entry!.pc.setLocalDescription(answer);
-        this.signalling.send(from, { t: 'answer', type: answer.type, sdp: answer.sdp });
-      });
+      void entry.pc.setRemoteDescription({ type: message.type ?? 'offer', sdp: message.sdp })
+        .then(() => entry!.pc.createAnswer())
+        .then((answer) => entry!.pc.setLocalDescription(answer))
+        .then(() => {
+          const description = entry!.pc.localDescription;
+          if (!description?.sdp) throw new Error('no local answer');
+          this.signalling.send(from, { t: 'answer', type: description.type ?? 'answer', sdp: description.sdp });
+        })
+        .catch((error: unknown) => console.error('webrtc answer failed', error));
       return;
     }
 
     if (message.t === 'answer' && message.sdp) {
-      void entry.pc.setRemoteDescription({ type: 'answer', sdp: message.sdp });
+      void entry.pc.setRemoteDescription({ type: 'answer', sdp: message.sdp })
+        .catch((error: unknown) => console.error('webrtc setRemote(answer) failed', error));
       return;
     }
 

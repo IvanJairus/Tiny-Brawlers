@@ -31,6 +31,7 @@ export interface Machine {
 
 export function createMachine(initial: Screen = 'booting'): Machine {
   let current = initial;
+  document.body.dataset.screen = current;
   const listeners = new Set<(next: Screen, previous: Screen) => void>();
 
   return {

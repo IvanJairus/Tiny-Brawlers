@@ -4,8 +4,8 @@ export interface CameraOptions {
   reducedMotion?: boolean;
 }
 
-const NEAR = { distance: 13.5, height: 12.5 };
-const FAR = { distance: 34, height: 30 };
+const NEAR = { distance: 11.5, height: 9.5 };
+const FAR = { distance: 32, height: 27 };
 
 /**
  * Action-isometric: the character stays readable up close and the camera pulls

@@ -51,6 +51,7 @@ export function mountTitle(host: HTMLElement, ctx: ScreenContext): MountedScreen
   const actions = document.createElement('div');
   actions.className = 'screen-actions';
   actions.appendChild(button(T.play, 'primary', () => ctx.send('play'), true));
+  if (ctx.netplay) actions.appendChild(button(T.netTitle, 'ghost', () => ctx.send('netplay')));
   root.appendChild(actions);
   host.appendChild(root);
   return { dispose: () => root.remove() };

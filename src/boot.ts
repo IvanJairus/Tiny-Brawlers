@@ -33,6 +33,7 @@ export interface DebugHandle {
   screen(): string;
   fps(): number;
   budgetProblems(): string[];
+  netInfo(): { kind: string; code: string | null; peers: number; links: unknown };
   hash(): number;
   view(): ViewState | null;
 }
@@ -143,8 +144,7 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
   const router = createRouter(uiHost, {
     send: (event) => machine.send(event),
     startWith: (cls) => {
-      audio.graph.resume();
-      if (settings.music) audio.bgm.start();
+      audio.beginPlayback();
       settings.startClass = cls;
       saveSettings(settings);
       world = createMatch(cls);
@@ -202,7 +202,7 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
       else audio.graph.play(SFX.defeat);
     }
     if (screen === 'paused') audio.bgm.stop();
-    if (screen === 'playing' && settings.music && settings.sound) audio.bgm.start();
+    if (screen === 'playing') audio.beginPlayback();
   });
   router.show(machine.screen, view);
   hud.setVisible(false);
@@ -259,6 +259,11 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
     if (isTicking(machine.screen)) stepper.push(elapsed);
     else stepper.reset();
 
+    if (machine.screen === 'lobby' && session.kind !== 'solo' && session.phase() === 'playing') {
+      world = session.world;
+      if (machine.can('loaded')) machine.send('loaded');
+    }
+
     const focus = renderer.focusOn(world);
     if (focus) camera.follow(focus.x, focus.z, Math.min(0.1, elapsed / 1000));
 
@@ -313,11 +318,17 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
 
   if (import.meta.env.DEV) {
     window.__tb = {
-      world,
+      get world() { return world; },
       stage,
       screen: () => machine.screen,
       fps: () => fps,
       budgetProblems: () => overBudget(sceneCounters()),
+      netInfo: () => ({
+        kind: session.kind,
+        code: session.code(),
+        peers: netLink ? (netLink.transport as unknown as { peerCount?(): number }).peerCount?.() ?? -1 : 0,
+        links: (netLink?.transport as unknown as { diagnose?(): unknown })?.diagnose?.() ?? []
+      }),
       hash: () => hashWorld(world),
       view: () => view
     };

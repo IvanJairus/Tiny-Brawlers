@@ -78,7 +78,10 @@ class FakePeerConnection implements PeerConnectionLike {
     return { type: 'answer', sdp: `sdp-answer:${this.label}` };
   }
 
-  async setLocalDescription(): Promise<void> {
+  localDescription: RTCSessionDescriptionInit | null = null;
+
+  async setLocalDescription(description: RTCSessionDescriptionInit): Promise<void> {
+    this.localDescription = description;
     this.connectionState = 'connected';
   }
 

@@ -256,6 +256,13 @@
   pointer-events: auto;
 }
 
+/* Thumb buttons are a touch affordance. On a keyboard they are dead weight over
+   the play area, so only the pause control survives on a fine pointer. */
+.hud:not(.is-coarse) .btn-grab,
+.hud:not(.is-coarse) .btn-shoot {
+  display: none;
+}
+
 .btn-round {
   width: 72px;
   height: 72px;
@@ -291,8 +298,25 @@
   padding: var(--space-6);
   text-align: center;
   pointer-events: auto;
-  background: radial-gradient(circle at 50% 30%, rgba(255, 250, 240, 0.94), rgba(143, 211, 255, 0.94));
   z-index: 20;
+}
+
+.screen-title-page {
+  align-content: end;
+  justify-items: start;
+  text-align: left;
+  padding-bottom: calc(var(--space-8) + var(--hud-safe-bottom));
+  background: linear-gradient(to top, rgba(22, 32, 43, 0.72) 0%, rgba(22, 32, 43, 0.28) 38%, transparent 68%);
+}
+
+.screen-title-page .screen-title,
+.screen-title-page .screen-body {
+  color: #fff8ea;
+  text-shadow: 0 3px 0 rgba(22, 32, 43, 0.55);
+}
+
+.screen-title-page .screen-actions {
+  justify-content: start;
 }
 
 .screen-modal {
@@ -409,6 +433,16 @@
 /* Compact means a landscape phone: the scoreboard shrinks and the pad card drops
    out of the way of the thumbs. */
 @media (max-height: 500px), (max-width: 720px) {
+  .screen-title-page {
+    place-content: center;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .screen-title-page .screen-actions {
+    justify-content: center;
+  }
+
   .hud {
     gap: 4px;
   }

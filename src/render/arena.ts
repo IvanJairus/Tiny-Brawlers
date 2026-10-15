@@ -57,26 +57,29 @@ function bunkerParts(team: TeamId): Part[] {
   const parts: Part[] = [
     { geometry: box(7.2, 2.6, 7.2), color: PALETTE.concrete, position: at(0, 1.3, 0) },
     { geometry: box(7.8, 0.5, 7.8), color: colour, position: at(0, 2.75, 0) },
-    { geometry: box(1.1, 1.5, 1.1), color: PALETTE.concrete, position: at(-3.1, 3.4, -3.1) },
-    { geometry: box(1.1, 1.5, 1.1), color: PALETTE.concrete, position: at(3.1, 3.4, -3.1) },
-    { geometry: box(1.1, 1.5, 1.1), color: PALETTE.concrete, position: at(-3.1, 3.4, 3.1) },
-    { geometry: box(1.1, 1.5, 1.1), color: PALETTE.concrete, position: at(3.1, 3.4, 3.1) },
+    { geometry: box(7.4, 1.1, 0.5), color: PALETTE.concrete, position: at(0, 3.3, -3.5) },
+    { geometry: box(7.4, 1.1, 0.5), color: PALETTE.concrete, position: at(0, 3.3, 3.5) },
+    { geometry: box(0.5, 1.1, 7.4), color: PALETTE.concrete, position: at(-3.5, 3.3, 0) },
+    { geometry: box(0.5, 1.1, 7.4), color: PALETTE.concrete, position: at(3.5, 3.3, 0) },
     { geometry: cyl(0.09, 0.09, 3.4, 6), color: PALETTE.metal, position: at(0, 4.6, 0) },
     { geometry: box(1.5, 0.9, 0.08), color: colour, position: at(0.78, 5.5, 0) }
   ];
 
   // Sandbags read as a stacked wall: flat-sided bags in two offset rows, not
   // loose cylinders scattered around the entrance.
+  // A parapet of bags laid flat against the fort face, two courses, staggered
+  // only by half a bag so the joints read as masonry rather than scattered boxes.
+  const bag = box(1.42, 0.4, 0.66);
   for (let row = 0; row < 2; row++) {
-    const y = 0.24 + row * 0.42;
-    for (let i = -3; i <= 3; i++) {
-      const offset = (i + (row % 2) * 0.5) * 1.02;
-      const geo = box(1.0, 0.42, 0.55);
-      const px = Math.cos(towardCentre) * 4.9 - Math.sin(towardCentre) * offset;
-      const pz = Math.sin(towardCentre) * 4.9 + Math.cos(towardCentre) * offset;
+    const y = 0.21 + row * 0.4;
+    for (let i = 0; i < 5; i++) {
+      const offset = (i - 2) * 1.44 + (row % 2 ? 0.72 : 0);
+      if (Math.abs(offset) > 3.1) continue;
+      const px = Math.cos(towardCentre) * 3.78 - Math.sin(towardCentre) * offset;
+      const pz = Math.sin(towardCentre) * 3.78 + Math.cos(towardCentre) * offset;
       parts.push({
-        geometry: geo,
-        color: row === 0 ? PALETTE.sand : 0xc4a273,
+        geometry: bag,
+        color: row === 0 ? PALETTE.sand : 0xc0a071,
         position: at(px, y, pz),
         rotation: [0, -towardCentre, 0]
       });

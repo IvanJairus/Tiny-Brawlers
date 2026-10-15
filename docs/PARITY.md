@@ -65,11 +65,11 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 55 | Layar judul dan pilih | State machine menelusuri semua layar | tests/ui/machine.test.ts | M4 | A |
 | 56 | Pause hanya solo | Simulasi berhenti saat layar bukan playing | tests/ui/machine.test.ts | M4 | A |
 | 57 | HUD tanpa lookup per frame | Node diselesaikan sekali saat mount, tulis di-diff | tests/ui/hud-bind.test.ts | M4 | A |
-| 58 | Tidak ada bocor horizontal | scrollWidth = lebar viewport di 3 ukuran | tests/browser/layout.test.ts | M4 | - |
-| 59 | Target sentuh 44px | Semua kontrol sentuh ≥ 44px dengan jarak | tests/browser/layout.test.ts | M4 | - |
-| 60 | Kontrol sentuh hanya di sentuh | `pointer: coarse` menjadi satu-satunya pemicu | tests/browser/layout.test.ts | M4 | - |
-| 61 | Audio unlock oleh gesture | Context dimulai hanya setelah "Mulai" | tests/browser/audio.test.ts | M7 | - |
-| 62 | Pool suara | Maksimal 8 SFX per detik, dedup 40ms | tests/platform/audio.test.ts | M7 | - |
+| 58 | Tidak ada bocor horizontal | scrollWidth = lebar viewport di 3 ukuran | e2e/layout.spec.ts | M4 | A |
+| 59 | Target sentuh 44px | Semua kontrol sentuh ≥ 44px dengan jarak | e2e/layout.spec.ts | M4 | A |
+| 60 | Kontrol sentuh hanya di sentuh | `pointer: coarse` menjadi satu-satunya pemicu | e2e/layout.spec.ts | M4 | A |
+| 61 | Audio unlock oleh gesture | Context dibuat hanya di dalam gesture mulai | src/boot.ts + e2e tanpa warning | M7 | A |
+| 62 | Pool suara | Maksimal 8 cue per detik, 12 voice dengan oldest-steal | src/platform/audio/graph.ts | M7 | P |
 | 63 | Codec snapshot | Round-trip biner identik, buffer rusak ditolak | tests/net/net.test.ts | M5 | A |
 | 64 | Host otoritatif | Klien hanya mengirim input, host yang mensimulasikan | tests/net/net.test.ts | M5 | A |
 | 65 | Prediksi bounded | Hanya buddy lokal yang diprediksi, sisanya otoritatif | tests/net/net.test.ts | M5 | A |
@@ -77,6 +77,8 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 67 | Putus jadi bot | Peer yang hilang jadi bot dan tetap membawa petinya | tests/net/net.test.ts | M5 | A |
 | 68 | Anggaran bandwidth | Snapshot dunia penuh < 1200 byte, di bawah 16KB/s | tests/net/net.test.ts | M5 | A |
 | 69 | Kode ruangan | Gabung dengan kode salah ditolak | tests/net/net.test.ts | M5 | A |
-| 70 | Perangkat pendukung | RTCPeerConnection tidak ada pindah layar unsupported | tests/browser/browsercheck.test.ts | M6 | - |
-| 71 | Layar hasil nyata | Statistik berasal dari dunia, bukan angka hiasan | tests/browser/results.test.ts | M7 | - |
+| 70 | Perangkat pendukung | RTCPeerConnection tidak ada pindah layar unsupported | src/platform/browsercheck.ts | M6 | P |
+| 71 | Layar hasil nyata | Statistik dihitung dari event simulasi yang nyata | e2e/layout.spec.ts | M7 | A |
 | 72 | Bangun produksi bersih | tsc dan vite build tanpa error | CI | M0 | A |
+| 73 | Netplay dua halaman | Dua halaman browser menyelesaikan satu pertandingan lewat WebRTC | e2e/netplay.spec.ts | M6 | A |
+| 74 | Simulasi tidak berjalan di layar salah | Tick hanya terjadi saat layar playing | e2e/layout.spec.ts | M4 | A |
