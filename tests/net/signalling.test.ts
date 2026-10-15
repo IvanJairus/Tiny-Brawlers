@@ -55,4 +55,25 @@ describe('relay signalling', () => {
     socket.onclose?.();
     expect(channel.status()).toBe('open');
   });
+  it('takes the relay TURN offer and keeps it out of the signal stream', () => {
+    const { socket, channel } = relay();
+    const seen: string[] = [];
+    channel.onMessage((from, message) => seen.push(`${from}:${(message as { t: string }).t}`));
+    socket.onopen?.();
+
+    socket.onmessage?.({
+      data: JSON.stringify({ t: 'ice', ice: [{ urls: ['turn:relay.example:3478'], username: 'u', credential: 'c' }] })
+    });
+    expect(channel.iceServers()).toEqual([{ urls: ['turn:relay.example:3478'], username: 'u', credential: 'c' }]);
+    expect(seen).toEqual([]);
+
+    socket.onmessage?.({ data: JSON.stringify({ from: 'guest-1', message: { t: 'ping' } }) });
+    expect(seen).toEqual(['guest-1:ping']);
+  });
+
+  it('starts with no relay until one answers', () => {
+    const { channel } = relay();
+    expect(channel.iceServers()).toEqual([]);
+  });
+
 });

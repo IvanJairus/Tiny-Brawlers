@@ -56,6 +56,13 @@ export interface SocketLike {
 
 export type SocketFactory = (url: string) => SocketLike;
 
+/** One entry of an RTCPeerConnection iceServers list; TURN entries add credentials. */
+export interface IceServer {
+  urls: string[];
+  username?: string;
+  credential?: string;
+}
+
 const browserSocket: SocketFactory = (url) => new WebSocket(url) as unknown as SocketLike;
 
 /**
@@ -70,6 +77,7 @@ export class SocketSignalling implements SignallingChannel {
   private messageHandler: (from: string, message: SignalMessage) => void = () => undefined;
   private goneHandler: (peerId: string) => void = () => undefined;
   private state: SignallingStatus = 'connecting';
+  private servers: IceServer[] = [];
 
   constructor(url: string, private room: string, private self: string, socket: SocketFactory = browserSocket) {
     this.socket = socket(url);
@@ -80,13 +88,14 @@ export class SocketSignalling implements SignallingChannel {
       this.queue.length = 0;
     };
     this.socket.onmessage = (event) => {
-      let packet: { from?: string; message?: SignalMessage; peer?: string; t?: string };
+      let packet: { from?: string; message?: SignalMessage; peer?: string; t?: string; ice?: IceServer[] };
       try {
         packet = JSON.parse(String(event.data));
       } catch {
         return;
       }
-      if (packet.t === 'gone' && packet.peer) this.goneHandler(packet.peer);
+      if (packet.t === 'ice') this.servers = (packet as { ice?: IceServer[] }).ice ?? [];
+      else if (packet.t === 'gone' && packet.peer) this.goneHandler(packet.peer);
       else if (packet.from && packet.message) this.messageHandler(packet.from, packet.message);
     };
     this.socket.onerror = () => { this.state = 'failed'; };
@@ -114,6 +123,11 @@ export class SocketSignalling implements SignallingChannel {
 
   status(): SignallingStatus {
     return this.state;
+  }
+
+  /** What the relay handed out after hello, empty until it does. */
+  iceServers(): IceServer[] {
+    return this.servers;
   }
 
   close(): void {

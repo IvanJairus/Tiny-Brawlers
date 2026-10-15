@@ -16,6 +16,19 @@ const PORT = Number(portArg >= 0 ? process.argv[portArg + 1] : process.env.PORT 
 
 const rooms = new Map();
 
+// STUN alone cannot cross some cellular networks. Set these three and the page
+// gets a TURN relay in its peer connection; leave them unset for local play.
+const ICE_SERVERS = [
+  { urls: ['stun:stun.l.google.com:19302', 'stun:global.stun.twilio.com:3478'] }
+];
+if (process.env.TURN_URL && process.env.TURN_USER && process.env.TURN_PASS) {
+  ICE_SERVERS.push({
+    urls: [process.env.TURN_URL],
+    username: process.env.TURN_USER,
+    credential: process.env.TURN_PASS
+  });
+}
+
 const server = createServer((req, res) => {
   res.writeHead(200, { 'content-type': 'application/json' });
   res.end(JSON.stringify({ ok: true, service: 'tiny-brawlers-signalling', rooms: rooms.size }));
@@ -48,6 +61,7 @@ wss.on('connection', (socket) => {
       if (!socket.room || !socket.id) return;
       if (!rooms.has(socket.room)) rooms.set(socket.room, new Map());
       rooms.get(socket.room).set(socket.id, socket);
+      socket.send(JSON.stringify({ t: 'ice', ice: ICE_SERVERS }));
       return;
     }
 

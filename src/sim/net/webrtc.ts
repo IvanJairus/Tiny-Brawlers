@@ -12,6 +12,7 @@ export interface SignallingChannel {
   onMessage(handler: (from: string, message: SignalMessage) => void): void;
   onPeerGone(handler: (peerId: string) => void): void;
   status(): 'connecting' | 'open' | 'failed';
+  iceServers?(): { urls: string[]; username?: string; credential?: string }[];
 }
 
 export interface PeerConnectionLike {

@@ -89,6 +89,19 @@ keadaan. Snapshot penuh dikirim 15 Hz (di bawah 16 KB/s per arah), masukan naik 
   datang: koneksi yang ditolak dilaporkan di layar sebagai "Server penghubung tidak
   bisa dihubungi".
 
+- STUN saja sering tidak cukup di jaringan seluler, karena operator banyak yang memblokir
+  hubungan peer langsung. Untuk itu relay bisa menyerahkan TURN: set tiga variabel ini saat
+  menjalankan relay, dan halaman akan memakainya di `RTCPeerConnection`.
+
+  ```bash
+  TURN_URL=turn:relay.contoh:3478 TURN_USER=tamu TURN_PASS=rahasia npm run signal
+  ```
+
+  Kredensialnya hidup di server operator, bukan di repo atau di halaman. Yang tidak bisa saya
+  kerjakan dari sini: server TURN-nya sendiri (coturn atau sejenisnya) adalah mesin luar. Tanpa
+  satu pun, laga lintas perangkat lewat 4G bisa tetap gagal tembus NAT, dan itu bukan sesuatu
+  yang saya klaim sudah teruji.
+
 - Peer yang putus diambil alih AI di tempat, lengkap dengan peti yang sedang dibawanya.
 - Slot yang tidak diisi manusia otomatis diisi bot, jadi 2 orang tetap jadi brawl 4 tim.
 
