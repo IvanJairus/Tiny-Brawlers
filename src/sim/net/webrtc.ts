@@ -11,6 +11,7 @@ export interface SignallingChannel {
   send(to: string, message: SignalMessage): void;
   onMessage(handler: (from: string, message: SignalMessage) => void): void;
   onPeerGone(handler: (peerId: string) => void): void;
+  status(): 'connecting' | 'open' | 'failed';
 }
 
 export interface PeerConnectionLike {
@@ -105,6 +106,10 @@ export class WebRtcTransport implements Transport {
 
   peerCount(): number {
     return this.peers.size;
+  }
+
+  signallingStatus(): 'connecting' | 'open' | 'failed' {
+    return this.signalling.status();
   }
 
   diagnose(): Array<{ peer: string; state: string; reliable: string; fast: string }> {

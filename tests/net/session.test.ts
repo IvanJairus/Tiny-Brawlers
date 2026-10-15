@@ -98,4 +98,15 @@ describe('netplay session', () => {
     hub.advance(80);
     expect(guest.world.buddies.length).toBe(0);
   });
+
+  it('names a dead relay instead of leaving the host waiting', () => {
+    const hub = new LoopbackHub(CLEAN_LINK, 1);
+    const world = createWorld({ seed: 77 });
+    initialSquads(world, 2);
+    const transport = hub.create();
+    (transport as unknown as { signallingStatus(): string }).signallingStatus = () => 'failed';
+
+    const host = createHostSession(world, transport, { roomCode: 'DEAD01', cls: 'fighter', name: 'A', now: () => hub.now });
+    expect(host.error()).toBe('relay');
+  });
 });

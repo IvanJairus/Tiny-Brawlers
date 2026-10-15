@@ -77,6 +77,7 @@ export const T = {
   netFull: 'Ruangan penuh, tidak bisa bergabung',
   netBadCode: 'Kode ruangan tidak cocok',
   netLate: 'Pertandingan sudah dimulai, tidak bisa bergabung',
+  netRelay: 'Server penghubung tidak bisa dihubungi. Jalankan npm run signal di komputer relay.',
   netReplaced: 'Slot kamu sudah diambil alih AI',
   netYou: 'Kamu',
   sayHpPrefix: 'HP tinggal',

@@ -33,6 +33,16 @@ export interface Session {
 
 const SNAPSHOT_INTERVAL_MS = 1000 / 15;
 
+/**
+ * A relay that refused the connection is a reason to stop waiting, not a state to
+ * sit in. Loopback and same-browser transports have no signalling to fail, so
+ * they simply do not answer.
+ */
+function relayProblem(transport: Transport): string | null {
+  const status = (transport as unknown as Partial<{ signallingStatus(): string }>).signallingStatus?.();
+  return status === 'failed' ? 'relay' : null;
+}
+
 export function createSoloSession(seed: number, cls: BuddyClass, localTeam = 'red'): Session {
   const world = createWorld({ seed });
   initialSquads(world, 2);
@@ -90,7 +100,7 @@ export function createHostSession(world: World, transport: Transport, options: H
     world,
     code: () => options.roomCode,
     phase: () => (host.started ? 'playing' : 'lobby'),
-    error: () => null,
+    error: () => relayProblem(transport),
     roster: () => host.slots.map((slot) => ({
       team: slot.team,
       name: slot.peerId === null ? `Bot ${slot.team}` : slot.name,
@@ -139,7 +149,7 @@ export function createClientSession(transport: Transport, options: ClientSession
     world: client.world,
     code: () => options.roomCode,
     phase: () => client.phase,
-    error: () => client.lastError(),
+    error: () => client.lastError() ?? relayProblem(transport),
     roster: () => [{ team: client.team ?? 'blue', name: options.name, human: true, ready: true, latencyMs: client.rtt() }],
     step(dt: number, axes: RawAxes): void {
       const cmd: InputCmd = axes.moveX === 0 && axes.moveY === 0 && !axes.attack && !axes.grab && !axes.build

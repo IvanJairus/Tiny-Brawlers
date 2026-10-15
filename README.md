@@ -80,6 +80,10 @@ keadaan. Snapshot penuh dikirim 15 Hz (di bawah 16 KB/s per arah), masukan naik 
   npm run signal            # ws://localhost:8080
   ```
 
+  Kalau relay-nya tidak jalan, lobby tidak diam menunggu tamu yang tidak akan pernah
+  datang: koneksi yang ditolak dilaporkan di layar sebagai "Server penghubung tidak
+  bisa dihubungi".
+
 - Peer yang putus diambil alih AI di tempat, lengkap dengan peti yang sedang dibawanya.
 - Slot yang tidak diisi manusia otomatis diisi bot, jadi 2 orang tetap jadi brawl 4 tim.
 

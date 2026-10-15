@@ -5,6 +5,19 @@ import { expect, test } from '@playwright/test';
  * a real WebSocket server here instead of BroadcastChannel, so a broken relay
  * protocol fails this test rather than failing on someone's phone.
  */
+test('an unreachable relay is named in the lobby instead of waited on', async ({ page }) => {
+  const thrown: string[] = [];
+  page.on('pageerror', (error) => thrown.push(error.message));
+
+  await page.goto('/?signal=ws://127.0.0.1:9/');
+  await expect.poll(() => page.evaluate(() => document.body.dataset.screen), { timeout: 15_000 }).toBe('title');
+  await page.getByRole('button', { name: /teman/ }).click();
+  await page.getByRole('button', { name: 'Buat Ruangan' }).click();
+
+  await expect(page.getByText('Server penghubung tidak bisa dihubungi')).toBeVisible({ timeout: 10_000 });
+  expect(thrown).toEqual([]);
+});
+
 test('two pages negotiate through the websocket relay', async ({ context }) => {
   test.setTimeout(90_000);
   const host = await context.newPage();

@@ -291,7 +291,8 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
         router.lobby()?.setPhase(
           problem === 'full' ? T.netFull
             : problem === 'code' ? T.netBadCode
-              : problem === 'rejoin' ? T.netLate : problem
+              : problem === 'rejoin' ? T.netLate
+                : problem === 'relay' ? T.netRelay : problem
         );
       }
     }

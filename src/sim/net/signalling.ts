@@ -4,6 +4,8 @@ import type { SignalMessage, SignallingChannel } from './webrtc';
  * Three ways to swap SDP, in order of how easy they are to try:
  * same-browser tabs, a small self-hosted relay, or copy-paste for a single test.
  */
+export type SignallingStatus = 'connecting' | 'open' | 'failed';
+
 export class BroadcastSignalling implements SignallingChannel {
   private channel: BroadcastChannel;
   private messageHandler: (from: string, message: SignalMessage) => void = () => undefined;
@@ -34,27 +36,50 @@ export class BroadcastSignalling implements SignallingChannel {
     this.goneHandler(peerId);
   }
 
+  status(): SignallingStatus {
+    return 'open';
+  }
+
   close(): void {
     this.channel.close();
   }
 }
 
+export interface SocketLike {
+  onopen: (() => void) | null;
+  onclose: (() => void) | null;
+  onerror: (() => void) | null;
+  onmessage: ((event: { data: unknown }) => void) | null;
+  send(data: string): void;
+  close(): void;
+}
+
+export type SocketFactory = (url: string) => SocketLike;
+
+const browserSocket: SocketFactory = (url) => new WebSocket(url) as unknown as SocketLike;
+
+/**
+ * A relay that is not running is the first thing anyone trying cross-device play
+ * hits, and without a status the lobby would just sit there waiting for a guest
+ * that can never arrive. So a socket that fails to open is reported, not queued
+ * forever.
+ */
 export class SocketSignalling implements SignallingChannel {
-  private socket: WebSocket;
+  private socket: SocketLike;
   private queue: Array<{ to: string; message: SignalMessage }> = [];
   private messageHandler: (from: string, message: SignalMessage) => void = () => undefined;
   private goneHandler: (peerId: string) => void = () => undefined;
-  private open = false;
+  private state: SignallingStatus = 'connecting';
 
-  constructor(url: string, private room: string, private self: string) {
-    this.socket = new WebSocket(url);
+  constructor(url: string, private room: string, private self: string, socket: SocketFactory = browserSocket) {
+    this.socket = socket(url);
     this.socket.onopen = () => {
-      this.open = true;
+      this.state = 'open';
       this.socket.send(JSON.stringify({ t: 'hello', room, id: self }));
       for (const item of this.queue) this.raw(item.to, item.message);
       this.queue.length = 0;
     };
-    this.socket.onmessage = (event: MessageEvent) => {
+    this.socket.onmessage = (event) => {
       let packet: { from?: string; message?: SignalMessage; peer?: string; t?: string };
       try {
         packet = JSON.parse(String(event.data));
@@ -64,7 +89,10 @@ export class SocketSignalling implements SignallingChannel {
       if (packet.t === 'gone' && packet.peer) this.goneHandler(packet.peer);
       else if (packet.from && packet.message) this.messageHandler(packet.from, packet.message);
     };
-    this.socket.onclose = () => { this.open = false; };
+    this.socket.onerror = () => { this.state = 'failed'; };
+    this.socket.onclose = () => {
+      if (this.state !== 'open') this.state = 'failed';
+    };
   }
 
   private raw(to: string, message: SignalMessage): void {
@@ -72,8 +100,8 @@ export class SocketSignalling implements SignallingChannel {
   }
 
   send(to: string, message: SignalMessage): void {
-    if (this.open) this.raw(to, message);
-    else this.queue.push({ to, message });
+    if (this.state === 'open') this.raw(to, message);
+    else if (this.state === 'connecting') this.queue.push({ to, message });
   }
 
   onMessage(handler: (from: string, message: SignalMessage) => void): void {
@@ -82,6 +110,10 @@ export class SocketSignalling implements SignallingChannel {
 
   onPeerGone(handler: (peerId: string) => void): void {
     this.goneHandler = handler;
+  }
+
+  status(): SignallingStatus {
+    return this.state;
   }
 
   close(): void {
@@ -109,6 +141,10 @@ export class ManualSignalling implements SignallingChannel {
 
   receive(from: string, message: SignalMessage): void {
     this.messageHandler(from, message);
+  }
+
+  status(): SignallingStatus {
+    return 'open';
   }
 
   onMessage(handler: (from: string, message: SignalMessage) => void): void {

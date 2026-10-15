@@ -103,6 +103,27 @@ test('touch controls only exist for touch input and are big enough', async ({ pa
   }
 });
 
+test('the game is still playable when the browser has no audio device', async ({ page }) => {
+  const thrown: string[] = [];
+  page.on('pageerror', (error) => thrown.push(error.message));
+  await page.addInitScript(() => {
+    const unavailable = function AudioUnavailable() { throw new Error('no audio device'); };
+    Object.defineProperty(window, 'AudioContext', { value: unavailable, configurable: true });
+    Object.defineProperty(window, 'webkitAudioContext', { value: unavailable, configurable: true });
+  });
+
+  await startMatch(page);
+  await page.keyboard.down('KeyD');
+  await page.waitForTimeout(1500);
+  await page.keyboard.up('KeyD');
+
+  const tick = await page.evaluate(() => (
+    window as unknown as { __tb: { world: { tick: number } } }
+  ).__tb.world.tick);
+  expect(tick).toBeGreaterThan(10);
+  expect(thrown).toEqual([]);
+});
+
 test('the HUD keeps a quiet live region that costs no screen space', async ({ page }) => {
   await startMatch(page);
 
