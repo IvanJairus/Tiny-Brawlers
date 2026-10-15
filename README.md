@@ -140,6 +140,13 @@ npm run build && npx serve dist    # cek lokal hasil yang sama dengan yang akan 
 
 ## Status verifikasi
 
+Baseline visual: `npm run test:visual` membandingkan tujuh permukaan UI (judul, pilih kelas, HUD,
+pause, konfirmasi keluar, terputus, hasil) dengan PNG di `e2e/visual.spec.ts-snapshots`, ambang 1,5
+persen, `--update-snapshots` lewat `npm run visual:baseline` untuk membuat ulang. Nama file memuat
+platform, jadi baseline ini milik darwin; runner Linux harus membuatnya sendiri sebelum gerbang itu
+berarti di sana. Canvas 3D sengaja tidak dibaseline: geraknya dikunci ke jam dinding (air, bob
+idle, denyut pad), dan membekukan jam itu berarti menambah jalur khusus tes ke dalam render.
+
 Yang dibuktikan otomatis: aturan lapisan, determinisme sim, 7 resep, invarian cacat lama, codec
 dan sesi netplay di link ber-jitter, anggaran render, tidak ada bocor horizontal dan tidak ada
 tumpang tindih HUD di 1440x900 / 740x360 / 390x844, dua halaman browser main satu pertandingan,
@@ -150,6 +157,14 @@ serta 45 detik bermain nyata di browser (jumlah node DOM dan heap tidak naik).
 Yang belum: 60 fps pada perangkat ponsel nyata, dan netplay lintas perangkat di jaringan seluler.
 Keduanya butuh perangkat, jadi angka performa ponsel sengaja tidak diklaim.
 
+Satu pertanyaan desain yang masih terbuka: laga tidak punya batas waktu. Ia selesai hanya kalau
+bunker satu tim rata dan semua anggotanya tumbang, dan pada seed 7 empat tim bot masih belum
+saling habiskan setelah 400 detik waktu simulasi (satu pengamatan, `e2e/visual.spec.ts`).
+Menambah jam laga mengubah aturan main, jadi itu keputusan anda, bukan saya sisipkan diam-diam.
+
 ## Lisensi
 
-MIT. Seluruh model 3D dan audio dibuat prosedural dari kode, tanpa aset berhak cipta.
+Kode dan gamenya MIT. Seluruh model 3D dan audio dibuat prosedural dari kode, tanpa aset berhak
+ciptaan. Kecuali tipografi: Baloo 2 dan Nunito Sans adalah woff2 subset latin yang di-self-host di
+`public/fonts`, masing-masing disertai notis SIL Open Font License 1.1 dari proyek upstream. Kalau
+font itu ikut disalin, file `.txt` lisensinya harus ikut.

@@ -16,7 +16,7 @@ import type { LobbyActions } from './ui/shell/lobby';
 import { TICK_S } from './sim/domain/constants';
 import { createKeyboard } from './platform/input/keyboard';
 import { createTouch } from './platform/input/touch';
-import { createMachine, isTicking } from './ui/shell/machine';
+import { createMachine, isTicking, type MachineEvent } from './ui/shell/machine';
 import { createRouter } from './ui/shell/router';
 import { buildHud } from './ui/hud/bind';
 import { createHudStore } from './ui/hud/store';
@@ -40,6 +40,8 @@ export interface DebugHandle {
   hash(): number;
   view(): ViewState | null;
   zoom(): number;
+  send(event: MachineEvent): void;
+  advance(ticks: number): void;
 }
 
 declare global {
@@ -379,7 +381,23 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
       }),
       hash: () => hashWorld(world),
       view: () => view,
-      zoom: () => camera.zoom
+      zoom: () => camera.zoom,
+      send: (event: MachineEvent) => {
+        if (machine.can(event)) machine.send(event);
+      },
+      advance(ticks: number) {
+        const idle: RawAxes = {
+          moveX: 0, moveY: 0, aimX: 0, aimY: 0, attack: false, grab: false, build: false, zoom: 0
+        };
+        for (let i = 0; i < ticks; i++) {
+          session.step(TICK_S, idle);
+          for (const event of drainEvents(world.events)) countStats(event);
+        }
+        view = projectView(world, stats);
+        store.set(view);
+        hud.update(view);
+        router.update(view);
+      }
     };
   }
 

@@ -60,6 +60,11 @@ export default defineConfig({
       name: 'production',
       testMatch: 'production.spec.ts',
       use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 }, baseURL: `http://localhost:${PROD_PORT}` }
+    },
+    {
+      name: 'visual',
+      testMatch: 'visual.spec.ts',
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 }, baseURL: `http://localhost:${DEV_PORT}` }
     }
   ]
 });
