@@ -120,6 +120,9 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 110 | Artefak build dilalui tanpa dev handle | Rute layar penuh di hasil build sungguhan (judul → pilih kelas → main → jeda → keluar ke judul), plus nol bocor horizontal dan nol kartu HUD tumpang tindih di 1440x900, 740x360, dan 390x844 | e2e/production.spec.ts | M7 | A |
 | 111 | Layar notice menyebut sebab dan aksi | Layar unsupported dan disconnected punya judul, badan, satu baris aksi, dan tombol yang mengirim recover; memindah layar tidak meninggalkan panel lama | tests/ui/screens.test.ts | M4 | A |
 | 112 | Kontras modal terukur di browser | Rasio WCAG dihitung dari computed style tiap teks modal terhadap latar opaque pertama di atasnya: paused 15,82, confirming 15,82, results 10,14, disconnected 15,82/15,82/6,83, semuanya ≥4,5:1; blur hanya ada di modal hasil sesuai kontrak 5.3 | e2e/layout.spec.ts | M4 | A |
+| 113 | Debu saat peti mendarat | Peti yang sudah di atas tanah dan sekarang diam memunculkan burst debu; terdeteksi 2 kali dari 2 peti yang benar-benar jatuh dalam 10 detik simulasi, dan tidak berulang saat peti sudah diam | tests/render/effects.test.ts | M4 | A |
+| 114 | Serpihan kayu saat peti pecah | Momen pad mengonsumsi peti memicu serpihan kayu selain kilatan rakit | tests/render/effects.test.ts | M4 | A |
+| 115 | Satu cue berbeda per aksi | ambil, lempar, rakit, tembak, kena, KO memakai patch yang berbeda satu sama lain, dan sting menang tidak dipakai ulang oleh salah satunya | tests/platform/audio.test.ts | M4 | A |
 
 ## Masih sebagian
 

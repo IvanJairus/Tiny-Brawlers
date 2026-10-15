@@ -7,7 +7,7 @@ import { ParticlePool, COLOR } from './particles';
 import { TankField, type TankView } from './tanks';
 import { createMaterials, type SharedMaterials } from './materials';
 import { findBestSlot, padOrigin, slotPosition } from '../sim/domain/pad';
-import { PAD } from '../sim/domain/constants';
+import { CRATE_SIZE, PAD } from '../sim/domain/constants';
 import { distance } from '../sim/domain/buddy';
 import { throwPreview } from '../sim/domain/crate';
 import { CLASS_STATS } from '../sim/domain/classes';
@@ -57,6 +57,8 @@ export class WorldRenderer {
   private ghost: PlacementGhost;
   private arc: ThrowArc;
   private flashUntil = new Map<EntityId, number>();
+  private airborne = new Set<EntityId>();
+  private effectCounts = new Map<string, number>();
   private popUntil = new Map<EntityId, number>();
   private arcLast: { x: number; z: number; heading: number; force: number } = {
     x: Number.NaN, z: 0, heading: 0, force: 0
@@ -110,6 +112,7 @@ export class WorldRenderer {
       this.lastTick = world.tick;
       this.prev.clear();
       for (const b of world.buddies) this.prev.set(b.id, { x: b.x, z: b.z, heading: b.heading });
+      this.trackLandings(world);
     }
     const t = Math.max(0, Math.min(1, alpha));
 
@@ -193,6 +196,43 @@ export class WorldRenderer {
     this.arc.reveal();
   }
 
+  /** How often each feel effect has fired: the effects are invisible to a screenshot. */
+  effects(): Record<string, number> {
+    return Object.fromEntries(this.effectCounts);
+  }
+
+  private mark(effect: string): void {
+    this.effectCounts.set(effect, (this.effectCounts.get(effect) ?? 0) + 1);
+  }
+
+  /**
+   * A crate that has been high and is on the floor now has just landed. The flag
+   * rather than the previous sample, because a crate falls about half a metre per
+   * tick and would slip through any window comparing two consecutive heights.
+   * Vertical speed is not something the snapshot carries to a client, so height is
+   * all there is to work from.
+   */
+  private trackLandings(world: World): void {
+    const rest = CRATE_SIZE / 2;
+    const live = new Set<EntityId>();
+    for (const crate of world.crates) {
+      if (crate.state === 'held' || crate.state === 'onPad') {
+        this.airborne.delete(crate.id);
+        continue;
+      }
+      live.add(crate.id);
+      if (crate.y > rest + 1.2) {
+        this.airborne.add(crate.id);
+        continue;
+      }
+      if (!this.airborne.has(crate.id) || crate.y > rest + 0.35) continue;
+      this.airborne.delete(crate.id);
+      this.mark('crateLanded');
+      this.particles.burst(crate.x, 0.15, crate.z, COLOR.dirt, 10, 2.6, 1.1, 0.5);
+    }
+    for (const id of this.airborne) if (!live.has(id)) this.airborne.delete(id);
+  }
+
   private decay(until: Map<EntityId, number>, id: EntityId, time: number, window: number): number {
     const endsAt = until.get(id);
     if (endsAt === undefined) return 0;
@@ -244,7 +284,11 @@ export class WorldRenderer {
           this.particles.burst(event.at.x, 0.7, event.at.z, COLOR.wood, 6, 2.1, 1.2, 0.35);
           break;
         case 'build':
+          // The pad is where a crate stops existing, so this is the break the
+          // feel list asks splinters for.
+          this.mark('crateBroken');
           this.particles.burst(event.at.x, 1.2, event.at.z, COLOR.fire, 22, 5, 0.6, 0.9);
+          this.particles.burst(event.at.x, 0.7, event.at.z, COLOR.wood, 14, 3.4, 1.2, 0.5);
           break;
         default:
           break;

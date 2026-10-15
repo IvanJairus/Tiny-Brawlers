@@ -112,6 +112,33 @@ describe('cue mapping', () => {
   });
 });
 
+describe('one cue per action', () => {
+  it('gives every action in the feel list its own sound', () => {
+    const audio = createGameAudio();
+    const playSpy = vi.spyOn(audio.graph, 'play');
+    const actions: SimEvent[] = [
+      { kind: 'pickup', entity: 1, buddy: 2, at: { x: 1, z: 1 } },
+      { kind: 'throw', entity: 3, buddy: 2, at: { x: 6, z: 1 } },
+      { kind: 'build', team: 'red', recipe: 'pistol', at: { x: 11, z: 1 } },
+      { kind: 'shot', entity: 4, weapon: 'pistol', at: { x: 16, z: 1 }, dir: 0 },
+      { kind: 'damage', entity: 5, amount: 10, fromTeam: 'red', at: { x: 21, z: 1 } },
+      { kind: 'knockout', entity: 5, at: { x: 26, z: 1 } }
+    ];
+    for (const event of actions) audio.cue(event);
+    expect(playSpy).toHaveBeenCalledTimes(actions.length);
+
+    const played = playSpy.mock.calls.map((call) => call[0]);
+    const distinct = new Set(played);
+    expect(distinct.size, 'two actions share one cue').toBe(actions.length);
+
+    // The win is played by boot rather than from an event, so it is checked as a
+    // patch of its own instead of through the spy.
+    expect(SFX.victory).toBeDefined();
+    expect(distinct.has(SFX.victory), 'the victory sting must not be a re-used cue').toBe(false);
+    audio.dispose();
+  });
+});
+
 describe('capability detection', () => {
   function fakeWindow(overrides: Record<string, unknown>) {
     return {

@@ -63,7 +63,10 @@ dilempar; garisnya dihitung oleh fisika yang sama dengan peti sungguhan, bukan p
 
 Badan karakter memendek saat membawa peti dan membesar sesaat saat tumbang, ledakan di
 dekat kamera mengguncang layar dan menahan gambar 40 ms, tapi guncangan dan tahan-gambar
-itu hanya hidup di desktop dengan `prefers-reduced-motion` mati.
+itu hanya hidup di desktop dengan `prefers-reduced-motion` mati. Peti yang jatuh dari
+langit memunculkan debu saat menyentuh tanah, dan pad yang mengonsumsi peti memuntahkan
+serpihan kayu. Keduanya terdeteksi dari ketinggian peti, bukan dari event khusus, karena
+kecepatan vertikal tidak ikut dikirim ke klien.
 
 Kelas: **Petarung** 130 HP dan rusak 1,25x, **Tabib** 100 HP dengan aura sembuh 25 HP/dtk dalam
 4,5 m, **Pembangun** 90 HP, paling cepat, dan paling jauh melempar.
@@ -190,7 +193,7 @@ npm run build && npx serve dist    # cek lokal hasil yang sama dengan yang akan 
 
 ## Status verifikasi
 
-Daftar "jangan turun mutu" ada di `docs/PARITY.md`: 112 baris, tiap baris menyebut tes yang
+Daftar "jangan turun mutu" ada di `docs/PARITY.md`: 115 baris, tiap baris menyebut tes yang
 membuktikannya. `tests/docs/parity.test.ts` menjaga daftar itu sendiri, yaitu nomor baris unik,
 klaim perilakunya ada, milestone M0-M7, file yang disebut harus benar-benar ada serta berisi tes,
 dan statusnya hanya A atau P; sebuah P wajib punya alasan di bagian "Masih sebagian". Sebelum tes
