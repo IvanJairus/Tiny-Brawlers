@@ -38,6 +38,14 @@ export default defineConfig({
       url: `http://localhost:${PROD_PORT}`,
       reuseExistingServer: true,
       timeout: 180_000
+    },
+    {
+      // A host with no SPA fallback, serving the build under a repo subpath the
+      // way GitHub Pages serves a project site.
+      command: 'npm run build && node scripts/serve-subpath.mjs dist --port=4183',
+      url: 'http://localhost:4183/Tiny-Brawlers/',
+      reuseExistingServer: true,
+      timeout: 180_000
     }
   ],
   projects: [
@@ -60,6 +68,11 @@ export default defineConfig({
       name: 'production',
       testMatch: 'production.spec.ts',
       use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 }, baseURL: `http://localhost:${PROD_PORT}` }
+    },
+    {
+      name: 'subpath',
+      testMatch: 'subpath.spec.ts',
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 }, baseURL: 'http://localhost:4183/Tiny-Brawlers/' }
     },
     {
       name: 'visual',

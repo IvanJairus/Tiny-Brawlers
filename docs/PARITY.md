@@ -123,6 +123,7 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 113 | Debu saat peti mendarat | Peti yang sudah di atas tanah dan sekarang diam memunculkan burst debu; terdeteksi 2 kali dari 2 peti yang benar-benar jatuh dalam 10 detik simulasi, dan tidak berulang saat peti sudah diam | tests/render/effects.test.ts | M4 | A |
 | 114 | Serpihan kayu saat peti pecah | Momen pad mengonsumsi peti memicu serpihan kayu selain kilatan rakit | tests/render/effects.test.ts | M4 | A |
 | 115 | Satu cue berbeda per aksi | ambil, lempar, rakit, tembak, kena, KO memakai patch yang berbeda satu sama lain, dan sting menang tidak dipakai ulang oleh salah satunya | tests/platform/audio.test.ts | M4 | A |
+| 116 | Tayang dari subpath repo | Build yang sama disajikan dari /Tiny-Brawlers/ tanpa fallback SPA: boot sampai layar main, kedua font benar-benar termuat, kanvas memuat frame nyata, dan nol request 404; mengubah base vite ke '/' membuatnya merah | e2e/subpath.spec.ts | M7 | A |
 
 ## Masih sebagian
 

@@ -15,7 +15,7 @@ npm install
 npm run dev            # http://localhost:3000
 npm test               # 255 tes unit/sim/net, headless
 npm run test:speed     # gerbang 1000x realtime dari rencana M1, file itu saja yang jalan
-npm run test:browser   # 66 tes Playwright: 3 ukuran layar, netplay, relay, artefak produksi
+npm run test:browser   # 67 tes Playwright: 3 ukuran layar, netplay, relay, artefak produksi
 npm run test:perf      # 1 tes budget frame dengan CPU di-throttle 6x, sendirian
 npm run build          # tsc + vite build
 npm audit              # 0 kerentanan; CI gagal bila ada yang high atau critical
@@ -185,15 +185,20 @@ di `e2e/layout.spec.ts`.
 ## Deploy
 
 Build bersifat portabel: `base` relatif, jadi `dist/` bisa diletakkan di root domain maupun di
-bawah subpath repo. Hosting harus HTTPS karena WebRTC dan broker signaling menolak halaman `http`.
+bawah subpath repo. Itu bukan asumsi, ada tesnya: `e2e/subpath.spec.ts` menyajikan `dist/` dari
+`/Tiny-Brawlers/` lewat `scripts/serve-subpath.mjs` (tanpa fallback SPA, seperti GitHub Pages untuk
+situs project), lalu menagih boot sampai layar main, kedua font benar-benar termuat, kanvas
+menghasilkan frame, dan nol request 404. Mengganti `base` menjadi `'/'`, kesalahan klasik deploy
+subpath, membuatnya merah. Proyeknya ikut di `npm run test:browser`.
 
-```bash
-npm run build && npx serve dist    # cek lokal hasil yang sama dengan yang akan tayang
-```
+Jalur tayang yang sudah disiapkan di repo: workflow `pages.yml` membangun `dist` dan menerbitkannya
+ke GitHub Pages dari branch `v2-pages`. Yang masih perlu anda: push branch itu (saya tidak push tanpa
+izin), dan hosting harus HTTPS karena WebRTC menolak halaman `http` - itu sifat pemberi hosting,
+bukan sesuatu yang bisa dibuktikan dari `dist/`.
 
 ## Status verifikasi
 
-Daftar "jangan turun mutu" ada di `docs/PARITY.md`: 115 baris, tiap baris menyebut tes yang
+Daftar "jangan turun mutu" ada di `docs/PARITY.md`: 116 baris, tiap baris menyebut tes yang
 membuktikannya. `tests/docs/parity.test.ts` menjaga daftar itu sendiri, yaitu nomor baris unik,
 klaim perilakunya ada, milestone M0-M7, file yang disebut harus benar-benar ada serta berisi tes,
 dan statusnya hanya A atau P; sebuah P wajib punya alasan di bagian "Masih sebagian". Sebelum tes
