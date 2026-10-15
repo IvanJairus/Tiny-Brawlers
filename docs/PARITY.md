@@ -126,6 +126,7 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 116 | Tayang dari subpath repo | Build yang sama disajikan dari /Tiny-Brawlers/ tanpa fallback SPA: boot sampai layar main, kedua font benar-benar termuat, kanvas memuat frame nyata, dan nol request 404; mengubah base vite ke '/' membuatnya merah | e2e/subpath.spec.ts | M7 | A |
 | 117 | Latensi masukan terkunci | Di link bermusuhan masukan terbaru sudah menjadi otoritas pada tick yang sama saat host menerima: p95 3 tick, maksimum 3 (n=1456 penerapan). Versi berantrean menaikkan keduanya ke 6 dan 7 tick dan membuat tes ini merah | tests/net/net.test.ts | M5 | A |
 | 118 | TURN bisa diserahkan relay | Relay mengirim daftar ICE ke setiap peer setelah hello; entri TURN dari environment sampai ke halaman dan dipakai RTCPeerConnection, tanpa kredensial di repo. Diuji terhadap proses relay sungguhan, dua arah: dengan TURN terpasang dan tanpa | tests/net/relay-server.test.ts, tests/net/signalling.test.ts, tests/platform/net.test.ts | M6 | A |
+| 119 | Jalur fallback pemain benar-benar dijalankan | Laga selesai lewat dua jalur tanpa perangkat tambahan: dua tab satu browser tanpa server, dan dua halaman lewat relay WebSocket yang dijalankan sungguhan oleh tes | e2e/netplay.spec.ts, e2e/relay.spec.ts | M6 | A |
 
 ## Masih sebagian
 

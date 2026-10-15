@@ -102,6 +102,10 @@ keadaan. Snapshot penuh dikirim 15 Hz (di bawah 16 KB/s per arah), masukan naik 
   satu pun, laga lintas perangkat lewat 4G bisa tetap gagal tembus NAT, dan itu bukan sesuatu
   yang saya klaim sudah teruji.
 
+- Dua jalur fallback untuk pemain sudah dijalankan di tes: dua tab satu browser tanpa server apa
+  pun (BroadcastChannel), dan dua halaman lewat relay WebSocket sungguhan (`npm run signal`).
+  `ManualSignalling`, tempat orang menempelkan offer dan answer dengan tangan, memang ada di kode
+  tapi baru dipakai tes, belum ada UI-nya, jadi ia tidak saya sebut sebagai cadangan untuk pemain.
 - Peer yang putus diambil alih AI di tempat, lengkap dengan peti yang sedang dibawanya.
 - Slot yang tidak diisi manusia otomatis diisi bot, jadi 2 orang tetap jadi brawl 4 tim.
 
