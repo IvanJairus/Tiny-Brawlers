@@ -1,3 +1,26 @@
+/*
+ * Baloo 2 for numbers and buttons because its round fat bowls survive 12px on a
+ * phone; Nunito Sans for body text. Both are self-hosted latin woff2 subsets from
+ * Google Fonts, each with its own OFL 1.1 notice in public/fonts, so no
+ * render-blocking third-party request is needed and the faces work offline.
+ */
+@font-face {
+  font-family: 'Baloo 2';
+  font-style: normal;
+  font-weight: 700 800;
+  font-display: swap;
+  src: url('/fonts/baloo2-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Nunito Sans';
+  font-style: normal;
+  font-weight: 400 700;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('/fonts/nunito-sans-latin.woff2') format('woff2');
+}
+
 :root {
   --team-red: #ff4757;
   --team-blue: #2f7bff;

@@ -141,6 +141,17 @@ describe('world renderer reading aids', () => {
     world.buddies[0].z = padOrigin('red').z;
     renderer.sync(world, 1, 0, 1 / 60);
     expect(arc.visible).toBe(false);
+
+    world.buddies[0].x = 8;
+    world.buddies[0].z = -6;
+    renderer.sync(world, 1, 0, 1 / 60);
+    expect(arc.visible).toBe(true);
+
+    const fresh = throwPreview(8, -6, world.buddies[0].heading, CLASS_STATS.constructor.throwForce);
+    const lastIndex = fresh.length - 1;
+    expect(arc.geometry.drawRange.count).toBe(fresh.length);
+    expect(positions.getX(lastIndex)).toBeCloseTo(fresh[lastIndex].x, 5);
+    expect(positions.getZ(lastIndex)).toBeCloseTo(fresh[lastIndex].z, 5);
     renderer.dispose();
   });
 

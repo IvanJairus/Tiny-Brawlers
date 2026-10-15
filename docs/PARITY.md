@@ -90,6 +90,8 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 87 | Flash kerusakan | Tubuh yang kena serangan dibungkus shell putih aditif yang memudar dalam 60 ms | tests/render/reading-aids.test.ts | M4 | A |
 | 88 | Bobot peti dan pop tumbang | Membawa peti memendekkan sekaligus melebarkan badan; KO menaikkan skala badan 30 persen sesaat | tests/render/reading-aids.test.ts | M4 | A |
 | 89 | Hit-stop khusus desktop | Ledakan kuat di dekat kamera menahan gambar 40 ms; mati di sentuh, reduced motion, atau frame di atas 20 ms | tests/render/reading-aids.test.ts | M4 | A |
+| 90 | Font di-self-host | Baloo 2 dan Nunito Sans dimuat dari bundle dan kedua face berstatus loaded; nol request ke host lain | e2e/production.spec.ts | M4 | A |
+| 91 | Pengumuman screen reader | HP antar-kuartal, peti diambil atau dilepas, skuad tumbang, dan pemenang lewat satu region polite selebar 1 px | tests/ui/hud-bind.test.ts, e2e/layout.spec.ts | M4 | A |
 | 80 | Tahan throttle 6x | p95 ≤ 20ms dan ≥ 50 fps di viewport ponsel dengan CPU di-throttle 6x | e2e/perf.spec.ts | M7 | A |
 | 79 | Relay signaling nyata | Dua halaman bernegosiasi lewat server WebSocket sungguhan | e2e/relay.spec.ts | M6 | A |
 | 77 | Soak 20 menit tanpa bocor | Roster ≤ 6 per tim, peti ≤ 24, id aktif tidak bertambah tanpa batas | tests/invariants/soak.test.ts | M7 | A |

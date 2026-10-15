@@ -73,6 +73,31 @@ test('touch controls only exist for touch input and are big enough', async ({ pa
   }
 });
 
+test('the HUD keeps a quiet live region that costs no screen space', async ({ page }) => {
+  await startMatch(page);
+
+  const region = await page.evaluate(() => {
+    const el = document.querySelector('[data-part="announce"]');
+    if (!el) return null;
+    const rect = el.getBoundingClientRect();
+    const style = getComputedStyle(el);
+    return {
+      width: rect.width,
+      height: rect.height,
+      live: el.getAttribute('aria-live'),
+      atomic: el.getAttribute('aria-atomic'),
+      overflow: style.overflow
+    };
+  });
+
+  expect(region).not.toBeNull();
+  expect(region!.live).toBe('polite');
+  expect(region!.atomic).toBe('true');
+  expect(region!.width).toBeLessThanOrEqual(1);
+  expect(region!.height).toBeLessThanOrEqual(1);
+  expect(region!.overflow).toBe('hidden');
+});
+
 test('a carried crate shows where it will land', async ({ page }) => {
   await startMatch(page);
 

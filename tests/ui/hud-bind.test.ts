@@ -115,3 +115,58 @@ describe('hud bindings', () => {
     expect(seen).toEqual([70, 60]);
   });
 });
+
+describe('screen reader announcements', () => {
+  const announceText = (hud: ReturnType<typeof buildHud>): string =>
+    hud.root.querySelector('[data-part="announce"]')!.textContent ?? '';
+
+  function mounted(): { hud: ReturnType<typeof buildHud>; announce: (v: Partial<ViewState>) => void } {
+    const doc = window.document;
+    const hud = buildHud(doc);
+    hud.update(view());
+    return {
+      hud,
+      announce: (overrides) => hud.update(view(overrides))
+    };
+  }
+
+  it('mounts as a quiet polite region and says nothing on the first frame', () => {
+    const doc = window.document;
+    const hud = buildHud(doc);
+    const region = hud.root.querySelector('[data-part="announce"]') as HTMLElement;
+    expect(region.getAttribute('aria-live')).toBe('polite');
+    expect(region.getAttribute('aria-atomic')).toBe('true');
+    hud.update(view());
+    expect(region.textContent).toBe('');
+    hud.dispose();
+  });
+
+  it('announces only when health crosses a quarter', () => {
+    const { hud, announce } = mounted();
+    announce({ hp: 98 });
+    expect(announceText(hud)).toBe('');
+    announce({ hp: 60 });
+    expect(announceText(hud)).toBe('HP tinggal 46 persen');
+    announce({ hp: 55 });
+    expect(announceText(hud)).toBe('HP tinggal 46 persen');
+    hud.dispose();
+  });
+
+  it('announces picking up a crate and the squad going under', () => {
+    const { hud, announce } = mounted();
+    announce({ carrying: true });
+    expect(announceText(hud)).toBe('Membawa peti');
+    announce({ carrying: false, alive: { red: 0, blue: 2, yellow: 1, cyan: 0 } });
+    expect(announceText(hud)).toBe('Semua kawan tumbang');
+    hud.dispose();
+  });
+
+  it('names the winner once the match is over', () => {
+    const { hud, announce } = mounted();
+    announce({ over: true, winner: 'cyan' });
+    expect(announceText(hud)).toBe('Pemenang: Sian');
+    announce({ over: true, winner: 'cyan', hp: 100 });
+    expect(announceText(hud)).toBe('Pemenang: Sian');
+    hud.dispose();
+  });
+});

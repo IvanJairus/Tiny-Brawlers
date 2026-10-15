@@ -78,7 +78,14 @@ export const T = {
   netBadCode: 'Kode ruangan tidak cocok',
   netLate: 'Pertandingan sudah dimulai, tidak bisa bergabung',
   netReplaced: 'Slot kamu sudah diambil alih AI',
-  netYou: 'Kamu'
+  netYou: 'Kamu',
+  sayHpPrefix: 'HP tinggal',
+  sayPercent: 'persen',
+  sayCarrying: 'Membawa peti',
+  sayEmptyHanded: 'Peti sudah diletakkan atau dilempar',
+  sayTeamWiped: 'Semua kawan tumbang',
+  sayWinner: 'Pemenang',
+  sayDraw: 'Pertandingan selesai tanpa pemenang'
 } as const;
 
 export type CopyKey = keyof typeof T;

@@ -36,6 +36,7 @@ const HUD_TEMPLATE = `
     <button class="btn btn-icon" data-action="pause" type="button" aria-label="Jeda">II</button>
   </div>
 </div>
+<p class="sr-only" data-part="announce" aria-live="polite" aria-atomic="true"></p>
 `;
 
 interface Nodes {
@@ -54,7 +55,6 @@ function resolve(root: HTMLElement): Nodes {
 export function buildHud(doc: Document): HudBindings {
   const root = doc.createElement('div');
   root.className = 'hud';
-  root.setAttribute('role', 'status');
   root.innerHTML = HUD_TEMPLATE;
 
   const nodes = resolve(root);
@@ -89,6 +89,13 @@ export function buildHud(doc: Document): HudBindings {
     writeCount++;
     apply();
   };
+
+  let band = 0;
+  let carried = false;
+  let squadAlive = 0;
+  let primed = false;
+  let announcedResult = false;
+  const announce = (text: string): void => { nodes.announce.textContent = text; };
 
   nodes.grabLabel.textContent = T.grab;
   nodes.shootLabel.textContent = T.shoot;
@@ -167,6 +174,26 @@ export function buildHud(doc: Document): HudBindings {
         for (let i = 0; i < 8; i++) {
           write(`slot${i}`, view.pad.slots[i], () => slotEls[i].classList.toggle('is-filled', view.pad.slots[i]));
         }
+      }
+
+      const nextBand = Math.ceil(hpRatio * 4);
+      const nextAlive = view.alive[view.team];
+      if (!primed) {
+        primed = true;
+        band = nextBand;
+        carried = view.carrying;
+        squadAlive = nextAlive;
+      } else {
+        if (nextBand < band) announce(`${T.sayHpPrefix} ${Math.round(hpRatio * 100)} ${T.sayPercent}`);
+        if (view.carrying !== carried) announce(view.carrying ? T.sayCarrying : T.sayEmptyHanded);
+        if (nextAlive === 0 && squadAlive > 0) announce(T.sayTeamWiped);
+        if (view.over && !announcedResult) {
+          announcedResult = true;
+          announce(view.winner ? `${T.sayWinner}: ${TEAM_COLORS[view.winner].label}` : T.sayDraw);
+        }
+        band = nextBand;
+        carried = view.carrying;
+        squadAlive = nextAlive;
       }
     },
     dispose() {

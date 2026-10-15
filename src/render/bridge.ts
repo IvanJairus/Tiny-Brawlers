@@ -58,6 +58,9 @@ export class WorldRenderer {
   private arc: ThrowArc;
   private flashUntil = new Map<EntityId, number>();
   private popUntil = new Map<EntityId, number>();
+  private arcLast: { x: number; z: number; heading: number; force: number } = {
+    x: Number.NaN, z: 0, heading: 0, force: 0
+  };
   private camera: IsoCamera | null = null;
   private clock = 0;
   private lastFrameMs = 16;
@@ -163,6 +166,7 @@ export class WorldRenderer {
     this.arc.hide();
     const me = world.buddies.find((b) => b.id === world.localPlayer);
     if (!me || me.state === 'ko' || me.carryCrate === (NO_ENTITY as EntityId) || world.eliminated[me.team]) {
+      this.arcLast.x = Number.NaN;
       return;
     }
 
@@ -173,11 +177,20 @@ export class WorldRenderer {
     if (slot >= 0) {
       const place = slotPosition(me.team, slot);
       this.ghost.showAt(place.x, place.y, place.z, (Math.sin(time * 4) + 1) / 2);
+      this.arcLast.x = Number.NaN;
       return;
     }
 
-    const points = throwPreview(me.x, me.z, me.heading, CLASS_STATS[me.cls].throwForce);
-    this.arc.show(points, TEAM_COLORS[me.team].css);
+    const force = CLASS_STATS[me.cls].throwForce;
+    const last = this.arcLast;
+    const moved = Math.abs(me.x - last.x) > 0.05 || Math.abs(me.z - last.z) > 0.05
+      || Math.abs(me.heading - last.heading) > 0.02;
+    if (Number.isNaN(last.x) || force !== last.force || moved) {
+      this.arcLast = { x: me.x, z: me.z, heading: me.heading, force };
+      this.arc.show(throwPreview(me.x, me.z, me.heading, force), TEAM_COLORS[me.team].css);
+      return;
+    }
+    this.arc.reveal();
   }
 
   private decay(until: Map<EntityId, number>, id: EntityId, time: number, window: number): number {

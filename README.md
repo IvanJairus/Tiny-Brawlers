@@ -123,6 +123,11 @@ pada viewport 740x360 dan menuntut p95 ≤ 20 ms. Itu mendeteksi perubahan yang 
 berat, tapi bukan pengganti pengukuran di HP: CPU ponsel kelas menengah punya karakteristik berbeda
 (GPU, bandwidth memori, thermal). Gerbang perangkat tetap berstatus belum terverifikasi.
 
+Tiga kali jalan di mesin ini dengan mesin kosong memberi p95 16,7 sampai 16,8 ms pada 59 sampai
+60 fps (n=3, `npm run test:perf`, 2026-10-15). Dua jalan lain mencatat p95 33,3 ms, dan keduanya
+terjadi segera sesudah suite browser lain selesai di mesin yang sama. Gerbang ini sensitif terhadap
+beban sampingan, jadi jalankan `test:perf` sendirian dan jangan menambah retry untuk menutupinya.
+
 ## Deploy
 
 Build bersifat portabel: `base` relatif, jadi `dist/` bisa diletakkan di root domain maupun di

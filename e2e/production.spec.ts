@@ -55,6 +55,35 @@ test('the audio context is only created by the gesture that starts play', async 
   expect(await count()).toBe(1);
 });
 
+test('the fonts ship inside the bundle and no third-party host is called', async ({ page }) => {
+  const external: string[] = [];
+  const fontFiles: string[] = [];
+  page.on('request', (request) => {
+    const url = new URL(request.url());
+    if (url.hostname !== 'localhost') external.push(url.href);
+    if (url.pathname.endsWith('.woff2')) fontFiles.push(url.pathname);
+  });
+
+  await page.goto('/');
+  await expect.poll(() => page.evaluate(() => document.body.dataset.screen), { timeout: 15_000 }).toBe('title');
+
+  const faces = await page.evaluate(async () => {
+    const loaded = await Promise.all([
+      document.fonts.load('700 20px "Baloo 2"'),
+      document.fonts.load('700 20px "Nunito Sans"')
+    ]);
+    return loaded.flat().map((face) => ({ family: face.family, status: face.status }));
+  });
+
+  expect(faces.length).toBe(2);
+  expect(faces.every((face) => face.status === 'loaded')).toBe(true);
+  expect(fontFiles.sort()).toEqual([
+    '/fonts/baloo2-latin.woff2',
+    '/fonts/nunito-sans-latin.woff2'
+  ]);
+  expect(external).toEqual([]);
+});
+
 test('the deployed bundle lays out correctly on a phone', async ({ page }) => {
   await page.setViewportSize({ width: 740, height: 360 });
   await startSoloMatch(page);

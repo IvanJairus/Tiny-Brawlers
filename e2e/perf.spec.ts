@@ -24,6 +24,7 @@ test('the main thread holds 60 fps under six times cpu throttle', async ({ page,
   const fps = Number((meter.match(/(\d+) fps/) ?? [])[1]);
 
   expect(Number.isFinite(p95)).toBe(true);
+  console.log(`throttled p95 ${p95}ms at ${fps} fps`);
   expect(p95).toBeLessThanOrEqual(20);
   expect(fps).toBeGreaterThanOrEqual(50);
   expect(meter).toMatch(/draw \d+/);

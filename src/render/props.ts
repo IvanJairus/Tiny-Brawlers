@@ -164,6 +164,11 @@ export class ThrowArc {
     this.line.visible = false;
   }
 
+  /** Keep the curve that is already uploaded on screen without touching the buffer. */
+  reveal(): void {
+    this.line.visible = true;
+  }
+
   dispose(): void {
     this.geometry.dispose();
     this.material.dispose();

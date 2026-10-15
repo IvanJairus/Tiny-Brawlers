@@ -16,7 +16,9 @@ Tujuan layar: **experience**. HUD dan menu mengurangi friksi main, bukan memamer
    satu warna peringatan. Token lama yang salah (`--team-blue` berisi hijau, `--team-cyan` berisi
    biru) sudah dibetulkan supaya nama dan warna cocok.
 3. Tipografi: display `Baloo 2` untuk angka dan judul, teks `Nunito Sans` untuk keterangan.
-   Keduanya punya fallback sistem; tidak ada `<link>` font yang memblokir render.
+   Keduanya woff2 subset latin yang di-self-host di `public/fonts` bersama notis
+   lisensi OFL-nya, jadi tidak ada request ke host pihak ketiga dan tidak ada
+   `<link>` font yang memblokir render.
 4. Hierarki: HP pemain di kiri atas, skor bunker di kanan atas, kartu pad hanya muncul saat pemain
    berdiri di dekat pad, tombol jempol hanya ada di perangkat sentuh.
 5. State yang ada dan diuji: memuat, judul, pilih kelas, lobby, playing, paused, results,
