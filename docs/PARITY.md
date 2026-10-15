@@ -81,6 +81,7 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 71 | Layar hasil nyata | Statistik dihitung dari event simulasi yang nyata | e2e/layout.spec.ts | M7 | A |
 | 72 | Bangun produksi bersih | tsc dan vite build tanpa error | CI | M0 | A |
 | 75 | Artefak produksi benar-benar jalan | Build hasil `vite build` dihidupkan lewat preview: boot, layout ponsel, frame nyata, tanpa error konsol | e2e/production.spec.ts | M7 | A |
+| 79 | Relay signaling nyata | Dua halaman bernegosiasi lewat server WebSocket sungguhan | e2e/relay.spec.ts | M6 | A |
 | 77 | Soak 20 menit tanpa bocor | Roster ≤ 6 per tim, peti ≤ 24, id aktif tidak bertambah tanpa batas | tests/invariants/soak.test.ts | M7 | A |
 | 78 | Sesi panjang di browser | 45 detik bermain nyata tidak menambah node DOM atau heap | e2e/production.spec.ts | M7 | A |
 | 76 | Alat ukur di perangkat | `?meter=1` menampilkan fps, p50, p95, dan draw call | e2e/production.spec.ts | M7 | A |

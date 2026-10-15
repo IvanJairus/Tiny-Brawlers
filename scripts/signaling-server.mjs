@@ -9,7 +9,7 @@
  *   node scripts/signaling-server.mjs --port 8080
  */
 import { createServer } from 'node:http';
-import { WebSocketServer } from 'node:ws';
+import { WebSocketServer } from 'ws';
 
 const portArg = process.argv.findIndex((arg) => arg === '--port');
 const PORT = Number(portArg >= 0 ? process.argv[portArg + 1] : process.env.PORT ?? 8080);

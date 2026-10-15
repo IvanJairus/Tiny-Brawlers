@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "lint:layers": "vitest run tests/layers.test.ts",
     "test:browser": "playwright test",
-    "signal": "node scripts/signaling-server.mjs"
+    "signal": "node scripts/signaling-server.mjs",
+    "signal:test": "node scripts/signaling-server.mjs --port 8090"
   },
   "dependencies": {
     "three": "^0.160.0"
@@ -26,6 +27,7 @@
     "pngjs": "^7.0.0",
     "typescript": "^5.3.3",
     "vite": "^5.1.4",
-    "vitest": "^1.3.1"
+    "vitest": "^1.3.1",
+    "ws": "^8.22.0"
   }
 }

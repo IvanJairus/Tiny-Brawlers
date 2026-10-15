@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 const DEV_PORT = 4173;
 const PROD_PORT = 4174;
-const DEV_SPECS = ['layout.spec.ts', 'netplay.spec.ts'];
+const DEV_SPECS = ['layout.spec.ts', 'netplay.spec.ts', 'relay.spec.ts'];
 
 export default defineConfig({
   testDir: 'e2e',
@@ -21,6 +21,12 @@ export default defineConfig({
       url: `http://localhost:${DEV_PORT}`,
       reuseExistingServer: true,
       timeout: 60_000
+    },
+    {
+      command: 'node scripts/signaling-server.mjs --port 8090',
+      url: 'http://localhost:8090',
+      reuseExistingServer: true,
+      timeout: 30_000
     },
     {
       command: `npm run build && npm run preview -- --port ${PROD_PORT} --strictPort`,
