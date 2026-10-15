@@ -107,6 +107,7 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 98 | Pesan sebelum channel terbuka | join yang dikirim sebelum data channel open tidak hilang, melainkan keluar saat open | tests/net/webrtc.test.ts, e2e/netplay.spec.ts | M5 | A |
 | 99 | Host tidak diambil alih AI | Setelah 30 detik waktu link, buddy host tetap ownedByPlayer dan bukan bot | tests/net/session.test.ts | M5 | A |
 | 100 | Tamu yang tabnya ditutup jadi bot | Di dua halaman nyata: host kembali ke 1 manusia, tanpa peti hantu, dan tick terus jalan | e2e/netplay.spec.ts | M6 | A |
+| 101 | Delapan bentuk lewat InputCmd | Setiap resep dicapai dengan urutan ambil/letak/rakit sungguhan tanpa menulis mask langsung, dan pad kosong setelah dirakit | tests/sim/step.test.ts | M2 | A |
 | 74 | Simulasi tidak berjalan di layar salah | Tick hanya terjadi saat layar playing | e2e/layout.spec.ts | M4 | A |
 
 ## Yang sengaja tidak ada

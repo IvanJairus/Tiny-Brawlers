@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { addBuddy, addCrate, press, release, run, testWorld } from '../helpers';
 import { createWorld } from '../../src/sim/core/world';
 import { buildPad } from '../../src/sim/core/step';
-import { maskOf, padOrigin, totalCrates } from '../../src/sim/domain/pad';
+import { maskOf, padOrigin, slotPosition, totalCrates } from '../../src/sim/domain/pad';
 import { NO_ENTITY, type EntityId } from '../../src/sim/core/ids';
 import { findCrate } from '../../src/sim/core/world';
 import { tickReinforcements } from '../../src/sim/domain/match';
@@ -348,6 +348,57 @@ describe('match state', () => {
     const expectedLive = w.buddies.length + w.crates.length + w.tanks.length;
     expect(w.ids.liveCount()).toBe(expectedLive);
   });
+});
+
+describe('scripted pad builds', () => {
+  /**
+   * The pad shapes above are set directly as a mask. This is the path a human
+   * takes instead: pick a crate up, stand in a quadrant, put it down, and only
+   * then press build. Every shape has to be reachable that way, because the
+   * placement rule and the recipe rule can disagree without anyone noticing.
+   */
+  const shapes: Array<[string, number[], (w: ReturnType<typeof testWorld>) => void]> = [
+    ['pistol', [0], (w) => expect(w.buddies[0].weapon).toBe('pistol')],
+    ['shotgun', [0, 1], (w) => expect(w.buddies[0].weapon).toBe('shotgun')],
+    ['grenade', [0, 4], (w) => expect(w.buddies[0].grenades).toBe(5)],
+    ['medicUnit', [0, 1, 4], (w) => expect(w.buddies.filter((b) => b.cls === 'healer').length).toBe(1)],
+    ['medkit', [0, 1, 2], (w) => expect(w.buddies[0].medkits).toBe(3)],
+    ['bazooka', [0, 1, 2, 3], (w) => expect(w.buddies[0].rockets).toBe(4)],
+    ['commando', [0, 1, 4, 5], (w) => expect(w.buddies.length).toBe(2)],
+    ['tank', [0, 1, 2, 3, 4, 5, 6, 7], (w) => expect(w.tanks.length).toBe(1)]
+  ];
+
+  for (const [recipe, slots, assert] of shapes) {
+    it(`reaches ${recipe} with nothing but input commands`, () => {
+      const w = testWorld();
+      const origin = padOrigin('red');
+      const b = addBuddy(w, 'red', 'constructor', origin.x, origin.z);
+
+      for (const slot of slots) {
+        const place = slotPosition('red', slot);
+        addCrate(w, b.x + 0.4, b.z);
+
+        press(w, b.id, { grab: true });
+        run(w, 0.1);
+        release(w, b.id);
+        run(w, 0.05);
+
+        b.x = place.x;
+        b.z = place.z;
+        press(w, b.id, { grab: true });
+        run(w, 0.1);
+        release(w, b.id);
+        run(w, 0.05);
+      }
+
+      expect(w.pads.red, `${recipe} shape filled`).toBe(maskOf(slots));
+
+      press(w, b.id, { build: true });
+      run(w, 0.1);
+      assert(w);
+      expect(w.pads.red).toBe(0);
+    });
+  }
 });
 
 describe('island bounds and reinforcements', () => {
