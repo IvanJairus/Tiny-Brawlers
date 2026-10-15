@@ -2,13 +2,15 @@ import type { ViewState } from '../../sim/core/view';
 import { TEAM_COLORS, TEAM_IDS, type TeamId } from '../../sim/domain/teams';
 import { T } from '../i18n/id';
 
-export type HudAction = 'grab' | 'shoot' | 'build' | 'pause' | 'restart' | 'menu';
+export type HudAction = 'grab' | 'shoot' | 'build' | 'pause' | 'restart' | 'menu' | 'zoomIn' | 'zoomOut';
 
 export interface HudBindings {
   root: HTMLElement;
   update(view: ViewState): void;
   onAction(action: HudAction, handler: () => void): () => void;
   setVisible(visible: boolean): void;
+  /** Netplay cannot pause, so the same control becomes a request to leave. */
+  setExitMode(leave: boolean): void;
   writes(): number;
   dispose(): void;
 }
@@ -31,9 +33,13 @@ const HUD_TEMPLATE = `
 <div class="hud-bottom">
   <div class="stick-zone" data-part="stickZone"><div class="stick-ring" data-part="stickRing"><div class="stick-knob" data-part="stickKnob"></div></div></div>
   <div class="action-cluster">
+    <div class="zoom-pair">
+      <button class="btn btn-round btn-zoom btn-zoom-out" data-part="zoomOutButton" data-action="zoomOut" type="button">-</button>
+      <button class="btn btn-round btn-zoom btn-zoom-in" data-part="zoomInButton" data-action="zoomIn" type="button">+</button>
+    </div>
     <button class="btn btn-round btn-grab" data-action="grab" type="button"><span data-part="grabLabel"></span></button>
     <button class="btn btn-round btn-shoot" data-action="shoot" type="button"><span data-part="shootLabel"></span></button>
-    <button class="btn btn-icon" data-action="pause" type="button" aria-label="Jeda">II</button>
+    <button class="btn btn-icon" data-part="pauseButton" data-action="pause" type="button">II</button>
   </div>
 </div>
 <p class="sr-only" data-part="announce" aria-live="polite" aria-atomic="true"></p>
@@ -99,7 +105,16 @@ export function buildHud(doc: Document): HudBindings {
 
   nodes.grabLabel.textContent = T.grab;
   nodes.shootLabel.textContent = T.shoot;
+  nodes.zoomInButton.setAttribute('aria-label', T.hudZoomIn);
+  nodes.zoomOutButton.setAttribute('aria-label', T.hudZoomOut);
   nodes.padCard.classList.add('is-hidden');
+
+  const pauseButton = nodes.pauseButton as HTMLButtonElement;
+  const setExitMode = (leave: boolean): void => {
+    pauseButton.textContent = leave ? 'X' : 'II';
+    pauseButton.setAttribute('aria-label', leave ? T.hudExit : T.pause);
+  };
+  setExitMode(false);
 
   const listeners = new Map<HudAction, Set<() => void>>();
   const onClick = (event: Event): void => {
@@ -118,6 +133,7 @@ export function buildHud(doc: Document): HudBindings {
     setVisible(visible: boolean) {
       root.classList.toggle('is-hidden', !visible);
     },
+    setExitMode,
     onAction(action: HudAction, handler: () => void) {
       if (!listeners.has(action)) listeners.set(action, new Set());
       listeners.get(action)!.add(handler);

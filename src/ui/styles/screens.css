@@ -228,11 +228,11 @@
 
 .stick-ring {
   position: absolute;
-  left: 74px;
   bottom: 66px;
+  left: 50%;
   width: 118px;
   height: 118px;
-  margin: 0;
+  margin: 0 0 0 -59px;
   border: 2px dashed rgba(22, 32, 43, 0.45);
   border-radius: 50%;
   opacity: 0.35;
@@ -281,8 +281,23 @@
 /* Thumb buttons are a touch affordance. On a keyboard they are dead weight over
    the play area, so only the pause control survives on a fine pointer. */
 .hud:not(.is-coarse) .btn-grab,
-.hud:not(.is-coarse) .btn-shoot {
+.hud:not(.is-coarse) .btn-shoot,
+.hud:not(.is-coarse) .zoom-pair {
   display: none;
+}
+
+.zoom-pair {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tap-gap);
+}
+
+/* Smaller than the action buttons but still the 44px minimum, because a phone
+   viewport this short cannot fit two 72px rows of chrome. */
+.btn-zoom {
+  width: var(--tap-min);
+  height: var(--tap-min);
+  font-size: var(--text-md);
 }
 
 .btn-round {
@@ -493,5 +508,17 @@
 
   .stick-zone {
     height: 108px;
+  }
+
+  /* Narrow or short screens cannot carry two rows of 72px chrome beside a 118px
+     stick ring, and the ring then steals the buttons' taps. */
+  .btn-round {
+    width: 56px;
+    height: 56px;
+  }
+
+  .btn-zoom {
+    width: var(--tap-min);
+    height: var(--tap-min);
   }
 }

@@ -83,4 +83,15 @@ describe('input parity', () => {
     expect(Math.abs(cmd.mx)).toBeLessThanOrEqual(127);
     expect(Math.abs(cmd.my)).toBeLessThanOrEqual(127);
   });
+
+  it('hands zoom to the camera owner instead of keeping a private copy', () => {
+    const target = new EventTarget();
+    const nudges: number[] = [];
+    const keyboard = createKeyboard(target as unknown as Window & typeof globalThis, (delta) => nudges.push(delta));
+    keyboard.attach();
+    target.dispatchEvent(new KeyboardEvent('keydown', { code: 'Equal' }));
+    target.dispatchEvent(new KeyboardEvent('keydown', { code: 'Minus' }));
+    keyboard.detach();
+    expect(nudges).toEqual([-0.12, 0.12]);
+  });
 });

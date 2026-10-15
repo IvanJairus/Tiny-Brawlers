@@ -1,6 +1,6 @@
 import type { Screen } from './machine';
 import type { MountedScreen, ScreenContext } from './screens';
-import { mountNotice, mountPause, mountResults, mountSelect, mountTitle } from './screens';
+import { mountConfirm, mountNotice, mountPause, mountResults, mountSelect, mountTitle } from './screens';
 import { mountLobby, type LobbyView } from './lobby';
 import { T } from '../i18n/id';
 import type { ViewState } from '../../sim/core/view';
@@ -21,8 +21,9 @@ export function createRouter(host: HTMLElement, ctx: ScreenContext): Router {
 
   const onKeyDown = (event: KeyboardEvent): void => {
     if (event.key !== 'Escape' || !mounted) return;
-    if (mounted.screen === 'playing' && ctx.canPause()) ctx.send('pause');
+    if (mounted.screen === 'playing') ctx.send(ctx.canPause() ? 'pause' : 'leave');
     else if (mounted.screen === 'paused') ctx.send('resume');
+    else if (mounted.screen === 'confirming') ctx.send('stay');
   };
 
   const focusFirst = (root: HTMLElement): void => {
@@ -65,6 +66,9 @@ export function createRouter(host: HTMLElement, ctx: ScreenContext): Router {
           break;
         case 'paused':
           instance = mountPause(host, ctx);
+          break;
+        case 'confirming':
+          instance = mountConfirm(host, ctx);
           break;
         case 'results':
           instance = mountResults(host, ctx, lastView);

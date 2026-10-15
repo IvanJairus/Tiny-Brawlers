@@ -1,10 +1,11 @@
 export type Screen =
   | 'booting' | 'unsupported' | 'title' | 'select' | 'lobby'
-  | 'loading' | 'playing' | 'paused' | 'results' | 'disconnected';
+  | 'loading' | 'playing' | 'paused' | 'confirming' | 'results' | 'disconnected';
 
 export type MachineEvent =
   | 'supported' | 'unsupported' | 'play' | 'confirmed' | 'lobbyReady' | 'netplay'
-  | 'loaded' | 'pause' | 'resume' | 'finished' | 'quit' | 'again' | 'dropped' | 'recover';
+  | 'loaded' | 'pause' | 'resume' | 'leave' | 'stay' | 'finished' | 'quit' | 'again'
+  | 'dropped' | 'recover';
 
 const TRANSITIONS: Record<Screen, Partial<Record<MachineEvent, Screen>>> = {
   booting: { supported: 'title', unsupported: 'unsupported' },
@@ -13,8 +14,9 @@ const TRANSITIONS: Record<Screen, Partial<Record<MachineEvent, Screen>>> = {
   select: { confirmed: 'loading', quit: 'title', lobbyReady: 'lobby', netplay: 'lobby' },
   lobby: { loaded: 'playing', quit: 'title', lobbyReady: 'lobby' },
   loading: { loaded: 'playing', dropped: 'disconnected' },
-  playing: { pause: 'paused', finished: 'results', dropped: 'disconnected' },
+  playing: { pause: 'paused', leave: 'confirming', finished: 'results', dropped: 'disconnected' },
   paused: { resume: 'playing', quit: 'title' },
+  confirming: { stay: 'playing', quit: 'title' },
   results: { again: 'select', quit: 'title' },
   disconnected: { recover: 'title', again: 'title' }
 };

@@ -36,12 +36,12 @@ describe('router pause policy', () => {
     router.dispose();
   });
 
-  it('refuses to pause a networked match, because the host cannot freeze others', () => {
+  it('asks a networked player to leave instead of pausing, because the host cannot freeze others', () => {
     const ctx = context({ canPause: () => false });
     const router = createRouter(host, ctx);
     router.show('playing', null);
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-    expect(ctx.send).not.toHaveBeenCalled();
+    expect(ctx.send).toHaveBeenCalledWith('leave');
     router.dispose();
   });
 
@@ -51,6 +51,20 @@ describe('router pause policy', () => {
     router.show('paused', null);
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     expect(ctx.send).toHaveBeenCalledWith('resume');
+    router.dispose();
+  });
+
+  it('offers staying as the safe answer and closes the leave dialog with Escape', () => {
+    const ctx = context({ canPause: () => false });
+    const router = createRouter(host, ctx);
+    router.show('confirming', null);
+
+    const labels = Array.from(host.querySelectorAll('button')).map((b) => b.textContent);
+    expect(labels).toEqual(['Lanjut Main', 'Ya, Keluar']);
+    expect(document.activeElement?.textContent).toBe('Lanjut Main');
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(ctx.send).toHaveBeenCalledWith('stay');
     router.dispose();
   });
 });

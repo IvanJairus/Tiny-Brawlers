@@ -4,23 +4,29 @@ export interface KeyboardSource {
   attach(): void;
   detach(): void;
   read(): RawAxes;
-  nudgeZoom(delta: number): void;
-  zoom(): number;
 }
 
 const MOVE_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight']);
+const ZOOM_STEP = 0.12;
 
-export function createKeyboard(target: EventTarget = window): KeyboardSource {
+/**
+ * The camera owns the zoom level, so every input path only asks for a delta.
+ * A keyboard-local zoom used to sit here with nothing reading it, which made the
+ * plus and minus keys do nothing.
+ */
+export function createKeyboard(
+  target: EventTarget = window,
+  onZoom: (delta: number) => void = () => undefined
+): KeyboardSource {
   const down = new Set<string>();
-  let zoom = 0;
 
   const onKeyDown = (event: KeyboardEvent): void => {
     if (MOVE_KEYS.has(event.code)) down.add(event.code);
     if (event.code === 'Space' || event.code === 'KeyF' || event.code === 'KeyE' || event.code === 'KeyR' || event.code === 'KeyQ') {
       event.preventDefault();
     }
-    if (event.code === 'Equal' || event.code === 'NumpadAdd') zoom = Math.min(1, zoom + 0.12);
-    if (event.code === 'Minus' || event.code === 'NumpadSubtract') zoom = Math.max(0, zoom - 0.12);
+    if (event.code === 'Equal' || event.code === 'NumpadAdd') onZoom(-ZOOM_STEP);
+    if (event.code === 'Minus' || event.code === 'NumpadSubtract') onZoom(ZOOM_STEP);
   };
   const onKeyUp = (event: KeyboardEvent): void => {
     down.delete(event.code);
@@ -56,11 +62,7 @@ export function createKeyboard(target: EventTarget = window): KeyboardSource {
         build: down.has('KeyR') || down.has('KeyQ'),
         zoom: 0
       };
-    },
-    nudgeZoom(delta: number) {
-      zoom = Math.max(0, Math.min(1, zoom + delta));
-    },
-    zoom: () => zoom
+    }
   };
 }
 

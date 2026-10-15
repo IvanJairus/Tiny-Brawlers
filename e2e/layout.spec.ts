@@ -70,6 +70,36 @@ test('touch controls only exist for touch input and are big enough', async ({ pa
       expect(size.width).toBeGreaterThanOrEqual(44);
       expect(size.height).toBeGreaterThanOrEqual(44);
     }
+
+    const zoomOf = () => page.evaluate(() => (window as unknown as { __tb: { zoom(): number } }).__tb.zoom());
+    const before = await zoomOf();
+
+    // The ring is absolutely positioned inside the stick zone, so a wide enough
+    // zone can spill over the thumb buttons and swallow their taps.
+    const clashes = await page.locator('.stick-ring').evaluate((ring) => {
+      const a = ring.getBoundingClientRect();
+      return Array.from(document.querySelectorAll('.action-cluster .btn'))
+        .map((node) => {
+          const b = node.getBoundingClientRect();
+          const overlap = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left))
+            * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+          return { label: node.textContent ?? '', overlap };
+        })
+        .filter((row) => row.overlap > 0);
+    });
+    expect(clashes).toEqual([]);
+
+    await page.locator('[data-action="zoomOut"]').tap();
+    await page.waitForTimeout(400);
+    expect(await zoomOf()).toBeGreaterThan(before);
+  } else {
+    await expect(page.locator('[data-action="zoomOut"]')).toBeHidden();
+    const zoomOf = () => page.evaluate(() => (window as unknown as { __tb: { zoom(): number } }).__tb.zoom());
+    const before = await zoomOf();
+    await page.mouse.move(300, 200);
+    await page.mouse.wheel(0, 120);
+    await page.waitForTimeout(400);
+    expect(await zoomOf()).toBeGreaterThan(before);
   }
 });
 

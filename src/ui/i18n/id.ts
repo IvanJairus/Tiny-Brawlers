@@ -85,7 +85,14 @@ export const T = {
   sayEmptyHanded: 'Peti sudah diletakkan atau dilempar',
   sayTeamWiped: 'Semua kawan tumbang',
   sayWinner: 'Pemenang',
-  sayDraw: 'Pertandingan selesai tanpa pemenang'
+  sayDraw: 'Pertandingan selesai tanpa pemenang',
+  leaveTitle: 'Keluar dari pertandingan',
+  leaveBody: 'Pertandingan jaringan tidak bisa dijeda. Kalau keluar, kamu tidak bisa kembali ke laga ini.',
+  leaveYes: 'Ya, Keluar',
+  leaveNo: 'Lanjut Main',
+  hudExit: 'Keluar',
+  hudZoomIn: 'Dekatkan kamera',
+  hudZoomOut: 'Jauhkan kamera'
 } as const;
 
 export type CopyKey = keyof typeof T;

@@ -42,10 +42,15 @@ test('two pages negotiate through the websocket relay', async ({ context }) => {
   expect(errors).toEqual([]);
 
   await expect.poll(() => guest.evaluate(() => document.body.dataset.screen), { timeout: 15_000 }).toBe('playing');
+
+  // Escape never freezes a networked match for everyone: it opens the leave dialog instead.
   await guest.keyboard.press('Escape');
-  await guest.waitForTimeout(600);
-  expect(await guest.evaluate(() => document.body.dataset.screen)).toBe('playing');
+  await expect.poll(() => guest.evaluate(() => document.body.dataset.screen), { timeout: 10_000 }).toBe('confirming');
+  await guest.keyboard.press('Escape');
+  await expect.poll(() => guest.evaluate(() => document.body.dataset.screen), { timeout: 10_000 }).toBe('playing');
+
   await host.keyboard.press('Escape');
-  await host.waitForTimeout(600);
-  expect(await host.evaluate(() => document.body.dataset.screen)).toBe('playing');
+  await expect.poll(() => host.evaluate(() => document.body.dataset.screen), { timeout: 10_000 }).toBe('confirming');
+  await host.getByRole('button', { name: 'Lanjut Main' }).click();
+  await expect.poll(() => host.evaluate(() => document.body.dataset.screen), { timeout: 10_000 }).toBe('playing');
 });

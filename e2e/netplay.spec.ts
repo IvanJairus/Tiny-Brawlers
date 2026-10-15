@@ -42,4 +42,16 @@ test('two browser pages play one match together', async ({ context }) => {
   expect(both[0].buddies).toBeGreaterThan(0);
   expect(both[1].buddies).toBe(both[0].buddies);
   expect(both[1].tick).toBeGreaterThan(0);
+
+  await guest.locator('[data-action="pause"]').click();
+  await expect.poll(() => guest.evaluate(() => document.body.dataset.screen), { timeout: 10_000 }).toBe('confirming');
+  await guest.getByRole('button', { name: 'Lanjut Main' }).click();
+  await expect.poll(() => guest.evaluate(() => document.body.dataset.screen), { timeout: 10_000 }).toBe('playing');
+
+  await guest.locator('[data-action="pause"]').click();
+  await guest.getByRole('button', { name: 'Ya, Keluar' }).click();
+  await expect.poll(() => guest.evaluate(() => document.body.dataset.screen), { timeout: 10_000 }).toBe('title');
+  await expect.poll(() => guest.evaluate(() => (
+    window as unknown as { __tb: { netInfo(): { kind: string } } }
+  ).__tb.netInfo().kind), { timeout: 10_000 }).toBe('solo');
 });

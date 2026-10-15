@@ -39,6 +39,7 @@ export interface DebugHandle {
   netInfo(): { kind: string; code: string | null; peers: number; links: unknown; scale?: number };
   hash(): number;
   view(): ViewState | null;
+  zoom(): number;
 }
 
 declare global {
@@ -70,7 +71,7 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
   const machine = createMachine(webglAvailable() ? 'title' : 'unsupported');
   const store = createHudStore();
   const hud = buildHud(document);
-  const keyboard = createKeyboard();
+  const keyboard = createKeyboard(window, (delta) => camera.nudgeZoom(delta));
   const touch = createTouch();
   const stats = { built: 0, knockouts: 0, cratesDelivered: 0 };
   const audio = createGameAudio();
@@ -179,7 +180,15 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
   hud.onAction('grab', () => { touchPressed.grab = true; });
   hud.onAction('shoot', () => { touchPressed.shoot = true; });
   hud.onAction('build', () => { touchPressed.build = true; });
-  hud.onAction('pause', () => { if (session.kind === 'solo' && machine.can('pause')) machine.send('pause'); });
+  hud.onAction('pause', () => {
+    if (session.kind === 'solo') {
+      if (machine.can('pause')) machine.send('pause');
+    } else if (machine.can('leave')) {
+      machine.send('leave');
+    }
+  });
+  hud.onAction('zoomIn', () => camera.nudgeZoom(-0.2));
+  hud.onAction('zoomOut', () => camera.nudgeZoom(0.2));
   hud.onAction('restart', () => { if (machine.can('again')) machine.send('again'); });
 
   const onPointerUp = (): void => {
@@ -198,7 +207,16 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
   const unsubMachine = machine.onChange((screen) => {
     router.show(screen, view);
     if (screen === 'lobby') refreshRoster();
+    if (screen === 'title' && session.kind !== 'solo') {
+      netLink?.close();
+      netLink = null;
+      session = createSoloSession(1, settings.startClass);
+      world = session.world;
+      view = projectView(world, stats);
+      store.set(view);
+    }
     hud.setVisible(screen === 'playing');
+    hud.setExitMode(session.kind !== 'solo');
     if (screen === 'playing') stage.resize();
     if (screen === 'results') {
       audio.bgm.stop();
@@ -360,7 +378,8 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
         links: (netLink?.transport as unknown as { diagnose?(): unknown })?.diagnose?.() ?? []
       }),
       hash: () => hashWorld(world),
-      view: () => view
+      view: () => view,
+      zoom: () => camera.zoom
     };
   }
 

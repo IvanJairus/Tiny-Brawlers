@@ -29,8 +29,9 @@ npm run preview        # sajikan hasil build seperti saat tayang
 | Ambil / letak / lempar peti, naik tank | E | AMBIL |
 | Tembak | F atau Spasi | TEMBAK |
 | Rakit pad (harus berdiri di dekat pad) | R atau Q | tombol Rakit di kartu pad |
-| Zoom | scroll atau + / - | cubit, atau dua tombol zoom |
+| Zoom | scroll atau + / - | dua tombol + dan - di kanan bawah |
 | Jeda (mode solo) | Esc | tombol II |
+| Keluar dari laga jaringan | Esc lalu pilih "Ya, Keluar" | tombol X lalu "Ya, Keluar" |
 
 Orientasi utama di ponsel adalah landscape. Portrait tetap bisa dimainkan dengan HUD yang lebih
 sedikit.

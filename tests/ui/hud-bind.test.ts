@@ -104,6 +104,23 @@ describe('hud bindings', () => {
     hud.dispose();
   });
 
+  it('routes zoom taps and names them for assistive tech', () => {
+    const hud = buildHud(document);
+    document.body.appendChild(hud.root);
+    const calls: string[] = [];
+    hud.onAction('zoomIn', () => calls.push('in'));
+    hud.onAction('zoomOut', () => calls.push('out'));
+    (hud.root.querySelector('[data-action="zoomIn"]') as HTMLElement)
+      .dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    (hud.root.querySelector('[data-action="zoomOut"]') as HTMLElement)
+      .dispatchEvent(new Event('pointerdown', { bubbles: true }));
+
+    expect(calls).toEqual(['in', 'out']);
+    expect(hud.root.querySelector('[data-action="zoomIn"]')?.getAttribute('aria-label')).toBe('Dekatkan kamera');
+    expect(hud.root.querySelector('[data-action="zoomOut"]')?.getAttribute('aria-label')).toBe('Jauhkan kamera');
+    hud.dispose();
+  });
+
   it('publishes a view through the store to subscribers', () => {
     const store = createHudStore();
     const seen: number[] = [];

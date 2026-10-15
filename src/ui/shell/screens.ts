@@ -110,6 +110,18 @@ export function mountPause(host: HTMLElement, ctx: ScreenContext): MountedScreen
   return { dispose: () => root.remove() };
 }
 
+/** Netplay has no pause, so leaving needs an explicit confirmation instead. */
+export function mountConfirm(host: HTMLElement, ctx: ScreenContext): MountedScreen {
+  const root = shell('screen-modal screen-confirming', T.leaveTitle, T.leaveBody);
+  const actions = document.createElement('div');
+  actions.className = 'screen-actions';
+  actions.appendChild(button(T.leaveNo, 'primary', () => ctx.send('stay'), true));
+  actions.appendChild(button(T.leaveYes, 'ghost', () => ctx.send('quit')));
+  root.appendChild(actions);
+  host.appendChild(root);
+  return { dispose: () => root.remove() };
+}
+
 function settingsPanel(ctx: ScreenContext): HTMLElement {
   const wrap = document.createElement('div');
   wrap.className = 'settings-panel';
