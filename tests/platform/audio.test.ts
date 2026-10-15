@@ -47,7 +47,7 @@ function fakeContext(clock = { now: 0 }) {
 
 describe('audio graph', () => {
   it('creates no AudioContext until a gesture resumes it', () => {
-    const factory = vi.fn<[], AudioContext | null>(() => null);
+    const factory = vi.fn(() => null) as unknown as ContextFactory;
     const graph = createAudioGraph(factory as unknown as ContextFactory);
     graph.play(SFX.shoot);
     expect(graph.startedCues()).toBe(0);

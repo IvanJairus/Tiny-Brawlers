@@ -16,6 +16,7 @@ npm run dev            # http://localhost:3000
 npm test               # 168 tes unit/sim/net, headless
 npm run test:browser   # 31 tes Playwright: 3 ukuran layar, relay, artefak produksi
 npm run build          # tsc + vite build
+npm audit              # 0 kerentanan; CI gagal bila ada yang high atau critical
 npm run preview        # sajikan hasil build seperti saat tayang
 ```
 
