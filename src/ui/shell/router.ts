@@ -1,12 +1,14 @@
 import type { Screen } from './machine';
 import type { MountedScreen, ScreenContext } from './screens';
 import { mountNotice, mountPause, mountResults, mountSelect, mountTitle } from './screens';
+import { mountLobby, type LobbyView } from './lobby';
 import { T } from '../i18n/id';
 import type { ViewState } from '../../sim/core/view';
 
 export interface Router {
   show(screen: Screen, view: ViewState | null): void;
   update(view: ViewState): void;
+  lobby(): LobbyView | null;
   dispose(): void;
 }
 
@@ -14,6 +16,7 @@ const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabi
 
 export function createRouter(host: HTMLElement, ctx: ScreenContext): Router {
   let mounted: { screen: Screen; instance: MountedScreen } | null = null;
+  let lobbyView: LobbyView | null = null;
   let lastView: ViewState | null = null;
 
   const onKeyDown = (event: KeyboardEvent): void => {
@@ -70,9 +73,12 @@ export function createRouter(host: HTMLElement, ctx: ScreenContext): Router {
         case 'disconnected':
           instance = mountNotice(host, screen, T.disconnectedTitle, T.disconnectedBody, '', () => ctx.send('recover'));
           break;
+        case 'lobby':
+          lobbyView = mountLobby(host, ctx, ctx.lobby);
+          instance = { dispose: () => lobbyView?.dispose() };
+          break;
         case 'playing':
         case 'loading':
-        case 'lobby':
         default:
           instance = { dispose: () => undefined };
           break;
@@ -89,6 +95,7 @@ export function createRouter(host: HTMLElement, ctx: ScreenContext): Router {
       lastView = view;
       mounted?.instance.update?.(view);
     },
+    lobby: () => lobbyView,
     dispose() {
       window.removeEventListener('keydown', onKeyDown);
       mounted?.instance.dispose();

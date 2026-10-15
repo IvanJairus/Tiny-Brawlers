@@ -3,15 +3,15 @@ export type Screen =
   | 'loading' | 'playing' | 'paused' | 'results' | 'disconnected';
 
 export type MachineEvent =
-  | 'supported' | 'unsupported' | 'play' | 'confirmed' | 'lobbyReady'
+  | 'supported' | 'unsupported' | 'play' | 'confirmed' | 'lobbyReady' | 'netplay'
   | 'loaded' | 'pause' | 'resume' | 'finished' | 'quit' | 'again' | 'dropped' | 'recover';
 
 const TRANSITIONS: Record<Screen, Partial<Record<MachineEvent, Screen>>> = {
   booting: { supported: 'title', unsupported: 'unsupported' },
   unsupported: {},
-  title: { play: 'select' },
-  select: { confirmed: 'loading', quit: 'title', lobbyReady: 'lobby' },
-  lobby: { loaded: 'playing', quit: 'title' },
+  title: { play: 'select', netplay: 'lobby' },
+  select: { confirmed: 'loading', quit: 'title', lobbyReady: 'lobby', netplay: 'lobby' },
+  lobby: { loaded: 'playing', quit: 'title', lobbyReady: 'lobby' },
   loading: { loaded: 'playing', dropped: 'disconnected' },
   playing: { pause: 'paused', finished: 'results', dropped: 'disconnected' },
   paused: { resume: 'playing', quit: 'title' },

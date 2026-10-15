@@ -3,11 +3,15 @@ import { createStage, type Stage } from './render/scene';
 import { IsoCamera } from './render/camera';
 import { WorldRenderer } from './render/bridge';
 import { createStepper } from './sim/core/tick';
-import { createWorld, hashWorld, type World } from './sim/core/world';
+import { hashWorld, type World } from './sim/core/world';
 import { drainEvents } from './sim/core/events';
-import { stepWorld } from './sim/core/step';
-import { initialSquads } from './sim/domain/match';
 import { encodeInput, type RawAxes } from './sim/input/actions';
+import { createSoloSession, createHostSession, createClientSession, type Session } from './sim/net/session';
+import { openHostRoom, joinRoom, type NetLink } from './platform/net';
+import { detectCapabilities } from './platform/browsercheck';
+import { createGameAudio } from './platform/audio';
+import type { SimEvent } from './sim/core/events';
+import type { LobbyActions } from './ui/shell/lobby';
 import { TICK_S } from './sim/domain/constants';
 import { createKeyboard } from './platform/input/keyboard';
 import { createTouch } from './platform/input/touch';
@@ -19,6 +23,9 @@ import { projectView, type ViewState } from './sim/core/view';
 import { loadSettings, saveSettings } from './platform/storage';
 import type { BuddyClass } from './sim/domain/classes';
 import { overBudget } from './render/budget';
+import { SFX } from './platform/audio/patches';
+
+const T_LOBBY_WAITING = 'Menunggu pemain lain';
 
 export interface DebugHandle {
   world: World;
@@ -59,6 +66,9 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
   const keyboard = createKeyboard();
   const touch = createTouch();
   const stats = { built: 0, knockouts: 0, cratesDelivered: 0 };
+  const audio = createGameAudio();
+  audio.setEnabled(settings.sound);
+  audio.setMusic(settings.music);
   const touchPressed = { grab: false, shoot: false, build: false };
 
   const fixedSeed = Number(new URLSearchParams(window.location.search).get('seed') ?? NaN);
@@ -67,39 +77,90 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
     const seed = Number.isFinite(fixedSeed)
       ? fixedSeed >>> 0
       : (Math.floor(Math.random() * 0xffffffff) ^ 0x9e3779b9) >>> 0;
-    const next = createWorld({ seed });
-    initialSquads(next, 2);
-    const hero = next.buddies.find((b) => b.team === 'red');
-    if (hero) {
-      hero.cls = cls;
-      hero.isBot = false;
-      hero.ownedByPlayer = true;
-      next.localPlayer = hero.id;
-    }
+    netLink?.close();
+    netLink = null;
+    session = createSoloSession(seed, cls);
     stats.built = 0;
     stats.knockouts = 0;
     stats.cratesDelivered = 0;
-    return next;
+    return session.world;
   }
 
-  let world = createMatch(settings.startClass);
+  let session: Session = createSoloSession(1, settings.startClass);
+  let netLink: NetLink | null = null;
+  let world = session.world;
   let view = projectView(world, stats);
   store.set(view);
+
+  const lobbyActions: LobbyActions = {
+    host() {
+      try {
+        netLink = openHostRoom();
+      } catch {
+        router.lobby()?.setPhase('WebRTC tidak tersedia');
+        return;
+      }
+      session = createHostSession(createSoloSession(Number.isFinite(fixedSeed) ? fixedSeed >>> 0 : 4242, settings.startClass).world, netLink.transport, {
+        roomCode: netLink.code, cls: settings.startClass, name: 'Tuan Rumah', now: () => performance.now()
+      });
+      world = session.world;
+      router.lobby()?.setCode(netLink.code);
+      router.lobby()?.setPhase(T_LOBBY_WAITING);
+      refreshRoster();
+    },
+    join(code: string) {
+      try {
+        netLink = joinRoom(code);
+      } catch {
+        router.lobby()?.setPhase('WebRTC tidak tersedia');
+        return;
+      }
+      session = createClientSession(netLink.transport, {
+        roomCode: netLink.code, cls: settings.startClass, name: 'Tamu',
+        hostPeerId: netLink.hostPeerId, now: () => performance.now()
+      });
+      world = session.world;
+      router.lobby()?.setCode(netLink.code);
+      router.lobby()?.setPhase(T_LOBBY_WAITING);
+    },
+    start() {
+      session.start();
+      if (machine.can('loaded')) machine.send('loaded');
+    },
+    leave() {
+      netLink?.close();
+      netLink = null;
+      session = createSoloSession(1, settings.startClass);
+      world = session.world;
+    }
+  };
+
+  function refreshRoster(): void {
+    if (session.kind !== 'host') return;
+    router.lobby()?.setRoster(session.roster());
+  }
 
   const router = createRouter(uiHost, {
     send: (event) => machine.send(event),
     startWith: (cls) => {
+      audio.graph.resume();
+      if (settings.music) audio.bgm.start();
       settings.startClass = cls;
       saveSettings(settings);
       world = createMatch(cls);
       view = projectView(world, stats);
       if (machine.can('confirmed')) machine.send('confirmed');
       if (machine.can('loaded')) machine.send('loaded');
+      refreshRoster();
     },
+    netplay: detectCapabilities().webrtc,
+    lobby: lobbyActions,
     settings,
     setSetting: (key, value) => {
       if (key === 'quality') settings.quality = value === 'low' ? 'low' : 'high';
       else settings[key] = Boolean(value);
+      if (key === 'sound') audio.setEnabled(Boolean(value));
+      if (key === 'music') audio.setMusic(Boolean(value));
       saveSettings(settings);
     }
   });
@@ -132,16 +193,23 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
 
   const unsubMachine = machine.onChange((screen) => {
     router.show(screen, view);
+    if (screen === 'lobby') refreshRoster();
     hud.setVisible(screen === 'playing');
     if (screen === 'playing') stage.resize();
+    if (screen === 'results') {
+      audio.bgm.stop();
+      if (view.winner === view.team) audio.graph.play(SFX.victory);
+      else audio.graph.play(SFX.defeat);
+    }
+    if (screen === 'paused') audio.bgm.stop();
+    if (screen === 'playing' && settings.music && settings.sound) audio.bgm.start();
   });
   router.show(machine.screen, view);
   hud.setVisible(false);
 
   let steps = 0;
   const stepper = createStepper((dt) => {
-    world.inputs.set(world.localPlayer, encodeInput((world.seq + steps) % 256, mergeAxes()));
-    stepWorld(world, dt);
+    session.step(dt, mergeAxes());
     steps++;
     if (world.over && machine.screen === 'playing' && machine.can('finished')) machine.send('finished');
   });
@@ -195,7 +263,12 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
     if (focus) camera.follow(focus.x, focus.z, Math.min(0.1, elapsed / 1000));
 
     renderer.sync(world, stepper.alpha(), now / 1000, Math.min(0.1, elapsed / 1000));
-    renderer.consume(drainEvents(world.events));
+    const frameEvents = drainEvents(world.events);
+    renderer.consume(frameEvents);
+    for (const event of frameEvents) {
+      audio.cue(event);
+      countStats(event);
+    }
     stage.draw(camera.camera);
 
     hudAccumulator += elapsed;
@@ -215,6 +288,14 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);
+
+  function countStats(event: SimEvent): void {
+    if (event.kind === 'build') stats.built++;
+    else if (event.kind === 'knockout') {
+      const victim = world.buddies.find((b) => b.id === event.entity);
+      if (victim && victim.team !== 'red') stats.knockouts++;
+    } else if (event.kind === 'place') stats.cratesDelivered++;
+  }
 
   const sceneCounters = () => {
     const geometries = new Set<string>();
@@ -254,6 +335,7 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
     window.removeEventListener('keydown', onKey);
     window.removeEventListener('pointerup', onPointerUp);
     window.removeEventListener('pointercancel', onPointerUp);
+    audio.dispose();
     renderer.dispose();
     stage.dispose();
   };

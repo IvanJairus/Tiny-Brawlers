@@ -2,10 +2,13 @@ import { T } from '../i18n/id';
 import type { BuddyClass } from '../../sim/domain/classes';
 import type { ViewState } from '../../sim/core/view';
 import type { Screen } from './machine';
+import type { LobbyActions } from './lobby';
 
 export interface ScreenContext {
   send: (event: Parameters<import('./machine').Machine['send']>[0]) => void;
   startWith: (cls: BuddyClass) => void;
+  netplay: boolean;
+  lobby: LobbyActions;
   settings: { sound: boolean; music: boolean; quality: 'high' | 'low'; reducedMotion: boolean };
   setSetting: (key: 'sound' | 'music' | 'quality' | 'reducedMotion', value: boolean | string) => void;
 }
@@ -84,6 +87,7 @@ export function mountSelect(host: HTMLElement, ctx: ScreenContext): MountedScree
   actions.className = 'screen-actions';
   actions.appendChild(button(T.back, 'ghost', () => ctx.send('quit')));
   actions.appendChild(button(T.play, 'primary', () => ctx.startWith(chosen), true));
+  if (ctx.netplay) actions.appendChild(button(T.netTitle, 'ghost', () => ctx.send('netplay')));
   root.appendChild(actions);
   host.appendChild(root);
   return { dispose: () => root.remove() };
