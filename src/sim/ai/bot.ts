@@ -144,6 +144,19 @@ export function botInput(w: World, me: BuddyRec, memory: BotMemory, seq: number)
     return raw;
   }
 
+  // The bot that placed the last crate is empty-handed, so the finished shape
+  // would wait for the next carrier to trip the press by accident, and a full
+  // pad has no shape left it can diverge from.
+  const filled = w.pads[me.team];
+  const wanted = RECIPE_SLOTS[teamWanted(w, me.team)] ?? RECIPE_SLOTS.pistol;
+  const shapeDone = totalCrates(filled) === wanted.length && (filled & maskFor(wanted)) === filled;
+  if ((shapeDone || totalCrates(filled) >= 8) && evaluatePad(filled).id !== 'empty') {
+    const origin = padOrigin(me.team);
+    steer(me, origin, raw, 0.9);
+    if (distance(me, origin) < 3.2) raw.build = true;
+    return raw;
+  }
+
   const loose = nearestLooseCrate(w, me);
   if (loose) {
     steer(me, loose, raw);

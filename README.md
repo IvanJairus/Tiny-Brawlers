@@ -13,7 +13,7 @@ pembanding paritas.
 ```bash
 npm install
 npm run dev            # http://localhost:3000
-npm test               # 252 tes unit/sim/net, headless
+npm test               # 255 tes unit/sim/net, headless
 npm run test:speed     # gerbang 1000x realtime dari rencana M1, file itu saja yang jalan
 npm run test:browser   # 59 tes Playwright: 3 ukuran layar, netplay, relay, artefak produksi
 npm run test:perf      # 1 tes budget frame dengan CPU di-throttle 6x, sendirian
@@ -88,6 +88,21 @@ keadaan. Snapshot penuh dikirim 15 Hz (di bawah 16 KB/s per arah), masukan naik 
 
 - Peer yang putus diambil alih AI di tempat, lengkap dengan peti yang sedang dibawanya.
 - Slot yang tidak diisi manusia otomatis diisi bot, jadi 2 orang tetap jadi brawl 4 tim.
+
+## Bot
+
+Rekan setim AI mengisi pad sampai bentuk yang sedang dituju timnya, bukan asal menumpuk satu peti
+lalu merakit. Yang dulu macet: bot yang meletakkan peti terakhir sudah tidak membawa apa-apa, dan
+tekanan rakit hanya dilakukan bot yang sedang memikul peti, jadi pad delapan peti menunggu "kebetulan"
+ada yang lewat dan menekan. Sekarang bot tanpa peti pun jalan ke pad dan merakit bentuk yang sudah
+genap. Terukur di delapan seed, laga lima menit semua-bot: bentuk tank muncul 2 dari 8 sebelum
+perubahan ini, 5 dari 8 sesudahnya. Angka itu dicetak sendiri oleh tesnya
+(`tests/sim/bots.test.ts`, delapan seed, masing-masing lima menit waktu simulasi), dan tujuh resep pad lainnya
+semuanya muncul di seed 20260.
+
+Harganya, diukur di delapan seed yang sama: commando tidak muncul lagi di satu seed (7) yang sebelumnya
+selalu muncul. Rotasi target tim jadi bergerak lebih cepat, dan bentuk empat peti itu dapat terlewat
+sebelum waktu habis. Saya catat daripada menyembunyikannya.
 
 ## Arsitektur
 

@@ -115,6 +115,8 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 105 | Paritas dijaga mesin | Setiap baris ledger punya nomor unik, klaim perilaku, milestone M0-M7, menyebut file tes yang benar-benar ada serta berisi tes, dan berstatus A atau P; kalau P, alasannya harus tertulis di bagian Masih sebagian | tests/docs/parity.test.ts | M7 | A |
 | 106 | Konvergensi setelah stall 400 ms | Di link bermusuhan (60ms delay, 60ms jitter, loss 3%, dup 2%) klien kembali memegang snapshot dari setelah stall dalam 133,3 ms waktu link dan tertinggal 3 tick (n=1, seed 5; gerbang 250 ms dan 5 tick), dan isi snapshot yang dipegangnya persis sama dengan state host untuk tick itu | tests/net/net.test.ts | M5 | A |
 | 107 | Simpul prediksi ≤0,75 m | Rencana 4.3 menuntut simpul prediksi buddy tidak pernah lewat 0,75 m setelah loss acak; belum terukur karena error yang dipakai klien membandingkan posisi dari dua saat berbeda | tests/net/net.test.ts | M5 | P |
+| 108 | Bot mencapai tujuh resep pad | Laga 5 menit semua-bot di seed 20260 membangun pistol, shotgun, grenade, medic_unit, medic, bazooka, dan commando tanpa satu pun manusia menekan tombol | tests/sim/bots.test.ts | M4 | A |
+| 109 | Tank dirakit AI sendiri | Pad delapan peti benar-benar selesai dan keluar tank tanpa manusia: 5 dari 8 seed sesudah perbaikan, 2 dari 8 sebelumnya, dan angka itu dicetak oleh tesnya sendiri | tests/sim/bots.test.ts | M4 | A |
 
 ## Masih sebagian
 
