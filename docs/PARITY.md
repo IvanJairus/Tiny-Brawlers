@@ -74,7 +74,7 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 64 | Host otoritatif | Klien hanya mengirim input, host yang mensimulasikan | tests/net/net.test.ts | M5 | A |
 | 65 | Prediksi bounded | Hanya buddy lokal yang diprediksi, sisanya otoritatif | tests/net/net.test.ts | M5 | A |
 | 66 | Interpolasi tahan loss | Harness 1 host plus 3 klien selama 5 menit waktu link (60ms delay, 60ms jitter, loss 3 persen, duplikasi 2 persen): lag snapshot maksimum 3 tick, 4195 dari sekitar 4500 snapshot tiba, hard snap 1 sampai 3 kali | tests/net/net.test.ts | M5 | A |
-| 67 | Putus jadi bot | Peer yang hilang jadi bot dan tetap membawa petinya | tests/net/net.test.ts | M5 | A |
+| 67 | Putus jadi bot | Peer yang hilang jadi bot dan tetap membawa petinya, dalam ≤3 detik waktu link sesuai rencana (terukur 2466,7 ms, n=1) | tests/net/net.test.ts | M5 | A |
 | 68 | Anggaran bandwidth | Snapshot dunia penuh < 1200 byte, di bawah 16KB/s | tests/net/net.test.ts | M5 | A |
 | 69 | Kode ruangan | Gabung dengan kode salah ditolak | tests/net/net.test.ts | M5 | A |
 | 70 | Perangkat pendukung | RTCPeerConnection tidak ada pindah layar unsupported | tests/platform/audio.test.ts, tests/ui/machine.test.ts | M6 | A |
@@ -110,6 +110,7 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 101 | Delapan bentuk lewat InputCmd | Setiap resep dicapai dengan urutan ambil/letak/rakit sungguhan tanpa menulis mask langsung, dan pad kosong setelah dirakit | tests/sim/step.test.ts | M2 | A |
 | 74 | Simulasi tidak berjalan di layar salah | Tick hanya terjadi saat layar playing | e2e/layout.spec.ts | M4 | A |
 | 102 | Tampilan ASCII debug | `?ascii=1` menampilkan grid 65x33 plus tick/hp/hidup, setiap baris ≤ 65 karakter, dan panel tidak keluar dari layar di 1440x900, 740x360, 390x844 | tests/sim/ascii.test.ts, e2e/layout.spec.ts | M2 | A |
+| 103 | Navigasi keyboard penuh di menu | Tab dan Shift+Tab berputar di dalam layar tanpa pernah keluar (fokus = none), setiap layar merebut fokus saat dibuka, dan Enter menyelesaikan rute judul → pilih kelas → main → jeda → lanjut di tiga ukuran | e2e/layout.spec.ts | M4 | A |
 
 ## Yang sengaja tidak ada
 

@@ -246,13 +246,19 @@ describe('host authoritative session', () => {
     }
 
     hub.drop(guestTransport.id);
-    for (let i = 0; i < 120; i++) {
+    const droppedAt = hub.now;
+    let takenOverAt = -1;
+    for (let i = 0; i < 150 && takenOverAt < 0; i++) {
       host.collect();
       stepWorld(world, TICK_S);
       host.publish([]);
       hub.advance(TICK_S * 1000);
+      if (slot.bot) takenOverAt = hub.now;
     }
 
+    expect(takenOverAt).toBeGreaterThanOrEqual(0);
+    console.log(`net: dropped peer became a bot after ${takenOverAt - droppedAt}ms of link time`);
+    expect(takenOverAt - droppedAt, 'the plan fixes the takeover at 3 seconds of link time').toBeLessThanOrEqual(3000);
     expect(slot.bot).toBe(true);
     expect(buddy.isBot).toBe(true);
     for (const other of world.buddies) {

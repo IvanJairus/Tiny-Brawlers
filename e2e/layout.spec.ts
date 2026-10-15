@@ -14,6 +14,98 @@ function intersects(a: { x: number; y: number; width: number; height: number }, 
   return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 }
 
+const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+type Ring = { size: number; start: string; forward: string[]; backward: string[] };
+
+async function focusRing(page: import('@playwright/test').Page): Promise<Ring> {
+  const size = await page.evaluate((selector) => {
+    const root = document.querySelector('#ui')?.lastElementChild;
+    if (!root) return 0;
+    root.querySelectorAll('[data-kb]').forEach((el) => el.removeAttribute('data-kb'));
+    const items = Array.from(root.querySelectorAll(selector)).filter((el) => el.getClientRects().length > 0);
+    items.forEach((el, i) => el.setAttribute('data-kb', String(i)));
+    return items.length;
+  }, FOCUSABLE);
+
+  const read = () => page.evaluate(() => document.activeElement?.getAttribute('data-kb') ?? 'none');
+  const reset = () => page.locator('[data-kb="0"]').first().evaluate((el) => el.focus());
+
+  const start = await read();
+  await reset();
+  const forward: string[] = [];
+  for (let i = 0; i <= size; i++) {
+    forward.push(await read());
+    await page.keyboard.press('Tab');
+  }
+  await reset();
+  const backward: string[] = [];
+  for (let i = 0; i <= size; i++) {
+    backward.push(await read());
+    await page.keyboard.press('Shift+Tab');
+  }
+  return { size, start, forward, backward };
+}
+
+function ringOf(size: number, step: number): string[] {
+  return Array.from({ length: size + 1 }, (_, i) => String((((step * i) % size) + size) % size));
+}
+
+async function tabTo(
+  page: import('@playwright/test').Page,
+  text: string,
+  match: 'exact' | 'has' = 'exact'
+): Promise<void> {
+  for (let i = 0; i < 20; i++) {
+    const focused: string = await page.evaluate(
+      () => ((document.activeElement as HTMLElement | null)?.innerText ?? '').replace(/\s+/g, ' ').trim()
+    );
+    if (match === 'exact' ? focused === text : focused.includes(text)) return;
+    await page.keyboard.press('Tab');
+  }
+  throw new Error(`focus never reached a control ${match} "${text}"`);
+}
+
+test('every menu is walkable and trapped by keyboard, and Enter plays the whole route in', async ({ page }) => {
+  await page.goto('/?seed=4242');
+  const screen = () => page.evaluate(() => document.body.dataset.screen);
+  await expect.poll(screen).toBe('title');
+
+  const title = await focusRing(page);
+  expect(title.start, 'title must take focus when it opens').not.toBe('none');
+  expect(title.size).toBeGreaterThanOrEqual(2);
+  expect(title.forward).toEqual(ringOf(title.size, 1));
+  expect(title.backward).toEqual(ringOf(title.size, -1));
+
+  await tabTo(page, 'Main');
+  await page.keyboard.press('Enter');
+  await expect.poll(screen).toBe('select');
+
+  const select = await focusRing(page);
+  expect(select.start, 'select must take focus when it opens').not.toBe('none');
+  expect(select.size).toBeGreaterThanOrEqual(2);
+  expect(select.forward).toEqual(ringOf(select.size, 1));
+  expect(select.backward).toEqual(ringOf(select.size, -1));
+
+  await tabTo(page, 'Petarung', 'has');
+  await page.keyboard.press('Enter');
+  await tabTo(page, 'Main');
+  await page.keyboard.press('Enter');
+  await expect.poll(screen).toBe('playing');
+
+  await page.keyboard.press('Escape');
+  await expect.poll(screen).toBe('paused');
+  const paused = await focusRing(page);
+  expect(paused.start, 'paused must take focus when it opens').not.toBe('none');
+  expect(paused.size).toBeGreaterThanOrEqual(2);
+  expect(paused.forward).toEqual(ringOf(paused.size, 1));
+  expect(paused.backward).toEqual(ringOf(paused.size, -1));
+
+  await tabTo(page, 'Lanjut');
+  await page.keyboard.press('Enter');
+  await expect.poll(screen).toBe('playing');
+});
+
 test('the title offers netplay when the browser can do WebRTC', async ({ page }) => {
   await page.goto('/');
   await expect.poll(() => page.evaluate(() => document.body.dataset.screen)).toBe('title');
@@ -285,3 +377,4 @@ test('the HUD reports the same health the simulation holds', async ({ page }) =>
   }
   expect(matched).toBeGreaterThanOrEqual(4);
 });
+
