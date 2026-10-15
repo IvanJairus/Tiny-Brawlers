@@ -124,6 +124,38 @@ test('the game is still playable when the browser has no audio device', async ({
   expect(thrown).toEqual([]);
 });
 
+test('text mode renders the live world as readable text that stays on screen', async ({ page }) => {
+  await page.goto('/?ascii=1&seed=5');
+  await expect.poll(() => page.evaluate(() => document.body.dataset.screen), { timeout: 15_000 }).toBe('title');
+  await page.getByRole('button', { name: 'Main', exact: true }).click();
+  await page.getByRole('button', { name: /Petarung/ }).click();
+  await page.getByRole('button', { name: 'Main', exact: true }).last().click();
+  await expect.poll(() => page.evaluate(() => document.body.dataset.screen), { timeout: 15_000 }).toBe('playing');
+  await page.waitForTimeout(700);
+
+  const view = await page.locator('[data-part="asciiView"]').evaluate((el) => {
+    const lines = (el.textContent ?? '').split('\n');
+    const box = el.getBoundingClientRect();
+    return {
+      lines: lines.length,
+      gridWidth: Math.max(...lines.slice(2, 35).map((row) => row.length)),
+      widest: Math.max(...lines.map((row) => row.length)),
+      first: lines[0],
+      spillTop: Math.max(0, -box.top),
+      spillLeft: Math.max(0, -box.left),
+      spillRight: Math.max(0, box.right - window.innerWidth),
+      spillBottom: Math.max(0, box.bottom - window.innerHeight)
+    };
+  });
+
+  expect(view.lines).toBe(36);
+  expect(view.gridWidth).toBe(65);
+  expect(view.widest).toBeLessThanOrEqual(65);
+  expect(view.first).toMatch(/^tick \d+/);
+  expect([view.spillTop, view.spillLeft, view.spillRight, view.spillBottom]).toEqual([0, 0, 0, 0]);
+  await expect(page.locator('[data-part="asciiView"]')).toContainText('@');
+});
+
 test('the HUD keeps a quiet live region that costs no screen space', async ({ page }) => {
   await startMatch(page);
 

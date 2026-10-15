@@ -123,6 +123,15 @@ npm run dev            # catat alamat network yang ditampilkan, misalnya http://
 
 Angka yang terlihat di sana adalah angka perangkat itu.
 
+Ada mode kedua, `?ascii=1`, yang menempelkan pandangan dunia sebagai teks di pojok kiri bawah:
+grid 65x33 petak, tick, jam, nyawa tiap benteng, dan jumlah buddy hidup. Teksnya sendiri tidak butuh
+GPU, jadi ia memisahkan bug simulasi dari bug render saat dua-duanya aktif bersamaan. Keduanya hanya
+muncul lewat query, tidak pernah tampil di permainan biasa.
+
+```bash
+# http://192.168.1.2:3000/?ascii=1&seed=5
+```
+
 Sebagai gerbang regresi, `e2e/perf.spec.ts` mengukur headless Chromium dengan CPU di-throttle 6x
 pada viewport 740x360 dan menuntut p95 ≤ 20 ms. Itu mendeteksi perubahan yang membuat main thread
 berat, tapi bukan pengganti pengukuran di HP: CPU ponsel kelas menengah punya karakteristik berbeda

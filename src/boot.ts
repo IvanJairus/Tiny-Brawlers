@@ -11,6 +11,7 @@ import { openHostRoom, joinRoom, type NetLink } from './platform/net';
 import { detectCapabilities } from './platform/browsercheck';
 import { createGameAudio } from './platform/audio';
 import { createMeter, type Meter } from './platform/meter';
+import { createAsciiView } from './platform/asciiView';
 import type { SimEvent } from './sim/core/events';
 import type { LobbyActions } from './ui/shell/lobby';
 import { TICK_S } from './sim/domain/constants';
@@ -80,6 +81,8 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
   const audio = createGameAudio();
   const meter: Meter | null = new URLSearchParams(window.location.search).get('meter') === '1' ? createMeter() : null;
   if (meter) document.body.appendChild(meter.element);
+  const ascii = new URLSearchParams(window.location.search).get('ascii') === '1' ? createAsciiView(document) : null;
+  if (ascii) document.body.appendChild(ascii.element);
   audio.setEnabled(settings.sound);
   audio.setMusic(settings.music);
   const touchPressed = { grab: false, shoot: false, build: false };
@@ -335,6 +338,8 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
 
     if (adaptation.sample(elapsed)) stage.setRenderScale(adaptation.scale);
 
+    ascii?.update(world, now);
+
     frames++;
     if (now - fpsWindow >= 500) {
       fps = (frames * 1000) / Math.max(1, now - fpsWindow);
@@ -416,6 +421,7 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
     window.removeEventListener('pointerup', onPointerUp);
     window.removeEventListener('pointercancel', onPointerUp);
     audio.dispose();
+    ascii?.dispose();
     renderer.dispose();
     stage.dispose();
   };

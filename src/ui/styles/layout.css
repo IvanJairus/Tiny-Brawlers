@@ -27,6 +27,27 @@ body {
   white-space: nowrap;
 }
 
+/* ?ascii=1: the world as text, for machines where WebGL is the broken part. */
+.ascii-view {
+  position: fixed;
+  left: calc(var(--space-3) + var(--hud-safe-left));
+  bottom: calc(var(--space-3) + var(--hud-safe-bottom));
+  margin: 0;
+  padding: var(--space-1) var(--space-2);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 500;
+  line-height: 1.1;
+  font-size: min(9px, calc(100vw / 48), calc(100vh / 48));
+  color: var(--ink);
+  background: var(--panel);
+  border: var(--outline);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-hard);
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 3;
+}
+
 #stage,
 #stage canvas {
   position: fixed;
