@@ -15,7 +15,7 @@ npm install
 npm run dev            # http://localhost:3000
 npm test               # 255 tes unit/sim/net, headless
 npm run test:speed     # gerbang 1000x realtime dari rencana M1, file itu saja yang jalan
-npm run test:browser   # 59 tes Playwright: 3 ukuran layar, netplay, relay, artefak produksi
+npm run test:browser   # 63 tes Playwright: 3 ukuran layar, netplay, relay, artefak produksi
 npm run test:perf      # 1 tes budget frame dengan CPU di-throttle 6x, sendirian
 npm run build          # tsc + vite build
 npm audit              # 0 kerentanan; CI gagal bila ada yang high atau critical
@@ -159,6 +159,14 @@ Tiga kali jalan di mesin ini dengan mesin kosong memberi p95 16,7 sampai 16,8 ms
 terjadi segera sesudah suite browser lain selesai di mesin yang sama. Gerbang ini sensitif terhadap
 beban sampingan, jadi jalankan `test:perf` sendirian dan jangan menambah retry untuk menutupinya.
 
+Yang diverifikasi di artefak build, bukan hanya di dev server: boot tanpa error, rute layar penuh
+(judul → pilih kelas → main → jeda → keluar ke judul), nol bocor horizontal dan nol kartu HUD
+tumpang tindih di 1440x900, 740x360, dan 390x844, bingkai render nyata, dan meter di perangkat.
+Yang tidak bisa diverifikasi di artefak build: layar hasil. Laga hanya selesai kalau bunker satu tim
+rata dan semua anggotanya tumbang, dan satu-satunya cara mempercepat waktu simulasi ada di dev
+handle yang justru tidak ikut di-build. Jadi layar hasil teruji di dev server dan tetap jadi langkah
+playtest manual di build, sampai keputusan batas waktu laga di bagian Status verifikasi diambil.
+
 ## Deploy
 
 Build bersifat portabel: `base` relatif, jadi `dist/` bisa diletakkan di root domain maupun di
@@ -170,7 +178,7 @@ npm run build && npx serve dist    # cek lokal hasil yang sama dengan yang akan 
 
 ## Status verifikasi
 
-Daftar "jangan turun mutu" ada di `docs/PARITY.md`: 107 baris, tiap baris menyebut tes yang
+Daftar "jangan turun mutu" ada di `docs/PARITY.md`: 110 baris, tiap baris menyebut tes yang
 membuktikannya. `tests/docs/parity.test.ts` menjaga daftar itu sendiri, yaitu nomor baris unik,
 klaim perilakunya ada, milestone M0-M7, file yang disebut harus benar-benar ada serta berisi tes,
 dan statusnya hanya A atau P; sebuah P wajib punya alasan di bagian "Masih sebagian". Sebelum tes

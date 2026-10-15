@@ -163,3 +163,51 @@ test('the production build ships no debug handle', async ({ page }) => {
   expect(hasHandle).toBe(false);
 });
 
+
+test('the deployed bundle walks the whole screen route', async ({ page }) => {
+  await page.goto('/');
+  const screen = () => page.evaluate(() => document.body.dataset.screen);
+  await expect.poll(screen, { timeout: 15_000 }).toBe('title');
+
+  await page.getByRole('button', { name: 'Main', exact: true }).click();
+  await expect.poll(screen).toBe('select');
+  await page.getByRole('button', { name: /Petarung/ }).click();
+  await page.getByRole('button', { name: 'Main', exact: true }).last().click();
+  await expect.poll(screen).toBe('playing');
+  await expect(page.locator('.card-player')).toBeVisible();
+
+  await page.keyboard.press('Escape');
+  await expect.poll(screen).toBe('paused');
+  await page.getByRole('button', { name: /Keluar ke Judul/ }).click();
+  await expect.poll(screen).toBe('title');
+});
+
+for (const size of [{ width: 1440, height: 900 }, { width: 740, height: 360 }, { width: 390, height: 844 }]) {
+test(`the built bundle has no sideways leak and no overlapping cards at ${size.width}x${size.height}`, async ({ page }) => {
+  await page.setViewportSize(size);
+  await startSoloMatch(page);
+
+  const layout = await page.evaluate(() => {
+    const boxes = ['.card-player', '.card-scoreboard', '.card-pad:not(.is-hidden)']
+      .map((selector) => document.querySelector(selector))
+      .filter((el): el is HTMLElement => el !== null)
+      .map((el) => el.getBoundingClientRect());
+    return {
+      overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      boxes: boxes.map((b) => ({ x: b.x, y: b.y, width: b.width, height: b.height }))
+    };
+  });
+
+  console.log(`prod: ${layout.boxes.length} HUD cards measured at ${size.width}x${size.height}`);
+  expect(layout.boxes.length, 'the probe must see the HUD cards or the overlap loop proves nothing').toBeGreaterThanOrEqual(2);
+  expect(layout.overflowX).toBe(0);
+  for (let i = 0; i < layout.boxes.length; i++) {
+    for (let j = i + 1; j < layout.boxes.length; j++) {
+      const a = layout.boxes[i];
+      const b = layout.boxes[j];
+      const overlaps = a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+      expect(overlaps, `card ${i} overlaps card ${j}`).toBe(false);
+    }
+  }
+});
+}

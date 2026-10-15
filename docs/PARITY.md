@@ -117,6 +117,7 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 107 | Simpul prediksi ≤0,75 m | Rencana 4.3 menuntut simpul prediksi tidak pernah lewat 0,75 m setelah loss acak. Terukur 0,867-0,982 m (dan 0,989-1,227 m untuk prediktor yang dirusak sampai tidak bergerak, jadi batas di kisaran itu tidak membuktikan mutu prediksi); angka itu dari eksperimen yang sudah ditarik sehingga tidak bisa direproduksi dari build ini, alasannya di bagian Masih sebagian | tests/net/net.test.ts | M5 | P |
 | 108 | Bot mencapai tujuh resep pad | Laga 5 menit semua-bot di seed 20260 membangun pistol, shotgun, grenade, medic_unit, medic, bazooka, dan commando tanpa satu pun manusia menekan tombol | tests/sim/bots.test.ts | M4 | A |
 | 109 | Tank dirakit AI sendiri | Pad delapan peti benar-benar selesai dan keluar tank tanpa manusia: 5 dari 8 seed sesudah perbaikan, 2 dari 8 sebelumnya, dan angka itu dicetak oleh tesnya sendiri | tests/sim/bots.test.ts | M4 | A |
+| 110 | Artefak build dilalui tanpa dev handle | Rute layar penuh di hasil build sungguhan (judul → pilih kelas → main → jeda → keluar ke judul), plus nol bocor horizontal dan nol kartu HUD tumpang tindih di 1440x900, 740x360, dan 390x844 | e2e/production.spec.ts | M7 | A |
 
 ## Masih sebagian
 
