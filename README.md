@@ -14,7 +14,7 @@ pembanding paritas.
 npm install
 npm run dev            # http://localhost:3000
 npm test               # 168 tes unit/sim/net, headless
-npm run test:browser   # 31 tes Playwright: 3 ukuran layar, relay, artefak produksi
+npm run test:browser   # 34 tes Playwright: 3 ukuran layar, relay, throttle, artefak produksi
 npm run build          # tsc + vite build
 npm audit              # 0 kerentanan; CI gagal bila ada yang high atau critical
 npm run preview        # sajikan hasil build seperti saat tayang
@@ -106,8 +106,12 @@ npm run dev            # catat alamat network yang ditampilkan, misalnya http://
 # di ponsel yang satu Wi-Fi: http://192.168.1.2:3000/?meter=1
 ```
 
-Angka yang terlihat di sana adalah angka perangkat itu. Angka dari headless Chromium di laptop
-tidak mewakili ponsel, dan sengaja tidak dipakai sebagai bukti.
+Angka yang terlihat di sana adalah angka perangkat itu.
+
+Sebagai gerbang regresi, `e2e/perf.spec.ts` mengukur headless Chromium dengan CPU di-throttle 6x
+pada viewport 740x360 dan menuntut p95 ≤ 20 ms. Itu mendeteksi perubahan yang membuat main thread
+berat, tapi bukan pengganti pengukuran di HP: CPU ponsel kelas menengah punya karakteristik berbeda
+(GPU, bandwidth memori, thermal). Gerbang perangkat tetap berstatus belum terverifikasi.
 
 ## Deploy
 

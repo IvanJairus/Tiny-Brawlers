@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 const DEV_PORT = 4173;
 const PROD_PORT = 4174;
-const DEV_SPECS = ['layout.spec.ts', 'netplay.spec.ts', 'relay.spec.ts'];
+const DEV_SPECS = ['layout.spec.ts', 'netplay.spec.ts', 'relay.spec.ts', 'perf.spec.ts'];
 
 export default defineConfig({
   testDir: 'e2e',
