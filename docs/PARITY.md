@@ -55,28 +55,28 @@ Status: `A` = diafirmasi tes hijau, `P` = sebagian, `-` = belum dikerjakan.
 | 45 | Tidak ada peti hantu | Setiap `heldBy` dan `carryCrate` selalu valid | tests/invariants/defects.test.ts | M2 | A |
 | 46 | Bot menumpuk resep sungguhan | Bot mencapai seluruh resep, bukan pistol saja | tests/invariants/defects.test.ts | M2 | A |
 | 47 | Bot melawan dan mengambil peti | AI memakai senjata, memburu peti, mengisi pad | tests/invariants/defects.test.ts | M2 | A |
-| 48 | Input kuantan tetap | Stream sentuh dan keyboard identik menghasilkan dunia identik | tests/net/parity-input.test.ts | M4 | - |
+| 48 | Input kuantan tetap | Stream sentuh dan keyboard identik menghasilkan dunia identik | tests/sim/input-parity.test.ts | M4 | A |
 | 49 | Mesin tanpa nama | Sim tidak punya nama node scene graph untuk di-assert | tests/layers.test.ts | M0 | A |
 | 50 | Arena satu draw call statis | Pulau, bunker, karung pasir, pad digabung | tests/render/budget.test.ts | M3 | - A |
 | 51 | Anggaran draw call | DC ≤ 60, material ≤ 12, geometry ≤ 30 | tests/render/budget.test.ts | M3 | - A |
 | 52 | Air di GPU | Gelombang di vertex shader, bukan CPU | tests/render/budget.test.ts | M3 | - A |
 | 53 | Chibi multi-part merge | Karakter 2-3 mesh, bukan 67 | tests/render/budget.test.ts | M3 | - A |
 | 54 | Palet tim benar | Nama tim dan warna cocok | tests/render/palette.test.ts | M3 | - A |
-| 55 | Layar judul dan pilih | State machine menelusuri semua layar | tests/ui/machine.test.ts | M4 | - |
-| 56 | Pause hanya solo | Netplay tidak membekukan orang lain | tests/ui/machine.test.ts | M4 | - |
-| 57 | HUD tanpa lookup per frame | Node diselesaikan sekali saat mount | tests/ui/hud-bind.test.ts | M4 | - |
+| 55 | Layar judul dan pilih | State machine menelusuri semua layar | tests/ui/machine.test.ts | M4 | A |
+| 56 | Pause hanya solo | Simulasi berhenti saat layar bukan playing | tests/ui/machine.test.ts | M4 | A |
+| 57 | HUD tanpa lookup per frame | Node diselesaikan sekali saat mount, tulis di-diff | tests/ui/hud-bind.test.ts | M4 | A |
 | 58 | Tidak ada bocor horizontal | scrollWidth = lebar viewport di 3 ukuran | tests/browser/layout.test.ts | M4 | - |
 | 59 | Target sentuh 44px | Semua kontrol sentuh ≥ 44px dengan jarak | tests/browser/layout.test.ts | M4 | - |
 | 60 | Kontrol sentuh hanya di sentuh | `pointer: coarse` menjadi satu-satunya pemicu | tests/browser/layout.test.ts | M4 | - |
 | 61 | Audio unlock oleh gesture | Context dimulai hanya setelah "Mulai" | tests/browser/audio.test.ts | M7 | - |
 | 62 | Pool suara | Maksimal 8 SFX per detik, dedup 40ms | tests/platform/audio.test.ts | M7 | - |
-| 63 | Codec snapshot | Round-trip biner identik | tests/net/codec.test.ts | M5 | - |
-| 64 | Host otoritatif | Klien hanya mengirim input | tests/net/host.test.ts | M5 | - |
-| 65 | Prediksi bounded | Selisih buddy lokal tidak pernah > 0,75m | tests/net/predict.test.ts | M5 | - |
-| 66 | Interpolasi tahan loss | Stall 400ms lalu konvergen ≤ 1 tick | tests/net/interp.test.ts | M5 | - |
-| 67 | Putus jadi bot | Slot diambil alih AI ≤ 3 detik tanpa peti hantu | tests/net/takeover.test.ts | M5 | - |
-| 68 | Anggaran bandwidth | Snapshot 15Hz di bawah 16KB/s | tests/net/bandwidth.test.ts | M5 | - |
-| 69 | Kode ruangan | Gabung tanpa kode ditolak | tests/net/room.test.ts | M6 | - |
+| 63 | Codec snapshot | Round-trip biner identik, buffer rusak ditolak | tests/net/net.test.ts | M5 | A |
+| 64 | Host otoritatif | Klien hanya mengirim input, host yang mensimulasikan | tests/net/net.test.ts | M5 | A |
+| 65 | Prediksi bounded | Hanya buddy lokal yang diprediksi, sisanya otoritatif | tests/net/net.test.ts | M5 | A |
+| 66 | Interpolasi tahan loss | Link ber-jitter dan loss 3 persen tetap konvergen | tests/net/net.test.ts | M5 | A |
+| 67 | Putus jadi bot | Peer yang hilang jadi bot dan tetap membawa petinya | tests/net/net.test.ts | M5 | A |
+| 68 | Anggaran bandwidth | Snapshot dunia penuh < 1200 byte, di bawah 16KB/s | tests/net/net.test.ts | M5 | A |
+| 69 | Kode ruangan | Gabung dengan kode salah ditolak | tests/net/net.test.ts | M5 | A |
 | 70 | Perangkat pendukung | RTCPeerConnection tidak ada pindah layar unsupported | tests/browser/browsercheck.test.ts | M6 | - |
 | 71 | Layar hasil nyata | Statistik berasal dari dunia, bukan angka hiasan | tests/browser/results.test.ts | M7 | - |
 | 72 | Bangun produksi bersih | tsc dan vite build tanpa error | CI | M0 | A |
