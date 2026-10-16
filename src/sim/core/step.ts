@@ -1,7 +1,8 @@
 import { EMPTY_INPUT, decodeAim, decodeMove } from '../input/actions';
 import {
-  ARENA_SURFACE_Y, BASE_COORDINATES, CRATE_DROP_RADIUS, CRATE_MAX_ALIVE, CRATE_SPAWN_INTERVAL_S,
-  PAD, VOID_DISTANCE
+  ARENA_SURFACE_Y, BASE_COORDINATES, CRATE_BONK_DAMAGE, CRATE_DROP_RADIUS, CRATE_MAX_ALIVE,
+  CRATE_SPAWN_INTERVAL_S, CRATE_WAVE_MAX, CRATE_WAVE_MIN, HEART_HEAL_AMOUNT, MELEE_COOLDOWN_S,
+  MELEE_DAMAGE, MELEE_KNOCKBACK, MELEE_RANGE, PAD, POWERUP_DURATION_S, SHIELD_MAX_HP, VOID_DISTANCE
 } from '../domain/constants';
 import { CLASS_STATS } from '../domain/classes';
 import { applyDamage, distance, knockout, revive, stepBuddy, heal, type BuddyRec } from '../domain/buddy';
@@ -19,9 +20,13 @@ import { emit, findBuddy, findCrate, type World } from './world';
 import type { EntityId } from './ids';
 import { NO_ENTITY } from './ids';
 import type { TeamId } from '../domain/teams';
+import {
+  damageObstacle, hitObstacleAlongSegment, POWERUP_IDS, resolveCircleObstacles,
+  type ObstacleRec, type PowerUpKind
+} from '../domain/obstacles';
 
-const SHELL_SPEED = 58;
-const SHELL_LIFE = 0.45;
+const BULLET_SPEED = 32;
+const BULLET_LIFE = 0.45;
 const ROCKET_SPEED = 20;
 const GRENADE_LIFE = 3;
 
@@ -37,6 +42,7 @@ export function stepWorld(w: World, dt: number): void {
     const cmd = w.inputs.get(b.id) ?? EMPTY_INPUT;
     const prev = w.prevInputs.get(b.id) ?? EMPTY_INPUT;
     stepBuddy(b, decodeMove(cmd), dt);
+    resolveCircleObstacles(b, 0.48, w.obstacles);
     const aim = decodeAim(cmd);
     if (Math.hypot(aim.x, aim.y) > 0.2) b.heading = Math.atan2(aim.x, aim.y);
     if (b.state === 'ko') { w.prevInputs.set(b.id, cmd); continue; }
@@ -49,6 +55,10 @@ export function stepWorld(w: World, dt: number): void {
   stepCrates(w, dt);
   stepProjectiles(w, dt);
   stepTanks(w, dt);
+  for (const t of w.tanks) {
+    if (!t.destroyed) resolveCircleObstacles(t, 1.15, w.obstacles);
+  }
+  stepPowerUps(w, dt);
   tickHealAuras(w, dt);
   tickRespawns(w, dt);
   tickReinforcements(w, dt);
@@ -57,15 +67,68 @@ export function stepWorld(w: World, dt: number): void {
   reap(w);
 }
 
+function stepPowerUps(w: World, dt: number): void {
+  for (const pu of w.powerups) {
+    if (pu.dead) continue;
+    pu.spin += dt * 2.6;
+    pu.life -= dt;
+    if (pu.life <= 0) {
+      pu.dead = true;
+      continue;
+    }
+    const b = w.buddies.find((buddy) => buddy.state !== 'ko' && distance(buddy, pu) < 1.25);
+    if (b) {
+      switch (pu.kind) {
+        case 'up_hati': {
+          const gained = heal(b, HEART_HEAL_AMOUNT);
+          emit(w, { kind: 'heal', entity: b.id, amount: gained, at: { x: b.x, z: b.z } });
+          break;
+        }
+        case 'up_perisai': {
+          b.shieldHp = SHIELD_MAX_HP;
+          b.shieldTimer = POWERUP_DURATION_S;
+          break;
+        }
+        case 'up_api': {
+          b.fireTimer = POWERUP_DURATION_S;
+          break;
+        }
+        case 'up_lari': {
+          b.speedTimer = POWERUP_DURATION_S;
+          break;
+        }
+        case 'up_bom': {
+          b.grenades = Math.min(9, b.grenades + 3);
+          b.bombBonus = 1.1;
+          if (b.weapon === 'none') b.weapon = 'grenade';
+          break;
+        }
+      }
+      pu.dead = true;
+      emit(w, { kind: 'powerup', buddy: b.id, powerup: pu.kind, at: { x: pu.x, z: pu.z } });
+    }
+  }
+}
+
 function tickCrateSpawns(w: World, dt: number): void {
   w.crateTimer -= dt;
-  if (w.crateTimer > 0 || w.crates.length >= CRATE_MAX_ALIVE) return;
+  if (w.crateTimer > 0) return;
+  const activeCount = w.crates.filter((c) => !c.dead).length;
+  if (activeCount >= CRATE_MAX_ALIVE) return;
   w.crateTimer = CRATE_SPAWN_INTERVAL_S;
-  const angle = w.rngWorld.float(0, Math.PI * 2);
-  const radius = w.rngWorld.float(0, CRATE_DROP_RADIUS);
-  const crate = makeCrate(w.ids.alloc(), Math.cos(angle) * radius, 9, Math.sin(angle) * radius);
-  w.crates.push(crate);
-  emit(w, { kind: 'spawn', entity: crate.id, at: { x: crate.x, z: crate.z } });
+  const desired = CRATE_WAVE_MIN + w.rngWorld.int(CRATE_WAVE_MAX - CRATE_WAVE_MIN + 1);
+  const count = Math.min(desired, CRATE_MAX_ALIVE - activeCount);
+  for (let i = 0; i < count; i++) {
+    const angle = w.rngWorld.float(0, Math.PI * 2);
+    const radius = i < 2
+      ? w.rngWorld.float(0.8, CRATE_DROP_RADIUS)
+      : w.rngWorld.float(1.5, CRATE_DROP_RADIUS + 2.5);
+    const pos = { x: Math.cos(angle) * radius, z: Math.sin(angle) * radius };
+    resolveCircleObstacles(pos, 0.65, w.obstacles);
+    const crate = makeCrate(w.ids.alloc(), pos.x, 9 + i * 0.8, pos.z);
+    w.crates.push(crate);
+    emit(w, { kind: 'spawn', entity: crate.id, at: { x: crate.x, z: crate.z } });
+  }
 }
 
 function driveBots(w: World): void {
@@ -151,6 +214,21 @@ function stepCrates(w: World, dt: number): void {
 
     const wasAirborne = c.y > 0.5;
     stepCrate(c, dt);
+
+    if (c.state === 'thrown' && Math.hypot(c.vx, c.vz) > 2.5) {
+      const foe = w.buddies.find(
+        (b) => b.state !== 'ko' && c.claimTeam && b.team !== c.claimTeam && !w.eliminated[b.team] && distance(b, c) < 0.9
+      );
+      if (foe && c.claimTeam) {
+        const dealt = applyDamage(foe, CRATE_BONK_DAMAGE);
+        emit(w, { kind: 'damage', entity: foe.id, amount: dealt, fromTeam: c.claimTeam, at: { x: foe.x, z: foe.z } });
+        if (dealt > 0 && foe.hp <= 0) fell(w, foe);
+        c.vx *= -0.25;
+        c.vz *= -0.25;
+        c.state = 'loose';
+      }
+    }
+
     if (wasAirborne && c.y <= 0.5 && c.state === 'loose') landOnPad(w, c);
   }
 }
@@ -250,6 +328,10 @@ export function buildPad(w: World, team: TeamId, builder?: BuddyRec): string {
 
 function fireWeapon(w: World, b: BuddyRec): void {
   if (b.fireCooldown > 0) return;
+  if (b.weapon === 'none') {
+    performMelee(w, b);
+    return;
+  }
   const def = weaponOf(b.weapon);
   if (!def) return;
   const dirX = Math.sin(b.heading);
@@ -270,7 +352,7 @@ function fireWeapon(w: World, b: BuddyRec): void {
     b.fireCooldown = def.cooldown;
     if (target.state === 'ko') {
       target.koTimer = 0;
-      revive(target);
+      revive(target, 1.0);
       emit(w, { kind: 'revive', entity: target.id, at: { x: target.x, z: target.z } });
     } else {
       heal(target, MEDKIT_HEAL);
@@ -287,7 +369,16 @@ function fireWeapon(w: World, b: BuddyRec): void {
     }
     b.grenades--;
     b.fireCooldown = def.cooldown;
-    spawnProjectile(w, 'grenade', b, dirX * 11, 8, dirZ * 11, GRENADE_LIFE, GRENADE_DAMAGE);
+    spawnProjectile(
+      w,
+      'grenade',
+      b,
+      dirX * 11,
+      8,
+      dirZ * 11,
+      GRENADE_LIFE,
+      GRENADE_DAMAGE * (b.fireTimer > 0 ? 1.35 : 1)
+    );
     return;
   }
 
@@ -298,7 +389,16 @@ function fireWeapon(w: World, b: BuddyRec): void {
     }
     b.rockets--;
     b.fireCooldown = def.cooldown;
-    spawnProjectile(w, 'rocket', b, dirX * ROCKET_SPEED, 0, dirZ * ROCKET_SPEED, 2.2, ROCKET_DAMAGE);
+    spawnProjectile(
+      w,
+      'rocket',
+      b,
+      dirX * ROCKET_SPEED,
+      0,
+      dirZ * ROCKET_SPEED,
+      2.2,
+      ROCKET_DAMAGE * (b.fireTimer > 0 ? 1.35 : 1)
+    );
     return;
   }
 
@@ -306,16 +406,113 @@ function fireWeapon(w: World, b: BuddyRec): void {
   for (let p = 0; p < def.pellets; p++) {
     const spread = def.spread * (p - (def.pellets - 1) / 2);
     const angle = b.heading + spread;
-    spawnProjectile(w, 'shell', b, Math.sin(angle) * SHELL_SPEED, 0, Math.cos(angle) * SHELL_SPEED, SHELL_LIFE, damageOf(b.cls, def));
+    spawnProjectile(
+      w,
+      'bullet',
+      b,
+      Math.sin(angle) * BULLET_SPEED,
+      0,
+      Math.cos(angle) * BULLET_SPEED,
+      BULLET_LIFE,
+      damageOf(b.cls, def) * (b.fireTimer > 0 ? 1.35 : 1)
+    );
   }
   emit(w, { kind: 'shot', entity: b.id, weapon: b.weapon, at: { x: b.x, z: b.z }, dir: b.heading });
+}
+
+function performMelee(w: World, b: BuddyRec): void {
+  b.fireCooldown = MELEE_COOLDOWN_S;
+  b.meleeTimer = 0.26;
+  const dirX = Math.sin(b.heading);
+  const dirZ = Math.cos(b.heading);
+  emit(w, { kind: 'melee', entity: b.id, at: { x: b.x + dirX * 0.7, z: b.z + dirZ * 0.7 }, dir: b.heading });
+
+  // Team Buddies PS1 "Pop the Pad": punching your own stacked pad triggers buildPad!
+  if (!b.isBot && nearOwnPad(b, w) && w.pads[b.team] !== 0) {
+    buildPad(w, b.team, b);
+  }
+
+  const punchDmg = Math.round(
+    MELEE_DAMAGE * CLASS_STATS[b.cls].damageMultiplier * (b.fireTimer > 0 ? 1.35 : 1)
+  );
+
+  for (const foe of w.buddies) {
+    if (foe.team === b.team || foe.state === 'ko' || w.eliminated[foe.team]) continue;
+    const dx = foe.x - b.x;
+    const dz = foe.z - b.z;
+    const d = Math.hypot(dx, dz);
+    if (d > MELEE_RANGE) continue;
+    const dot = d > 1e-4 ? (dx / d) * dirX + (dz / d) * dirZ : 1;
+    if (dot < -0.25 && d > 0.85) continue;
+
+    // Disarm enemy crate carrier so crate drops loose and can be stolen!
+    if (foe.carryCrate !== (NO_ENTITY as EntityId)) {
+      const carried = findCrate(w, foe.carryCrate);
+      if (carried) {
+        detachCrate(carried);
+        carried.x = foe.x + dirX * 0.65;
+        carried.z = foe.z + dirZ * 0.65;
+        carried.y = 0.55;
+        carried.settled = 0.3;
+        carried.claimTeam = null;
+      }
+      foe.carryCrate = NO_ENTITY as EntityId;
+    }
+
+    const dealt = applyDamage(foe, punchDmg);
+    const pushX = d > 1e-4 ? dx / d : dirX;
+    const pushZ = d > 1e-4 ? dz / d : dirZ;
+    foe.x += pushX * MELEE_KNOCKBACK;
+    foe.z += pushZ * MELEE_KNOCKBACK;
+    resolveCircleObstacles(foe, 0.48, w.obstacles);
+    emit(w, { kind: 'damage', entity: foe.id, amount: dealt, fromTeam: b.team, at: { x: foe.x, z: foe.z } });
+    if (dealt > 0 && foe.hp <= 0) fell(w, foe);
+  }
+
+  // Punch soft bricks in front of the buddy
+  const reachX = b.x + dirX * 1.35;
+  const reachZ = b.z + dirZ * 1.35;
+  for (const obs of w.obstacles) {
+    if (obs.dead || obs.kind !== 'soft') continue;
+    if (Math.hypot(obs.x - reachX, obs.z - reachZ) <= obs.halfSize + 0.85) {
+      hitSoftBrick(w, obs, 30);
+      break;
+    }
+  }
+}
+
+function hitSoftBrick(w: World, obs: ObstacleRec, amount: number): void {
+  const broke = damageObstacle(obs, amount);
+  if (broke) {
+    emit(w, { kind: 'brickBreak', entity: obs.id, at: { x: obs.x, z: obs.z } });
+    const roll = w.rngWorld.float(0, 1);
+    if (roll < 0.55) {
+      const kind: PowerUpKind = POWERUP_IDS[w.rngWorld.int(POWERUP_IDS.length)];
+      w.powerups.push({
+        id: (w.nextAuxId++) as EntityId,
+        kind,
+        x: obs.x,
+        z: obs.z,
+        y: 0.5,
+        spin: 0,
+        life: 18,
+        dead: false
+      });
+    } else if (roll < 0.78 && w.crates.filter((c) => !c.dead).length < CRATE_MAX_ALIVE) {
+      const crate = makeCrate(w.ids.alloc(), obs.x, 1.2, obs.z);
+      w.crates.push(crate);
+      emit(w, { kind: 'spawn', entity: crate.id, at: { x: crate.x, z: crate.z } });
+    }
+  } else {
+    emit(w, { kind: 'brickHit', entity: obs.id, hp: obs.hp, at: { x: obs.x, z: obs.z } });
+  }
 }
 
 function spawnProjectile(
   w: World, kind: ProjectileRec['kind'], owner: BuddyRec,
   vx: number, vy: number, vz: number, fuse: number, damage: number
 ): void {
-  const radius = kind === 'shell' ? 0.8 : kind === 'grenade' ? 3.4 : 4.6;
+  const radius = kind === 'bullet' ? 0 : kind === 'shell' ? 2.2 : kind === 'grenade' ? 3.4 + owner.bombBonus : 4.6;
   w.projectiles.push(makeProjectile({
     kind, team: owner.team, owner: owner.id,
     x: owner.x + vx * 0.02, y: ARENA_SURFACE_Y + 1.1, z: owner.z + vz * 0.02,
@@ -330,31 +527,50 @@ function stepProjectiles(w: World, dt: number): void {
     const fromZ = p.z;
     stepProjectile(p, dt);
 
+    const hitObs = hitObstacleAlongSegment(fromX, fromZ, p.x, p.z, w.obstacles);
+    if (hitObs) {
+      p.x = hitObs.x;
+      p.z = hitObs.z;
+      if (hitObs.kind === 'soft') {
+        hitSoftBrick(w, hitObs, p.kind === 'bullet' ? p.damage : 60);
+      }
+      if (p.kind === 'bullet') {
+        p.dead = true;
+        continue;
+      }
+      p.fuse = 0;
+    }
+
+    if (p.kind === 'bullet' && w.pads[p.team] !== 0 && distance(p, padOrigin(p.team)) < PAD.halfWidth) {
+      const shooter = findBuddy(w, p.owner);
+      if (!shooter || !shooter.isBot) {
+        buildPad(w, p.team, shooter);
+      }
+    }
+
     const hit = w.buddies.find(
       (b) => b.state !== 'ko' && b.team !== p.team && !w.eliminated[b.team] &&
         sweptDistance(fromX, fromZ, p.x, p.z, b.x, b.z) < 0.9
     );
     if (hit) {
       p.fuse = 0;
-      if (p.kind === 'shell') {
+      if (p.kind === 'bullet' || p.kind === 'shell') {
         directHit(w, p, hit);
         p.dead = true;
         continue;
       }
     }
-    if (p.kind !== 'shell' && p.y <= 0.15) p.fuse = Math.min(p.fuse, 0.05);
-    if (p.kind !== 'shell' && nearEnemyBunker(w, p)) p.fuse = 0;
+    if (p.kind !== 'shell' && p.kind !== 'bullet' && p.y <= 0.15) p.fuse = Math.min(p.fuse, 0.05);
+    if (p.kind !== 'shell' && p.kind !== 'bullet' && nearEnemyBunker(w, p)) p.fuse = 0;
     if (p.fuse <= 0) {
-      explode(w, p);
+      if (p.kind !== 'bullet') {
+        explode(w, p);
+      }
       p.dead = true;
     }
   }
 }
 
-/**
- * A shell covers about two metres per tick, which is wider than a buddy, so a
- * point test would let fast shots pass straight through their target.
- */
 function sweptDistance(ax: number, az: number, bx: number, bz: number, px: number, pz: number): number {
   const dx = bx - ax;
   const dz = bz - az;
@@ -396,6 +612,12 @@ function explode(w: World, p: ProjectileRec): void {
     const base = BASE_COORDINATES[team];
     if (Math.hypot(base.x - p.x, base.z - p.z) > radius + 2.5) continue;
     damageBunker(w, team, damage * 0.5, p.team);
+  }
+  for (const obs of w.obstacles) {
+    if (obs.dead || obs.kind !== 'soft') continue;
+    if (Math.hypot(obs.x - p.x, obs.z - p.z) <= radius + 0.9) {
+      hitSoftBrick(w, obs, damage * 0.5);
+    }
   }
 }
 
@@ -490,22 +712,45 @@ function recoverFromVoid(w: World): void {
 }
 
 function reap(w: World): void {
-  for (const c of w.crates) if (c.dead) w.ids.free(c.id);
-  for (const p of w.projectiles) if (p.dead || isFinished(p)) w.ids.free(p.id);
-  for (const t of w.tanks) if (t.destroyed) w.ids.free(t.id);
+  let deadCrates = false;
+  for (const c of w.crates) {
+    if (c.dead) {
+      w.ids.free(c.id);
+      deadCrates = true;
+    }
+  }
+  let deadProjectiles = false;
+  for (const p of w.projectiles) {
+    if (p.dead || isFinished(p)) {
+      w.ids.free(p.id);
+      deadProjectiles = true;
+    }
+  }
+  let deadTanks = false;
+  for (const t of w.tanks) {
+    if (t.destroyed) {
+      w.ids.free(t.id);
+      deadTanks = true;
+    }
+  }
 
+  let deadBuddies = false;
   for (const b of w.buddies) {
     if (!b.remove) continue;
+    deadBuddies = true;
     w.ids.free(b.id);
     w.inputs.delete(b.id);
     w.prevInputs.delete(b.id);
     w.botMemory.delete(b.id);
     emit(w, { kind: 'despawn', entity: b.id });
   }
-  w.buddies = w.buddies.filter((b) => !b.remove);
-  w.crates = w.crates.filter((c) => !c.dead);
-  w.projectiles = w.projectiles.filter((p) => !p.dead && !isFinished(p));
-  w.tanks = w.tanks.filter((t) => !t.destroyed);
+  if (deadBuddies) w.buddies = w.buddies.filter((b) => !b.remove);
+  if (deadCrates) w.crates = w.crates.filter((c) => !c.dead);
+  if (deadProjectiles) w.projectiles = w.projectiles.filter((p) => !p.dead && !isFinished(p));
+  if (deadTanks) w.tanks = w.tanks.filter((t) => !t.destroyed);
+  if (w.powerups.length > 0 && w.powerups.some((pu) => pu.dead)) {
+    w.powerups = w.powerups.filter((pu) => !pu.dead);
+  }
 
   for (const b of w.buddies) {
     if (b.carryCrate !== (NO_ENTITY as EntityId) && !findCrate(w, b.carryCrate)) b.carryCrate = NO_ENTITY as EntityId;

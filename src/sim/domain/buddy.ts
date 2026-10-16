@@ -29,6 +29,12 @@ export interface BuddyRec {
   isBot: boolean;
   ownedByPlayer: boolean;
   remove: boolean;
+  meleeTimer: number;
+  shieldHp: number;
+  shieldTimer: number;
+  fireTimer: number;
+  speedTimer: number;
+  bombBonus: number;
 }
 
 export function makeBuddy(
@@ -40,13 +46,14 @@ export function makeBuddy(
     hp: stats.maxHp, maxHp: stats.maxHp,
     state: 'idle', weapon: 'none', grenades: 0, rockets: 0, medkits: 0,
     carryCrate: 0 as EntityId, koTimer: 0, fireCooldown: 0, invuln: 0,
-    isBot, ownedByPlayer: false, remove: false
+    isBot, ownedByPlayer: false, remove: false,
+    meleeTimer: 0, shieldHp: 0, shieldTimer: 0, fireTimer: 0, speedTimer: 0, bombBonus: 0
   };
 }
 
 export function speedOf(b: BuddyRec): number {
   const stats = CLASS_STATS[b.cls];
-  const base = stats.moveSpeed;
+  const base = stats.moveSpeed * (b.speedTimer > 0 ? 1.3 : 1);
   return b.carryCrate !== (0 as EntityId) ? base * stats.carrySpeedFactor : base;
 }
 
@@ -57,6 +64,13 @@ export function speedOf(b: BuddyRec): number {
 export function stepBuddy(b: BuddyRec, move: { x: number; y: number }, dt: number): void {
   if (b.invuln > 0) b.invuln = Math.max(0, b.invuln - dt);
   if (b.fireCooldown > 0) b.fireCooldown = Math.max(0, b.fireCooldown - dt);
+  if (b.meleeTimer > 0) b.meleeTimer = Math.max(0, b.meleeTimer - dt);
+  if (b.shieldTimer > 0) {
+    b.shieldTimer = Math.max(0, b.shieldTimer - dt);
+    if (b.shieldTimer <= 0) b.shieldHp = 0;
+  }
+  if (b.fireTimer > 0) b.fireTimer = Math.max(0, b.fireTimer - dt);
+  if (b.speedTimer > 0) b.speedTimer = Math.max(0, b.speedTimer - dt);
 
   if (b.state === 'ko') {
     b.vx = 0; b.vz = 0;
@@ -90,7 +104,15 @@ export function isOutOfBounds(b: BuddyRec): boolean {
 
 export function applyDamage(b: BuddyRec, amount: number): number {
   if (amount <= 0 || b.invuln > 0 || b.state === 'ko') return 0;
-  const dealt = Math.min(amount, b.hp);
+  let remaining = amount;
+  if (b.shieldHp > 0) {
+    const absorbed = Math.min(b.shieldHp, remaining);
+    b.shieldHp -= absorbed;
+    remaining -= absorbed;
+    if (b.shieldHp <= 0) b.shieldTimer = 0;
+  }
+  if (remaining <= 0) return 0;
+  const dealt = Math.min(remaining, b.hp);
   b.hp -= dealt;
   return dealt;
 }
@@ -108,6 +130,11 @@ export function knockout(b: BuddyRec, respawnSeconds: number): void {
   b.koTimer = respawnSeconds;
   b.weapon = 'none';
   b.vx = 0; b.vz = 0;
+  b.shieldHp = 0;
+  b.shieldTimer = 0;
+  b.fireTimer = 0;
+  b.speedTimer = 0;
+  b.meleeTimer = 0;
 }
 
 export function revive(b: BuddyRec, fraction = 0.4): void {
@@ -119,5 +146,7 @@ export function revive(b: BuddyRec, fraction = 0.4): void {
 }
 
 export function distance(a: { x: number; z: number }, b: { x: number; z: number }): number {
-  return Math.hypot(a.x - b.x, a.z - b.z);
+  const dx = a.x - b.x;
+  const dz = a.z - b.z;
+  return Math.sqrt(dx * dx + dz * dz);
 }

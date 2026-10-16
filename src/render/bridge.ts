@@ -6,6 +6,8 @@ import { ProjectileField, type ProjectileView } from './projectiles';
 import { ParticlePool, COLOR } from './particles';
 import { TankField, type TankView } from './tanks';
 import { createMaterials, type SharedMaterials } from './materials';
+import { ObstacleField, type ObstacleView, type PowerUpView } from './obstacles';
+import { brickStageOf, type BiomeKind } from '../sim/domain/obstacles';
 import { findBestSlot, padOrigin, slotPosition } from '../sim/domain/pad';
 import { CRATE_SIZE, PAD } from '../sim/domain/constants';
 import { distance } from '../sim/domain/buddy';
@@ -54,6 +56,7 @@ export class WorldRenderer {
   private projectiles: ProjectileField;
   private particles: ParticlePool;
   private tanks: TankField;
+  private obstacles: ObstacleField;
   private ghost: PlacementGhost;
   private arc: ThrowArc;
   private flashUntil = new Map<EntityId, number>();
@@ -73,6 +76,8 @@ export class WorldRenderer {
   private crateViews: CrateView[] = [];
   private projectileViews: ProjectileView[] = [];
   private tankViews: TankView[] = [];
+  private obstacleViews: ObstacleView[] = [];
+  private powerupViews: PowerUpView[] = [];
 
   private worldRef: World = EMPTY_WORLD_STANDIN;
 
@@ -85,14 +90,19 @@ export class WorldRenderer {
     this.projectiles = new ProjectileField(this.materials);
     this.particles = new ParticlePool(this.materials);
     this.tanks = new TankField(this.materials);
+    this.obstacles = new ObstacleField(this.materials);
     this.ghost = new PlacementGhost(this.materials);
     this.arc = new ThrowArc();
 
     scene.add(
       this.arena.group, this.chibi.group, this.crates.mesh, this.rocks,
       this.projectiles.group, this.particles.points, this.tanks.group,
-      this.ghost.mesh, this.arc.line
+      this.ghost.mesh, this.arc.line, this.obstacles.group
     );
+  }
+
+  setBiome(biome: BiomeKind): void {
+    this.arena.setBiome?.(biome);
   }
 
   attachCamera(camera: IsoCamera): void {
@@ -131,7 +141,9 @@ export class WorldRenderer {
         hpRatio: b.hp / b.maxHp,
         phase: (b.id % 17) * 0.37,
         flash: this.decay(this.flashUntil, b.id, time, FLASH_S),
-        pop: this.decay(this.popUntil, b.id, time, POP_S)
+        pop: this.decay(this.popUntil, b.id, time, POP_S),
+        melee: (b.meleeTimer ?? 0) / 0.26,
+        shield: (b.shieldHp ?? 0) > 0
       });
     }
     this.chibi.sync(this.actors, time);
@@ -157,6 +169,32 @@ export class WorldRenderer {
       });
     }
     this.tanks.sync(this.tankViews);
+
+    this.obstacleViews.length = 0;
+    const rawObstacles = (world as unknown as { obstacles?: Array<{ kind: 'hard' | 'soft'; hp?: number; maxHp?: number; dead?: boolean; x: number; z: number }> }).obstacles ?? [];
+    for (const obs of rawObstacles) {
+      if (obs.dead) continue;
+      this.obstacleViews.push({
+        kind: obs.kind,
+        stage: obs.kind === 'hard' ? 'intact' : brickStageOf(obs.hp ?? 3, obs.maxHp ?? 3),
+        x: obs.x,
+        z: obs.z
+      });
+    }
+
+    this.powerupViews.length = 0;
+    const rawPowerups = (world as unknown as { powerups?: Array<{ kind: PowerUpView['kind']; x: number; y?: number; z: number; spin?: number; dead?: boolean }> }).powerups ?? [];
+    for (const pu of rawPowerups) {
+      if (pu.dead) continue;
+      this.powerupViews.push({
+        kind: pu.kind,
+        x: pu.x,
+        y: pu.y ?? 0.8,
+        z: pu.z,
+        spin: pu.spin ?? (time * 2.2)
+      });
+    }
+    this.obstacles.sync(this.obstacleViews, this.powerupViews, time);
 
     this.particles.update(dt);
     this.arena.update(time);
@@ -260,35 +298,52 @@ export class WorldRenderer {
           }
         }
       }
-      switch (event.kind) {
+      const ev = event as unknown as { kind: string; at: { x: number; z: number }; entity?: EntityId };
+      switch (ev.kind) {
         case 'explosion':
-          this.particles.burst(event.at.x, 0.6, event.at.z, COLOR.fire, 26, 7, 1, 0.55);
-          this.particles.burst(event.at.x, 0.4, event.at.z, COLOR.smoke, 12, 3.4, 0.3, 1.1);
+          this.particles.burst(ev.at.x, 0.6, ev.at.z, COLOR.fire, 26, 7, 1, 0.55);
+          this.particles.burst(ev.at.x, 0.4, ev.at.z, COLOR.smoke, 12, 3.4, 0.3, 1.1);
           break;
         case 'damage':
-          this.flashUntil.set(event.entity, this.clock + FLASH_S);
-          this.particles.burst(event.at.x, 1.1, event.at.z, COLOR.hit, 7, 3.2, 1.4, 0.32);
+          if (ev.entity !== undefined) this.flashUntil.set(ev.entity, this.clock + FLASH_S);
+          this.particles.burst(ev.at.x, 1.1, ev.at.z, COLOR.hit, 7, 3.2, 1.4, 0.32);
           break;
         case 'knockout':
-          this.popUntil.set(event.entity, this.clock + POP_S);
-          this.particles.burst(event.at.x, 0.9, event.at.z, COLOR.dirt, 16, 4.4, 1.2, 0.7);
+          if (ev.entity !== undefined) this.popUntil.set(ev.entity, this.clock + POP_S);
+          this.particles.burst(ev.at.x, 0.9, ev.at.z, COLOR.dirt, 16, 4.4, 1.2, 0.7);
           break;
         case 'despawn':
-          this.flashUntil.delete(event.entity);
-          this.popUntil.delete(event.entity);
+          if (ev.entity !== undefined) {
+            this.flashUntil.delete(ev.entity);
+            this.popUntil.delete(ev.entity);
+          }
           break;
         case 'heal':
-          this.particles.burst(event.at.x, 1.1, event.at.z, COLOR.heal, 10, 2.2, -0.25, 0.8);
+          this.particles.burst(ev.at.x, 1.1, ev.at.z, COLOR.heal, 10, 2.2, -0.25, 0.8);
           break;
         case 'place':
-          this.particles.burst(event.at.x, 0.7, event.at.z, COLOR.wood, 6, 2.1, 1.2, 0.35);
+          this.particles.burst(ev.at.x, 0.7, ev.at.z, COLOR.wood, 6, 2.1, 1.2, 0.35);
           break;
         case 'build':
           // The pad is where a crate stops existing, so this is the break the
           // feel list asks splinters for.
           this.mark('crateBroken');
-          this.particles.burst(event.at.x, 1.2, event.at.z, COLOR.fire, 22, 5, 0.6, 0.9);
-          this.particles.burst(event.at.x, 0.7, event.at.z, COLOR.wood, 14, 3.4, 1.2, 0.5);
+          this.particles.burst(ev.at.x, 1.2, ev.at.z, COLOR.fire, 22, 5, 0.6, 0.9);
+          this.particles.burst(ev.at.x, 0.7, ev.at.z, COLOR.wood, 14, 3.4, 1.2, 0.5);
+          break;
+        case 'melee':
+          this.particles.burst(ev.at.x, 0.95, ev.at.z, COLOR.hit, 5, 2.4, 0.8, 0.22);
+          break;
+        case 'brickHit':
+          this.particles.burst(ev.at.x, 0.8, ev.at.z, COLOR.wood, 8, 3.0, 1.2, 0.4);
+          break;
+        case 'brickBreak':
+          this.mark('brickBroken');
+          this.particles.burst(ev.at.x, 0.7, ev.at.z, COLOR.wood, 18, 4.2, 1.3, 0.65);
+          this.particles.burst(ev.at.x, 0.5, ev.at.z, COLOR.dirt, 10, 2.8, 1.0, 0.5);
+          break;
+        case 'powerup':
+          this.particles.burst(ev.at.x, 0.9, ev.at.z, COLOR.heal, 12, 3.0, -0.2, 0.55);
           break;
         default:
           break;
@@ -314,7 +369,8 @@ export class WorldRenderer {
   dispose(): void {
     this.scene.remove(
       this.arena.group, this.chibi.group, this.crates.mesh, this.rocks,
-      this.projectiles.group, this.particles.points, this.tanks.group
+      this.projectiles.group, this.particles.points, this.tanks.group,
+      this.ghost.mesh, this.arc.line, this.obstacles.group
     );
     this.ghost.dispose();
     this.arena.dispose();
@@ -323,6 +379,7 @@ export class WorldRenderer {
     this.projectiles.dispose();
     this.particles.dispose();
     this.tanks.dispose();
+    this.obstacles.dispose();
     this.rocks.geometry.dispose();
     for (const material of Object.values(this.materials)) material.dispose();
   }

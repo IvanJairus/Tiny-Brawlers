@@ -9,7 +9,9 @@ export const BUDGET = {
   rocks: 60,
   projectiles: 48,
   buddies: 24,
-  tanks: 4
+  tanks: 4,
+  obstacles: 32,
+  powerups: 16
 };
 
 export interface RenderCounters {

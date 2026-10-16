@@ -19,6 +19,8 @@ export function createKeyboard(
   onZoom: (delta: number) => void = () => undefined
 ): KeyboardSource {
   const down = new Set<string>();
+  let mouseAttack = false;
+  let mouseGrab = false;
 
   const onKeyDown = (event: KeyboardEvent): void => {
     if (MOVE_KEYS.has(event.code)) down.add(event.code);
@@ -31,18 +33,43 @@ export function createKeyboard(
   const onKeyUp = (event: KeyboardEvent): void => {
     down.delete(event.code);
   };
-  const onBlur = () => down.clear();
+  const onMouseDown = (event: MouseEvent): void => {
+    if (event.target instanceof HTMLElement && event.target.tagName === 'CANVAS') {
+      if (event.button === 0) mouseAttack = true;
+      if (event.button === 2) mouseGrab = true;
+    }
+  };
+  const onMouseUp = (event: MouseEvent): void => {
+    if (event.button === 0) mouseAttack = false;
+    if (event.button === 2) mouseGrab = false;
+  };
+  const onContextMenu = (event: Event): void => {
+    if (event.target instanceof HTMLElement && event.target.tagName === 'CANVAS') {
+      event.preventDefault();
+    }
+  };
+  const onBlur = () => {
+    down.clear();
+    mouseAttack = false;
+    mouseGrab = false;
+  };
 
   return {
     attach() {
       target.addEventListener('keydown', onKeyDown as EventListener);
       target.addEventListener('keyup', onKeyUp as EventListener);
       target.addEventListener('blur', onBlur as EventListener);
+      target.addEventListener('mousedown', onMouseDown as EventListener);
+      target.addEventListener('mouseup', onMouseUp as EventListener);
+      target.addEventListener('contextmenu', onContextMenu as EventListener);
     },
     detach() {
       target.removeEventListener('keydown', onKeyDown as EventListener);
       target.removeEventListener('keyup', onKeyUp as EventListener);
       target.removeEventListener('blur', onBlur as EventListener);
+      target.removeEventListener('mousedown', onMouseDown as EventListener);
+      target.removeEventListener('mouseup', onMouseUp as EventListener);
+      target.removeEventListener('contextmenu', onContextMenu as EventListener);
     },
     read(): RawAxes {
       let x = 0;
@@ -57,8 +84,8 @@ export function createKeyboard(
         moveY: y / (x && y ? Math.SQRT2 : 1),
         aimX: len > 0 ? x / len : 0,
         aimY: len > 0 ? y / len : 0,
-        attack: down.has('Space') || down.has('KeyF'),
-        grab: down.has('KeyE'),
+        attack: down.has('Space') || down.has('KeyF') || mouseAttack,
+        grab: down.has('KeyE') || mouseGrab,
         build: down.has('KeyR') || down.has('KeyQ'),
         zoom: 0
       };

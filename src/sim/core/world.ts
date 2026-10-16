@@ -2,14 +2,15 @@ import { createIdAllocator, type EntityId, type IdAllocator } from './ids';
 import { createRng, type Rng } from './rng';
 import { pushEvent, type SimEvent } from './events';
 import { EMPTY_INPUT, type InputCmd } from '../input/actions';
-import { BUNKER_MAX_HP } from '../domain/constants';
+import { BUNKER_MAX_HP, CRATE_INITIAL_COUNT } from '../domain/constants';
 import { EMPTY_PAD, type PadMask } from '../domain/pad';
 import { TEAM_IDS, type TeamId } from '../domain/teams';
 import type { BuddyRec } from '../domain/buddy';
-import type { CrateRec } from '../domain/crate';
+import { makeCrate, type CrateRec } from '../domain/crate';
 import type { ProjectileRec } from '../domain/projectile';
 import type { TankRec } from '../domain/tank';
 import type { BotMemory } from '../ai/bot';
+import { createDefaultObstacles, type BiomeKind, type ObstacleRec, type PowerUpRec } from '../domain/obstacles';
 
 export interface World {
   tick: number;
@@ -37,11 +38,16 @@ export interface World {
   crateTimer: number;
   troopTimer: number;
   localPlayer: EntityId;
+  biome: BiomeKind;
+  obstacles: ObstacleRec[];
+  powerups: PowerUpRec[];
+  nextAuxId: number;
 }
 
 export interface WorldConfig {
   seed: number;
   teams?: TeamId[];
+  biome?: BiomeKind;
 }
 
 export function createWorld(config: WorldConfig): World {
@@ -84,8 +90,29 @@ export function createWorld(config: WorldConfig): World {
     winner: null,
     crateTimer: 3,
     troopTimer: 20,
-    localPlayer: 0 as EntityId
+    localPlayer: 0 as EntityId,
+    biome: config.biome ?? 'rumput',
+    obstacles: createDefaultObstacles(10000),
+    powerups: [],
+    nextAuxId: 11000
   };
+}
+
+export function seedInitialCrates(w: World, count = CRATE_INITIAL_COUNT): void {
+  const ringAngles = [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2, Math.PI / 4, (3 * Math.PI) / 4, (5 * Math.PI) / 4, (7 * Math.PI) / 4];
+  for (let i = 0; i < count; i++) {
+    const isPocket = i >= 8;
+    const angle = isPocket
+      ? ((i - 8) * Math.PI) / 3 + 0.35
+      : ringAngles[i % ringAngles.length] + 0.18;
+    const radius = isPocket ? 12.2 : 3.2 + (i % 2) * 1.6;
+    const x = Math.cos(angle) * radius;
+    const z = Math.sin(angle) * radius;
+    const crate = makeCrate(w.ids.alloc(), x, 0.45, z);
+    crate.state = 'loose';
+    crate.settled = 1;
+    w.crates.push(crate);
+  }
 }
 
 export function setInput(w: World, buddy: EntityId, cmd: InputCmd): void {

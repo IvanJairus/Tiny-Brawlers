@@ -443,6 +443,70 @@
   color: var(--text-dim);
 }
 
+.biome-bar {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: center;
+  align-items: center;
+  margin: var(--space-1) 0;
+  flex-wrap: wrap;
+}
+
+.biome-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 4px 10px;
+  background: var(--panel);
+  border: var(--outline);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-hard);
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  color: var(--ink);
+  cursor: pointer;
+  user-select: none;
+}
+
+.biome-chip.is-chosen {
+  background: var(--team-yellow);
+}
+
+.biome-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  image-rendering: pixelated;
+  object-fit: cover;
+}
+
+.buff-strip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 4px;
+}
+
+.buff-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 4px;
+  background: var(--panel-shade);
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.buff-pill img {
+  width: 14px;
+  height: 14px;
+  image-rendering: pixelated;
+  vertical-align: middle;
+}
+
 .stat-list {
   display: grid;
   grid-template-columns: auto auto;

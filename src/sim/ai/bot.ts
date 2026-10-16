@@ -8,6 +8,7 @@ import { evaluatePad } from '../domain/recipes';
 import { distance } from '../domain/buddy';
 import { BASE_COORDINATES } from '../domain/constants';
 import { TEAM_IDS, type TeamId } from '../domain/teams';
+import { hitObstacleAlongSegment } from '../domain/obstacles';
 
 export interface BotMemory {
   wanted: string;
@@ -60,28 +61,53 @@ export function advanceTeamWanted(w: World, team: TeamId): void {
   w.padRotation[team] = (w.padRotation[team] + 1) % BUILD_ORDER.length;
 }
 
-function steer(from: { x: number; z: number }, to: { x: number; z: number }, raw: RawAxes, arrive = 0.05): void {
+function steer(from: { x: number; z: number }, to: { x: number; z: number }, raw: RawAxes, arrive = 0.05, w?: World): void {
   const dx = to.x - from.x;
   const dz = to.z - from.z;
-  const len = Math.hypot(dx, dz);
+  const len = Math.sqrt(dx * dx + dz * dz);
   if (len < arrive) {
     raw.moveX = 0;
     raw.moveY = 0;
     return;
   }
-  raw.moveX = dx / len;
-  raw.moveY = dz / len;
+  let mx = dx / len;
+  let mz = dz / len;
+
+  if (w && w.obstacles && w.obstacles.length > 0) {
+    const obs = hitObstacleAlongSegment(from.x, from.z, from.x + mx * 1.6, from.z + mz * 1.6, w.obstacles, 0.35);
+    if (obs) {
+      let tx = -mz;
+      let tz = mx;
+      const dot = tx * (from.x - obs.x) + tz * (from.z - obs.z);
+      if (dot < 0) {
+        tx = -tx;
+        tz = -tz;
+      }
+      mx = mx * 0.35 + tx * 0.85;
+      mz = mz * 0.35 + tz * 0.85;
+      const blendLen = Math.sqrt(mx * mx + mz * mz) || 1;
+      mx /= blendLen;
+      mz /= blendLen;
+    }
+  }
+
+  raw.moveX = mx;
+  raw.moveY = mz;
 }
 
 function nearestEnemy(w: World, me: BuddyRec): BuddyRec | null {
   let best: BuddyRec | null = null;
-  let bestD = Infinity;
+  let bestD = 12.5;
   for (const b of w.buddies) {
     if (b.team === me.team || b.state === 'ko' || w.eliminated[b.team]) continue;
     const d = distance(me, b);
-    if (d < bestD) { bestD = d; best = b; }
+    if (d >= bestD) continue;
+    const blocker = hitObstacleAlongSegment(me.x, me.z, b.x, b.z, w.obstacles, 0.05);
+    if (blocker && blocker.kind === 'hard') continue;
+    bestD = d;
+    best = b;
   }
-  return bestD < 14 ? best : null;
+  return best;
 }
 
 function nearestLooseCrate(w: World, me: BuddyRec): CrateRec | null {
@@ -103,7 +129,7 @@ export function botInput(w: World, me: BuddyRec, memory: BotMemory, seq: number)
   const fighting = enemy !== null;
 
   if (fighting && enemy) {
-    steer(me, enemy, raw);
+    steer(me, enemy, raw, 0.05, w);
     raw.aimX = enemy.x - me.x;
     raw.aimY = enemy.z - me.z;
     const aimLen = Math.hypot(raw.aimX, raw.aimY) || 1;
@@ -111,6 +137,23 @@ export function botInput(w: World, me: BuddyRec, memory: BotMemory, seq: number)
     raw.aimY /= aimLen;
     raw.attack = true;
     return raw;
+  }
+
+  if (me.cls === 'fighter' && me.weapon === 'none' && me.carryCrate === (0 as EntityId)) {
+    const carrierFoe = w.buddies.find(
+      (b) => b.team !== me.team && b.state !== 'ko' && !w.eliminated[b.team] &&
+        b.carryCrate !== (0 as EntityId) && distance(me, b) < 1.55
+    );
+    if (carrierFoe) {
+      raw.aimX = carrierFoe.x - me.x;
+      raw.aimY = carrierFoe.z - me.z;
+      const aimLen = Math.hypot(raw.aimX, raw.aimY) || 1;
+      raw.aimX /= aimLen;
+      raw.aimY /= aimLen;
+      raw.attack = true;
+      steer(me, carrierFoe, raw, 0.05, w);
+      return raw;
+    }
   }
 
   const hostileTeam = nextHostileTeam(w, me.team, seq);
@@ -159,20 +202,48 @@ export function botInput(w: World, me: BuddyRec, memory: BotMemory, seq: number)
 
   const loose = nearestLooseCrate(w, me);
   if (loose) {
-    steer(me, loose, raw);
+    steer(me, loose, raw, 0.05, w);
     if (distance(me, loose) < 1.4) raw.grab = true;
     return raw;
   }
 
-  const tank = w.tanks.find((t) => t.team === me.team && !t.destroyed && t.driver === (0 as EntityId));
-  if (tank) {
-    steer(me, tank, raw);
-    if (distance(me, tank) < 2) raw.grab = true;
-    return raw;
+  if (me.cls === 'healer') {
+    for (const ally of w.buddies) {
+      if (ally.team === me.team && ally.id !== me.id && ally.state !== 'ko' &&
+          ally.hp < ally.maxHp * 0.65 && distance(me, ally) < 9) {
+        steer(me, ally, raw, 2.8, w);
+        return raw;
+      }
+    }
   }
 
-  if (hostileTeam) steer(me, BASE_COORDINATES[hostileTeam], raw);
-  else steer(me, padOrigin(me.team), raw);
+  if (w.powerups.length > 0) {
+    let bestPu = null;
+    let bestPuD = 4.5;
+    for (const p of w.powerups) {
+      if (p.dead) continue;
+      const d = distance(me, p);
+      if (d < bestPuD) {
+        bestPuD = d;
+        bestPu = p;
+      }
+    }
+    if (bestPu) {
+      steer(me, bestPu, raw, 0.05, w);
+      return raw;
+    }
+  }
+
+  for (const t of w.tanks) {
+    if (t.team === me.team && !t.destroyed && t.driver === (0 as EntityId)) {
+      steer(me, t, raw, 0.05, w);
+      if (distance(me, t) < 2) raw.grab = true;
+      return raw;
+    }
+  }
+
+  if (hostileTeam) steer(me, BASE_COORDINATES[hostileTeam], raw, 0.05, w);
+  else steer(me, padOrigin(me.team), raw, 0.05, w);
   return raw;
 }
 

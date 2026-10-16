@@ -38,3 +38,18 @@ export const RESPAWN_S = 5;
 export const REINFORCEMENT_INTERVAL_S = 20;
 export const SQUAD_SIZE_MIN = 1;
 export const SQUAD_SIZE_MAX = 6;
+
+export const CRATE_INITIAL_COUNT = 14;
+export const CRATE_WAVE_MIN = 3;
+export const CRATE_WAVE_MAX = 5;
+
+export const MELEE_RANGE = 1.85;
+export const MELEE_DAMAGE = 22;
+export const MELEE_COOLDOWN_S = 0.36;
+export const MELEE_KNOCKBACK = 1.15;
+export const CRATE_BONK_DAMAGE = 25;
+
+export const SOFT_BRICK_HP = 60;
+export const POWERUP_DURATION_S = 12;
+export const SHIELD_MAX_HP = 60;
+export const HEART_HEAL_AMOUNT = 50;

@@ -1,6 +1,7 @@
 import type { EntityId } from './ids';
 import type { ItemType } from '../domain/recipes';
 import type { TeamId } from '../domain/teams';
+import type { PowerUpKind } from '../domain/obstacles';
 
 export interface Vec2 { x: number; z: number }
 
@@ -19,7 +20,11 @@ export type SimEvent =
   | { kind: 'build'; team: TeamId; recipe: ItemType; at: Vec2 }
   | { kind: 'bunkerHit'; team: TeamId; hp: number; at: Vec2 }
   | { kind: 'eliminated'; team: TeamId }
-  | { kind: 'matchOver'; winner: TeamId | null };
+  | { kind: 'matchOver'; winner: TeamId | null }
+  | { kind: 'melee'; entity: EntityId; at: Vec2; dir: number }
+  | { kind: 'brickHit'; entity: EntityId; hp: number; at: Vec2 }
+  | { kind: 'brickBreak'; entity: EntityId; at: Vec2 }
+  | { kind: 'powerup'; buddy: EntityId; powerup: PowerUpKind; at: Vec2 };
 
 const EVENT_QUEUE_LIMIT = 64;
 

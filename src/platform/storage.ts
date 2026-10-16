@@ -1,4 +1,5 @@
 import type { BuddyClass } from '../sim/domain/classes';
+import type { BiomeKind } from '../sim/domain/obstacles';
 
 export interface Settings {
   startClass: BuddyClass;
@@ -6,6 +7,7 @@ export interface Settings {
   music: boolean;
   quality: 'high' | 'low';
   reducedMotion: boolean;
+  biome: BiomeKind;
 }
 
 const KEY = 'tiny-brawlers:settings:v2';
@@ -15,7 +17,8 @@ const DEFAULTS: Settings = {
   sound: true,
   music: true,
   quality: 'high',
-  reducedMotion: false
+  reducedMotion: false,
+  biome: 'rumput'
 };
 
 export function loadSettings(): Settings {
@@ -28,7 +31,8 @@ export function loadSettings(): Settings {
       sound: parsed.sound !== false,
       music: parsed.music !== false,
       quality: parsed.quality === 'low' ? 'low' : 'high',
-      reducedMotion: parsed.reducedMotion === true
+      reducedMotion: parsed.reducedMotion === true,
+      biome: parsed.biome === 'gurun' || parsed.biome === 'salju' ? parsed.biome : 'rumput'
     };
   } catch {
     return { ...DEFAULTS };

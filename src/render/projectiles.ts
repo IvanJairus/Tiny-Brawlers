@@ -18,9 +18,14 @@ export interface ProjectileView {
  * area damage landed off screen. A kind with no entry here fails the budget test.
  */
 export const PROJECTILE_MODELS: Record<ProjectileKind, () => Part[]> = {
+  bullet: () => [
+    { geometry: new THREE.BoxGeometry(0.1, 0.1, 0.46), color: PALETTE.star },
+    { geometry: new THREE.BoxGeometry(0.06, 0.06, 0.28), color: 0xffffff, position: [0, 0, -0.2] }
+  ],
   grenade: () => [
-    { geometry: unitSphere(0.17, 10), color: 0x6a9a3c },
-    { geometry: new THREE.CylinderGeometry(0.05, 0.05, 0.09, 6), color: PALETTE.metal, position: [0, 0.17, 0] }
+    { geometry: unitSphere(0.17, 10), color: 0x23272e },
+    { geometry: new THREE.CylinderGeometry(0.05, 0.05, 0.09, 6), color: PALETTE.metal, position: [0, 0.16, 0] },
+    { geometry: new THREE.BoxGeometry(0.08, 0.08, 0.08), color: PALETTE.star, position: [0, 0.23, 0], rotation: [0, Math.PI / 4, 0] }
   ],
   rocket: () => [
     { geometry: new THREE.CylinderGeometry(0.13, 0.13, 0.66, 10), color: PALETTE.metal, rotation: [Math.PI / 2, 0, 0] },

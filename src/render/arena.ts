@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeParts, type Part } from './geometryKit';
-import { PALETTE, type SharedMaterials } from './materials';
+import { BIOME_PALETTE, PALETTE, type SharedMaterials } from './materials';
 import { ARENA_HALF, BASE_COORDINATES, PAD } from '../sim/domain/constants';
 import { padOrigin } from '../sim/domain/pad';
 import { TEAM_COLORS, TEAM_IDS, type TeamId } from '../sim/domain/teams';
@@ -9,6 +9,7 @@ export interface Arena {
   group: THREE.Group;
   update(time: number): void;
   dispose(): void;
+  setBiome?(biome: 'rumput' | 'gurun' | 'salju'): void;
 }
 
 const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
@@ -16,10 +17,11 @@ const cyl = (rt: number, rb: number, h: number, seg = 10) => new THREE.CylinderG
 
 const PLAZA_RADIUS = 7.6;
 
-function islandParts(): Part[] {
+function islandParts(biome: 'rumput' | 'gurun' | 'salju' = 'rumput'): Part[] {
+  const theme = BIOME_PALETTE[biome] ?? BIOME_PALETTE.rumput;
   const parts: Part[] = [
-    { geometry: box(ARENA_HALF * 2, 0.5, ARENA_HALF * 2), color: PALETTE.grass, position: [0, -0.25, 0] },
-    { geometry: box(62, 2.2, 62), color: PALETTE.cliff, position: [0, -1.35, 0] }
+    { geometry: box(ARENA_HALF * 2, 0.5, ARENA_HALF * 2), color: theme.top, position: [0, -0.25, 0] },
+    { geometry: box(62, 2.2, 62), color: theme.cliff, position: [0, -1.35, 0] }
   ];
 
   for (const [x, z, rotY, len] of [
@@ -30,17 +32,17 @@ function islandParts(): Part[] {
   ] as const) {
     parts.push({
       geometry: cyl(0.42, 0.42, len, 8),
-      color: PALETTE.grassDark,
+      color: theme.rim,
       position: [x, -0.06, z],
       rotation: [0, 0, Math.PI / 2 + rotY]
     });
   }
 
   // Crates drop in the middle, so the middle is drawn as a plaza and each base is
-  // joined to it by one kerbed road. Four loose strips of tan read as an accident.
-  parts.push({ geometry: cyl(PLAZA_RADIUS, PLAZA_RADIUS, 0.06, 28), color: PALETTE.path, position: [0, 0.03, 0] });
-  parts.push({ geometry: cyl(PLAZA_RADIUS - 1.2, PLAZA_RADIUS - 1.2, 0.07, 28), color: PALETTE.pathDark, position: [0, 0.035, 0] });
-  parts.push({ geometry: cyl(2.3, 2.3, 0.08, 20), color: PALETTE.path, position: [0, 0.042, 0] });
+  // joined to it by one kerbed road. Stone road colors match UHD reference batu_1..4.png.
+  parts.push({ geometry: cyl(PLAZA_RADIUS, PLAZA_RADIUS, 0.06, 28), color: PALETTE.stoneRoad, position: [0, 0.03, 0] });
+  parts.push({ geometry: cyl(PLAZA_RADIUS - 1.2, PLAZA_RADIUS - 1.2, 0.07, 28), color: PALETTE.stoneRoadDark, position: [0, 0.035, 0] });
+  parts.push({ geometry: cyl(2.3, 2.3, 0.08, 20), color: PALETTE.stoneRoad, position: [0, 0.042, 0] });
 
   for (const team of TEAM_IDS) {
     const base = BASE_COORDINATES[team];
@@ -55,18 +57,75 @@ function islandParts(): Part[] {
 
     parts.push({
       geometry: box(2.6, 0.06, length),
-      color: PALETTE.path,
+      color: PALETTE.stoneRoad,
       position: [dirX * mid, 0.032, dirZ * mid],
       rotation: [0, angle, 0]
     });
     for (const side of [-1, 1]) {
       parts.push({
         geometry: box(0.3, 0.1, length),
-        color: PALETTE.pathDark,
+        color: PALETTE.stoneRoadDark,
         position: [dirX * mid + dirZ * 1.45 * side, 0.04, dirZ * mid - dirX * 1.45 * side],
         rotation: [0, angle, 0]
       });
     }
+  }
+
+  // 4 cardinal side-pocket plazas
+  for (const [px, pz] of [
+    [0, -16.5],
+    [0, 16.5],
+    [-16.5, 0],
+    [16.5, 0]
+  ] as const) {
+    parts.push({ geometry: cyl(2.8, 2.8, 0.06, 16), color: PALETTE.stoneRoad, position: [px, 0.03, pz] });
+    parts.push({ geometry: cyl(1.8, 1.8, 0.07, 14), color: PALETTE.path, position: [px, 0.035, pz] });
+  }
+
+  // 4 cardinal connector lanes
+  parts.push({ geometry: box(2.2, 0.055, 9.4), color: PALETTE.stoneRoad, position: [0, 0.03, -11.8] });
+  parts.push({ geometry: box(2.2, 0.055, 9.4), color: PALETTE.stoneRoad, position: [0, 0.03, 11.8] });
+  parts.push({ geometry: box(9.4, 0.055, 2.2), color: PALETTE.stoneRoad, position: [-11.8, 0.03, 0] });
+  parts.push({ geometry: box(9.4, 0.055, 2.2), color: PALETTE.stoneRoad, position: [11.8, 0.03, 0] });
+
+  // 8 outer flanking road segments connecting base pad area to cardinal pockets
+  for (const sx of [-1, 1] as const) {
+    for (const sz of [-1, 1] as const) {
+      const baseX = sx * 14;
+      const baseZ = sz * 14;
+      const targets: ReadonlyArray<readonly [number, number]> = [
+        [0, sz * 16.5],
+        [sx * 16.5, 0]
+      ];
+      for (const [tx, tz] of targets) {
+        const dx = tx - baseX;
+        const dz = tz - baseZ;
+        const len = Math.hypot(dx, dz);
+        const midX = (baseX + tx) * 0.5;
+        const midZ = (baseZ + tz) * 0.5;
+        const angle = Math.atan2(dx, dz);
+        parts.push({
+          geometry: box(1.9, 0.05, len),
+          color: PALETTE.pathDark,
+          position: [midX, 0.031, midZ],
+          rotation: [0, angle, 0]
+        });
+      }
+    }
+  }
+
+  // 12 small biome detail accents
+  const accents: ReadonlyArray<readonly [number, number]> = [
+    [-8, -15], [8, -15], [-8, 15], [8, 15],
+    [-15, -8], [15, -8], [-15, 8], [15, 8],
+    [-11, -5], [11, -5], [-11, 5], [11, 5]
+  ];
+  for (const [ax, az] of accents) {
+    parts.push({
+      geometry: box(0.45, 0.08, 0.45),
+      color: theme.accent,
+      position: [ax, 0.04, az]
+    });
   }
 
   return parts;
@@ -177,16 +236,19 @@ function padGlowParts(team: TeamId): Part[] {
   return parts;
 }
 
-export function buildArena(materials: SharedMaterials): Arena {
-  const group = new THREE.Group();
-  const disposables: THREE.BufferGeometry[] = [];
-
-  const staticParts = [...islandParts()];
+function buildStaticParts(biome: 'rumput' | 'gurun' | 'salju'): Part[] {
+  const staticParts = [...islandParts(biome)];
   for (const team of TEAM_IDS) {
     staticParts.push(...bunkerParts(team), ...padParts(team));
   }
-  const staticGeo = mergeParts(staticParts);
-  disposables.push(staticGeo);
+  return staticParts;
+}
+
+export function buildArena(materials: SharedMaterials, biome: 'rumput' | 'gurun' | 'salju' = 'rumput'): Arena {
+  const group = new THREE.Group();
+  let currentBiome = biome;
+
+  const staticGeo = mergeParts(buildStaticParts(currentBiome));
   const staticMesh = new THREE.Mesh(staticGeo, materials.painted);
   staticMesh.name = 'arena_static';
   group.add(staticMesh);
@@ -194,13 +256,11 @@ export function buildArena(materials: SharedMaterials): Arena {
   const glowParts: Part[] = [];
   for (const team of TEAM_IDS) glowParts.push(...padGlowParts(team));
   const glowGeo = mergeParts(glowParts);
-  disposables.push(glowGeo);
   const glowMesh = new THREE.Mesh(glowGeo, materials.padGlow);
   glowMesh.name = 'arena_pad_glow';
   group.add(glowMesh);
 
   const waterGeo = new THREE.PlaneGeometry(140, 140, 28, 28);
-  disposables.push(waterGeo);
   const water = new THREE.Mesh(waterGeo, materials.water);
   water.rotation.x = -Math.PI / 2;
   water.position.y = -1.6;
@@ -209,13 +269,22 @@ export function buildArena(materials: SharedMaterials): Arena {
 
   return {
     group,
+    setBiome(newBiome: 'rumput' | 'gurun' | 'salju') {
+      if (newBiome === currentBiome) return;
+      currentBiome = newBiome;
+      const nextGeo = mergeParts(buildStaticParts(newBiome));
+      staticMesh.geometry.dispose();
+      staticMesh.geometry = nextGeo;
+    },
     update(time: number) {
       materials.water.uniforms.uTime.value = time;
       const pulse = 0.55 + Math.sin(time * 2.4) * 0.25;
       materials.padGlow.opacity = pulse;
     },
     dispose() {
-      for (const geo of disposables) geo.dispose();
+      staticMesh.geometry.dispose();
+      glowGeo.dispose();
+      waterGeo.dispose();
     }
   };
 }

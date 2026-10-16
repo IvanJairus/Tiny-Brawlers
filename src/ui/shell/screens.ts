@@ -4,15 +4,16 @@ import { TEAM_COLORS } from '../../sim/domain/teams';
 import type { ViewState } from '../../sim/core/view';
 import type { Screen } from './machine';
 import type { LobbyActions } from './lobby';
+import type { BiomeKind } from '../../sim/domain/obstacles';
 
 export interface ScreenContext {
   send: (event: Parameters<import('./machine').Machine['send']>[0]) => void;
-  startWith: (cls: BuddyClass) => void;
+  startWith: (cls: BuddyClass, biome?: BiomeKind) => void;
   netplay: boolean;
   canPause(): boolean;
   lobby: LobbyActions;
-  settings: { sound: boolean; music: boolean; quality: 'high' | 'low'; reducedMotion: boolean };
-  setSetting: (key: 'sound' | 'music' | 'quality' | 'reducedMotion', value: boolean | string) => void;
+  settings: { sound: boolean; music: boolean; quality: 'high' | 'low'; reducedMotion: boolean; biome?: BiomeKind };
+  setSetting: (key: 'sound' | 'music' | 'quality' | 'reducedMotion' | 'biome', value: boolean | string) => void;
 }
 
 export interface MountedScreen {
@@ -65,6 +66,7 @@ export function mountSelect(host: HTMLElement, ctx: ScreenContext): MountedScree
   list.className = 'class-list';
   const classes: BuddyClass[] = ['fighter', 'healer', 'constructor'];
   let chosen: BuddyClass = 'fighter';
+  let chosenBiome: BiomeKind = ctx.settings.biome ?? 'rumput';
 
   const buttons = classes.map((cls, index) => {
     const card = document.createElement('button');
@@ -86,10 +88,29 @@ export function mountSelect(host: HTMLElement, ctx: ScreenContext): MountedScree
   });
   root.appendChild(list);
 
+  const biomeBar = document.createElement('div');
+  biomeBar.className = 'biome-bar';
+  const biomes: BiomeKind[] = ['rumput', 'gurun', 'salju'];
+  const biomeChips = biomes.map((b) => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'biome-chip';
+    chip.setAttribute('tabindex', '-1');
+    if (b === chosenBiome) chip.classList.add('is-chosen');
+    chip.innerHTML = `<img src="assets/arena/png/${b}_3.png" alt="" class="biome-thumb" /><span>${T.biomeNames[b]}</span>`;
+    chip.addEventListener('click', () => {
+      chosenBiome = b;
+      for (const other of biomeChips) other.classList.toggle('is-chosen', other === chip);
+    });
+    biomeBar.appendChild(chip);
+    return chip;
+  });
+  root.appendChild(biomeBar);
+
   const actions = document.createElement('div');
   actions.className = 'screen-actions';
   actions.appendChild(button(T.back, 'ghost', () => ctx.send('quit')));
-  actions.appendChild(button(T.play, 'primary', () => ctx.startWith(chosen), true));
+  actions.appendChild(button(T.play, 'primary', () => ctx.startWith(chosen, chosenBiome), true));
   if (ctx.netplay) actions.appendChild(button(T.netTitle, 'ghost', () => ctx.send('netplay')));
   root.appendChild(actions);
   host.appendChild(root);

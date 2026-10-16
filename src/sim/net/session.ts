@@ -3,10 +3,11 @@ import { createClient, type Client } from './client';
 import { encodeInput, EMPTY_INPUT, type InputCmd, type RawAxes } from '../input/actions';
 import { stepWorld } from '../core/step';
 import type { SimEvent } from '../core/events';
-import { createWorld, type World } from '../core/world';
+import { createWorld, seedInitialCrates, type World } from '../core/world';
 import { initialSquads } from '../domain/match';
-import type { BuddyClass } from '../domain/classes';
+import { CLASS_STATS, type BuddyClass } from '../domain/classes';
 import type { Transport } from './transport';
+import type { BiomeKind } from '../domain/obstacles';
 
 export type SessionKind = 'solo' | 'host' | 'client';
 
@@ -43,12 +44,15 @@ function relayProblem(transport: Transport): string | null {
   return status === 'failed' ? 'relay' : null;
 }
 
-export function createSoloSession(seed: number, cls: BuddyClass, localTeam = 'red'): Session {
-  const world = createWorld({ seed });
+export function createSoloSession(seed: number, cls: BuddyClass, localTeam = 'red', biome: BiomeKind = 'rumput'): Session {
+  const world = createWorld({ seed, biome });
   initialSquads(world, 2);
+  seedInitialCrates(world);
   const hero = world.buddies.find((b) => b.team === localTeam);
   if (hero) {
     hero.cls = cls;
+    hero.maxHp = CLASS_STATS[cls].maxHp;
+    hero.hp = hero.maxHp;
     hero.isBot = false;
     hero.ownedByPlayer = true;
     world.localPlayer = hero.id;

@@ -19,6 +19,8 @@ export interface ActorView {
   flash: number;
   /** 1 at the moment of a knockout, used for one squash-and-pop frame set. */
   pop: number;
+  melee?: number;
+  shield?: boolean;
 }
 
 const HEAD_Y = 1.16;
@@ -200,13 +202,23 @@ export class ChibiField {
 
     const armLift = carrying ? -2.5 : -0.35;
     for (const side of [-1, 1]) {
-      this.dummy.position.set(
-        actor.x + rightX * 0.44 * side,
-        SHOULDER_Y + (carrying ? 0.34 : 0) + bob + sag,
-        actor.z + rightZ * 0.44 * side
-      );
-      this.dummy.rotation.set(armLift + (carrying ? 0 : swing * 0.7 * side), actor.heading, side * (carrying ? 0.45 : 0.12));
-      this.dummy.scale.set(1, 1, 1);
+      let armX = actor.x + rightX * 0.44 * side;
+      const armY = SHOULDER_Y + (carrying ? 0.34 : 0) + bob + sag;
+      let armZ = actor.z + rightZ * 0.44 * side;
+      let rotX = armLift + (carrying ? 0 : swing * 0.7 * side);
+      let armScale = 1;
+
+      if ((actor.melee ?? 0) > 0 && side > 0) {
+        const punch = Math.sin((actor.melee ?? 0) * Math.PI) * 1.45;
+        armX = actor.x + rightX * 0.44 + forwardX * punch * 0.35;
+        armZ = actor.z + rightZ * 0.44 + forwardZ * punch * 0.35;
+        rotX = armLift - punch;
+        armScale = 1 + punch * 0.25;
+      }
+
+      this.dummy.position.set(armX, armY, armZ);
+      this.dummy.rotation.set(rotX, actor.heading, side * (carrying ? 0.45 : 0.12));
+      this.dummy.scale.set(armScale, armScale, armScale);
       this.dummy.updateMatrix();
       this.arms.setMatrixAt(slot * 2 + (side < 0 ? 0 : 1), this.dummy.matrix);
     }

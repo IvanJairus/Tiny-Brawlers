@@ -24,6 +24,7 @@ import { createHudStore } from './ui/hud/store';
 import { projectView, type ViewState } from './sim/core/view';
 import { loadSettings, saveSettings } from './platform/storage';
 import type { BuddyClass } from './sim/domain/classes';
+import type { BiomeKind } from './sim/domain/obstacles';
 import { overBudget } from './render/budget';
 import { T } from './ui/i18n/id';
 import { createAdaptation } from './render/adaptation';
@@ -86,23 +87,27 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
   audio.setEnabled(settings.sound);
   audio.setMusic(settings.music);
   const touchPressed = { grab: false, shoot: false, build: false };
+  const touchLatched = { grab: false, shoot: false, build: false };
 
   const fixedSeed = Number(new URLSearchParams(window.location.search).get('seed') ?? NaN);
 
-  function createMatch(cls: BuddyClass): World {
+  function createMatch(cls: BuddyClass, biome?: BiomeKind): World {
     const seed = Number.isFinite(fixedSeed)
       ? fixedSeed >>> 0
       : (Math.floor(Math.random() * 0xffffffff) ^ 0x9e3779b9) >>> 0;
     netLink?.close();
     netLink = null;
-    session = createSoloSession(seed, cls);
+    const chosenBiome = biome ?? settings.biome ?? 'rumput';
+    session = createSoloSession(seed, cls, 'red', chosenBiome);
+    renderer.setBiome(chosenBiome);
     stats.built = 0;
     stats.knockouts = 0;
     stats.cratesDelivered = 0;
     return session.world;
   }
 
-  let session: Session = createSoloSession(1, settings.startClass);
+  let session: Session = createSoloSession(1, settings.startClass, 'red', settings.biome);
+  renderer.setBiome(settings.biome);
   let netLink: NetLink | null = null;
   let world = session.world;
   let view = projectView(world, stats);
@@ -146,7 +151,7 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
     leave() {
       netLink?.close();
       netLink = null;
-      session = createSoloSession(1, settings.startClass);
+      session = createSoloSession(1, settings.startClass, 'red', settings.biome);
       world = session.world;
     }
   };
@@ -160,11 +165,15 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
 
   const router = createRouter(uiHost, {
     send: (event) => machine.send(event),
-    startWith: (cls) => {
+    startWith: (cls, biome) => {
       audio.beginPlayback();
       settings.startClass = cls;
+      if (biome) {
+        settings.biome = biome;
+        renderer.setBiome(biome);
+      }
       saveSettings(settings);
-      world = createMatch(cls);
+      world = createMatch(cls, biome);
       view = projectView(world, stats);
       if (machine.can('confirmed')) machine.send('confirmed');
       if (machine.can('loaded')) machine.send('loaded');
@@ -176,16 +185,21 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
     settings,
     setSetting: (key, value) => {
       if (key === 'quality') settings.quality = value === 'low' ? 'low' : 'high';
-      else settings[key] = Boolean(value);
-      if (key === 'sound') audio.setEnabled(Boolean(value));
-      if (key === 'music') audio.setMusic(Boolean(value));
+      else if (key === 'biome') {
+        settings.biome = value as BiomeKind;
+        renderer.setBiome(settings.biome);
+      } else if (key === 'sound' || key === 'music' || key === 'reducedMotion') {
+        settings[key] = Boolean(value);
+        if (key === 'sound') audio.setEnabled(Boolean(value));
+        if (key === 'music') audio.setMusic(Boolean(value));
+      }
       saveSettings(settings);
     }
   });
 
-  hud.onAction('grab', () => { touchPressed.grab = true; });
-  hud.onAction('shoot', () => { touchPressed.shoot = true; });
-  hud.onAction('build', () => { touchPressed.build = true; });
+  hud.onAction('grab', () => { touchPressed.grab = true; touchLatched.grab = true; });
+  hud.onAction('shoot', () => { touchPressed.shoot = true; touchLatched.shoot = true; });
+  hud.onAction('build', () => { touchPressed.build = true; touchLatched.build = true; });
   hud.onAction('pause', () => {
     if (session.kind === 'solo') {
       if (machine.can('pause')) machine.send('pause');
@@ -216,7 +230,7 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
     if (screen === 'title' && session.kind !== 'solo') {
       netLink?.close();
       netLink = null;
-      session = createSoloSession(1, settings.startClass);
+      session = createSoloSession(1, settings.startClass, 'red', settings.biome);
       world = session.world;
       view = projectView(world, stats);
       store.set(view);
@@ -239,6 +253,9 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
   let steps = 0;
   const stepper = createStepper((dt) => {
     session.step(dt, mergeAxes());
+    touchLatched.grab = false;
+    touchLatched.shoot = false;
+    touchLatched.build = false;
     steps++;
     if (world.over && machine.screen === 'playing' && machine.can('finished')) machine.send('finished');
   });
@@ -253,9 +270,9 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
       moveY,
       aimX: moveX,
       aimY: moveY,
-      attack: fromKey.attack || touchPressed.shoot,
-      grab: fromKey.grab || touchPressed.grab,
-      build: fromKey.build || touchPressed.build,
+      attack: fromKey.attack || touchPressed.shoot || touchLatched.shoot,
+      grab: fromKey.grab || touchPressed.grab || touchLatched.grab,
+      build: fromKey.build || touchPressed.build || touchLatched.build,
       zoom: 0
     };
   }

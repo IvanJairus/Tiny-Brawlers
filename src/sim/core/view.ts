@@ -5,6 +5,7 @@ import { padOrigin } from '../domain/pad';
 import { distance } from '../domain/buddy';
 import { NO_ENTITY, type EntityId } from './ids';
 import type { World } from './world';
+import type { BiomeKind } from '../domain/obstacles';
 
 export interface PadView {
   title: string;
@@ -37,6 +38,13 @@ export interface ViewState {
   cratesOnField: number;
   tanks: number;
   stats: { built: number; knockouts: number; cratesDelivered: number; survived: number };
+  biome?: BiomeKind;
+  buffs?: {
+    shield: number;
+    fire: number;
+    speed: number;
+    bomb: number;
+  };
 }
 
 export interface MatchStats {
@@ -84,7 +92,14 @@ export function projectView(w: World, stats: MatchStats): ViewState {
     },
     cratesOnField: w.crates.length,
     tanks: w.tanks.length,
-    stats: { ...stats, survived: Math.round(w.clock) }
+    stats: { ...stats, survived: Math.round(w.clock) },
+    biome: w.biome,
+    buffs: {
+      shield: Math.round(me?.shieldHp ?? 0),
+      fire: Math.ceil(me?.fireTimer ?? 0),
+      speed: Math.ceil(me?.speedTimer ?? 0),
+      bomb: me?.bombBonus && me.bombBonus > 0 ? 1 : 0
+    }
   };
 }
 

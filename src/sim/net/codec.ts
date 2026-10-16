@@ -327,7 +327,8 @@ export function applySnapshot(world: World, snapshot: Snapshot): void {
       hp: b.hp, maxHp: b.maxHp, state: b.state, weapon: b.weapon,
       grenades: b.grenades, rockets: b.rockets, medkits: b.medkits,
       carryCrate: b.carryCrate, koTimer: 0, fireCooldown: 0, invuln: 0,
-      isBot: b.isBot, ownedByPlayer: b.id === world.localPlayer, remove: false
+      isBot: b.isBot, ownedByPlayer: b.id === world.localPlayer, remove: false,
+      meleeTimer: 0, shieldHp: 0, shieldTimer: 0, fireTimer: 0, speedTimer: 0, bombBonus: 0
     });
   }
 

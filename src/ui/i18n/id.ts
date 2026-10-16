@@ -10,6 +10,12 @@ export const T = {
   quit: 'Keluar ke Judul',
   restart: 'Main Lagi',
   pickClass: 'Pilih kelas prajurit',
+  pickBiome: 'Pilih medan arena',
+  biomeNames: {
+    rumput: 'Lembah Rumput',
+    gurun: 'Gurun Pasir',
+    salju: 'Padang Salju'
+  },
   classNames: {
     fighter: 'Petarung',
     healer: 'Tabib',
@@ -26,7 +32,7 @@ export const T = {
     constructor: 'HP 90 · Laju 8,2 · Lempar 18'
   },
   controlsTitle: 'Kendali',
-  controlsDesktop: 'WASD jalan, E ambil atau lempar peti, F atau Spasi tembak, R rakit pad, scroll zoom.',
+  controlsDesktop: 'WASD jalan, Klik Kiri / F / Spasi pukul atau tembak, Klik Kanan / E ambil atau lempar peti, R rakit pad, scroll zoom.',
   controlsTouch: 'Geser setengah layar kiri untuk jalan. Tombol kanan: ambil, tembak, rakit.',
   objectiveTitle: 'Tujuan',
   objectiveBody: 'Bawa peti dari tengah arena ke pad 2x2x2 timmu. Bentuk tumpukan menentukan hasilnya, dari pistol sampai tank. Hancurkan bunker lawan untuk menang.',

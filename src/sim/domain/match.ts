@@ -88,10 +88,7 @@ export function canRecruit(w: World, team: TeamId): boolean {
 export function tickRespawns(w: World, dt: number): void {
   for (const b of w.buddies) {
     if (b.state !== 'ko' || w.eliminated[b.team]) continue;
-    if (b.koTimer > 0) {
-      b.koTimer = Math.max(0, b.koTimer - dt);
-      continue;
-    }
+    if (b.koTimer > 0) continue;
     const alive = w.buddies.filter((x) => x.team === b.team && x.state !== 'ko' && !x.remove).length;
     if (alive >= SQUAD_SIZE_MAX) {
       // The roster is full: a body that cannot come back is retired, otherwise
@@ -102,7 +99,8 @@ export function tickRespawns(w: World, dt: number): void {
     const base = BASE_COORDINATES[b.team];
     b.x = base.x * 0.74 + w.rngWorld.float(-2, 2);
     b.z = base.z * 0.74 + w.rngWorld.float(-2, 2);
-    b.hp = Math.max(1, Math.round(CLASS_STATS[b.cls].maxHp * 0.4));
+    b.hp = CLASS_STATS[b.cls].maxHp;
+    b.maxHp = CLASS_STATS[b.cls].maxHp;
     b.state = 'idle';
     b.invuln = 2;
     b.carryCrate = 0 as EntityId;

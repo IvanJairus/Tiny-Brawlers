@@ -31,7 +31,32 @@ export const PALETTE = {
   sand: 0xd2b48c,
   padSurface: 0x253346,
   padTile: 0x35516b,
-  pathDark: 0xa8925f
+  pathDark: 0xa8925f,
+  hardWall: 0x6e737b,
+  hardWallDark: 0x3b3f46,
+  hardBolt: 0x23262b,
+  softBrick: 0xc88349,
+  softBrickLight: 0xdca068,
+  softBrickDark: 0x7d4820,
+  softCrack: 0x3a2010,
+  stoneRoad: 0x7b808a,
+  stoneRoadDark: 0x5c616b,
+  desertSand: 0xe6b85c,
+  desertDark: 0xc9973e,
+  snowWhite: 0xeaf4fc,
+  snowDark: 0xb8d3e8,
+  flowerPink: 0xff7eb3,
+  upFire: 0xff5e2b,
+  upSpeed: 0x2ea8ff,
+  upBomb: 0xffc82b,
+  upShield: 0x2ed573,
+  upHeart: 0xff4d79
+};
+
+export const BIOME_PALETTE: Record<'rumput' | 'gurun' | 'salju', { top: number; rim: number; cliff: number; accent: number }> = {
+  rumput: { top: PALETTE.grass, rim: PALETTE.grassDark, cliff: PALETTE.cliff, accent: PALETTE.flowerPink },
+  gurun: { top: PALETTE.desertSand, rim: PALETTE.desertDark, cliff: 0x9c6b3b, accent: 0xd48b28 },
+  salju: { top: PALETTE.snowWhite, rim: PALETTE.snowDark, cliff: 0x687d94, accent: 0xffffff }
 };
 
 /**

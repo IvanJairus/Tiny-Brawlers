@@ -1,7 +1,7 @@
 import type { EntityId } from '../core/ids';
 import type { TeamId } from './teams';
 
-export type ProjectileKind = 'grenade' | 'rocket' | 'shell';
+export type ProjectileKind = 'bullet' | 'grenade' | 'rocket' | 'shell';
 
 export interface ProjectileRec {
   id: EntityId;
@@ -44,7 +44,8 @@ export function isFinished(p: ProjectileRec): boolean {
 /** Every damage source must resolve through here so no hit can be invisible. */
 export function blastOf(p: ProjectileRec): { radius: number; damage: number } {
   switch (p.kind) {
-    case 'grenade': return { radius: 3.4, damage: p.damage };
+    case 'bullet': return { radius: 0, damage: p.damage };
+    case 'grenade': return { radius: p.radius > 0 ? p.radius : 3.4, damage: p.damage };
     case 'rocket': return { radius: 4.6, damage: p.damage };
     case 'shell': return { radius: 2.2, damage: p.damage };
   }

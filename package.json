@@ -1,7 +1,7 @@
 {
   "name": "tiny-brawlers",
   "private": true,
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "Tiny Brawlers: arcade 3D crate-stacking battle arena (homage to Team Buddies)",
   "type": "module",
   "scripts": {

@@ -20,7 +20,7 @@ const HUD_TEMPLATE = `
   <section class="card card-player" data-part="playerCard">
     <header><span data-part="teamName" class="team-name"></span><span data-part="clsName" class="cls-name"></span></header>
     <div class="bar"><div class="bar-fill" data-part="hpFill"></div></div>
-    <footer><span data-part="hpText"></span><span data-part="weaponText"></span></footer>
+    <footer><span data-part="hpText"></span><span data-part="weaponText"></span><div class="buff-strip" data-part="buffStrip"></div></footer>
   </section>
   <section class="card card-scoreboard" data-part="scoreboard"></section>
   <section class="card card-pad" data-part="padCard">
@@ -88,6 +88,7 @@ export function buildHud(doc: Document): HudBindings {
   }
 
   const cache: Record<string, string | number | boolean> = {};
+  cache.buffs = '0:0:0:0';
   let writeCount = 0;
   const write = (key: string, value: string | number | boolean, apply: () => void): void => {
     if (cache[key] === value) return;
@@ -166,6 +167,29 @@ export function buildHud(doc: Document): HudBindings {
           nodes.weaponText.textContent = `${view.weapon}${ammo}`;
         }
       });
+
+      const buffs = (view as ViewState & { buffs?: { shield: number; fire: number; speed: number; bomb: number } }).buffs;
+      if (buffs) {
+        const buffKey = `${buffs.shield}:${buffs.fire}:${buffs.speed}:${buffs.bomb}`;
+        if (buffKey !== (cache.buffs ?? '0:0:0:0')) {
+          write('buffs', buffKey, () => {
+            let html = '';
+            if (buffs.shield > 0) {
+              html += `<span class="buff-pill"><img src="assets/arena/png/up_perisai.png" alt="" />${buffs.shield}</span>`;
+            }
+            if (buffs.fire > 0) {
+              html += `<span class="buff-pill"><img src="assets/arena/png/up_api.png" alt="" />${buffs.fire}</span>`;
+            }
+            if (buffs.speed > 0) {
+              html += `<span class="buff-pill"><img src="assets/arena/png/up_lari.png" alt="" />${buffs.speed}</span>`;
+            }
+            if (buffs.bomb > 0) {
+              html += `<span class="buff-pill"><img src="assets/arena/png/up_bom.png" alt="" />${buffs.bomb}</span>`;
+            }
+            nodes.buffStrip.innerHTML = html;
+          });
+        }
+      }
 
       for (const team of TEAM_IDS) {
         const hp = Math.round(view.bunkerHp[team]);
