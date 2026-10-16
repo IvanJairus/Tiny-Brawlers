@@ -6,6 +6,10 @@ export interface TankRec {
   team: TeamId;
   x: number;
   z: number;
+  prevX: number;
+  prevZ: number;
+  prevHeading: number;
+  prevTurretAngle: number;
   heading: number;
   turretAngle: number;
   hp: number;
@@ -22,11 +26,17 @@ const TANK_TURN = 1.6;
 export function makeTank(id: EntityId, team: TeamId, x: number, z: number, heading: number): TankRec {
   return {
     id, team, x, z, heading, turretAngle: heading, hp: TANK_MAX_HP, maxHp: TANK_MAX_HP,
-    driver: 0 as EntityId, fireCooldown: 0, destroyed: false
+    driver: 0 as EntityId, fireCooldown: 0, destroyed: false,
+    prevX: x, prevZ: z, prevHeading: 0, prevTurretAngle: 0
   };
 }
 
 export function stepTank(t: TankRec, drive: { fwd: number; turn: number }, dt: number): void {
+  t.prevX = t.x;
+  t.prevZ = t.z;
+  t.prevHeading = t.heading;
+  t.prevTurretAngle = t.turretAngle;
+
   if (t.destroyed) return;
   if (t.fireCooldown > 0) t.fireCooldown = Math.max(0, t.fireCooldown - dt);
   t.heading += drive.turn * TANK_TURN * dt;

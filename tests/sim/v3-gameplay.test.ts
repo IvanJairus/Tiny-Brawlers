@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createWorld, setInput } from '../../src/sim/core/world';
 import { stepWorld } from '../../src/sim/core/step';
 import { createSoloSession } from '../../src/sim/net/session';
-import { makeBuddy, speedOf } from '../../src/sim/domain/buddy';
+import { makeBuddy, speedOf, stepBuddy } from '../../src/sim/domain/buddy';
 import { attachCrateToBuddy, makeCrate, placeCrateOnPad } from '../../src/sim/domain/crate';
 import { padOrigin } from '../../src/sim/domain/pad';
 import { makeProjectile, type ProjectileRec } from '../../src/sim/domain/projectile';
@@ -363,4 +363,72 @@ describe('v3.0 gameplay features', () => {
       expect(b.hp).toBe(100);
     });
   });
+
+  describe('6. Smooth Sim Interpolation & Fair Match-Start Central Plaza Crate Seeding', () => {
+    it('spawns all initial crates in the central plaza within 5m of center and >14m from any pad', () => {
+      const session = createSoloSession(42, 'fighter');
+      const w = session.world;
+
+      expect(w.crates.length).toBeGreaterThanOrEqual(14);
+      for (const crate of w.crates) {
+        const distFromCenter = Math.hypot(crate.x, crate.z);
+        expect(distFromCenter).toBeLessThanOrEqual(5.0);
+
+        for (const team of ['red', 'blue', 'yellow', 'cyan'] as const) {
+          const pad = padOrigin(team);
+          const distToPad = Math.hypot(crate.x - pad.x, crate.z - pad.z);
+          expect(distToPad).toBeGreaterThanOrEqual(14.0);
+        }
+      }
+
+      for (const b of w.buddies) {
+        expect(b.weapon).toBe('none');
+      }
+    });
+
+    it('ensures no enemy bot crafts a weapon during the first 5 seconds (150 ticks)', () => {
+      const session = createSoloSession(42, 'fighter');
+      const emptyInput = {
+        moveX: 0,
+        moveY: 0,
+        aimX: 0,
+        aimY: 0,
+        attack: false,
+        grab: false,
+        build: false,
+        zoom: 0
+      };
+
+      for (let t = 0; t < 150; t++) {
+        session.step(1 / 30, emptyInput);
+      }
+
+      const enemyBots = session.world.buddies.filter((b) => b.isBot);
+      expect(enemyBots.length).toBeGreaterThan(0);
+      for (const bot of enemyBots) {
+        expect(bot.weapon).toBe('none');
+      }
+    });
+
+    it('records prevX and prevZ in stepBuddy prior to moving so prevX !== x when walking', () => {
+      const b = makeBuddy(1 as EntityId, 'red', 'fighter', 0, 0, false);
+      expect(b.prevX).toBe(0);
+      expect(b.prevZ).toBe(0);
+      expect(b.prevHeading).toBe(0);
+
+      stepBuddy(b, { x: 1, y: 0 }, 1 / 30);
+
+      expect(b.prevX).toBe(0);
+      expect(b.x).toBeGreaterThan(0);
+      expect(b.prevX).not.toBe(b.x);
+      expect(b.prevHeading).toBe(0);
+      expect(b.heading).toBeCloseTo(Math.PI / 2, 5);
+
+      const oldX = b.x;
+      stepBuddy(b, { x: 1, y: 0 }, 1 / 30);
+      expect(b.prevX).toBe(oldX);
+      expect(b.x).toBeGreaterThan(oldX);
+    });
+  });
 });
+

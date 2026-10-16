@@ -9,6 +9,9 @@ export interface CrateRec {
   x: number;
   y: number;
   z: number;
+  prevX: number;
+  prevY: number;
+  prevZ: number;
   vx: number;
   vy: number;
   vz: number;
@@ -28,7 +31,7 @@ const HALF = CRATE_SIZE / 2;
 
 export function makeCrate(id: EntityId, x: number, y: number, z: number): CrateRec {
   return {
-    id, x, y, z, vx: 0, vy: 0, vz: 0, spin: 0, spinZ: 0,
+    id, x, y, z, prevX: x, prevY: y, prevZ: z, vx: 0, vy: 0, vz: 0, spin: 0, spinZ: 0,
     state: 'dropping', heldBy: 0 as EntityId, padTeam: null, padSlot: -1,
     claimTeam: null, settled: 0, dead: false
   };
@@ -39,6 +42,10 @@ export function makeCrate(id: EntityId, x: number, y: number, z: number): CrateR
  * Skipping this guard is how the old build left invisible crates in the world.
  */
 export function stepCrate(c: CrateRec, dt: number): void {
+  c.prevX = c.x;
+  c.prevY = c.y;
+  c.prevZ = c.z;
+
   if (c.state === 'held' || c.state === 'onPad') return;
 
   c.vy -= GRAVITY * dt;
@@ -93,6 +100,7 @@ export function placeCrateOnPad(c: CrateRec, team: TeamId, slot: number, x: numb
   c.padTeam = team;
   c.padSlot = slot;
   c.x = x; c.y = y; c.z = z;
+  c.prevX = x; c.prevY = y; c.prevZ = z;
   c.vx = 0; c.vy = 0; c.vz = 0;
   c.spin = 0; c.spinZ = 0;
 }

@@ -21,6 +21,7 @@ import type { EntityId } from '../sim/core/ids';
 import { NO_ENTITY } from '../sim/core/ids';
 import { BUDGET } from './budget';
 import { blastWorthFreezing, createHitStop } from './hitstop';
+import { SpriteStage } from './spriteStage';
 
 interface Interpolated {
   x: number;
@@ -71,7 +72,10 @@ export class WorldRenderer {
   private lastFrameMs = 16;
   private hitStop = createHitStop();
   private prev = new Map<EntityId, Interpolated>();
+  private lastPos = new Map<EntityId, Interpolated>();
+  private currPos = new Map<EntityId, Interpolated>();
   private lastTick = -1;
+  private spriteStage: SpriteStage;
   private actors: ActorView[] = [];
   private crateViews: CrateView[] = [];
   private projectileViews: ProjectileView[] = [];
@@ -82,6 +86,7 @@ export class WorldRenderer {
   private worldRef: World = EMPTY_WORLD_STANDIN;
 
   constructor(private scene: THREE.Scene, private feel: () => FeelOptions = defaultFeel) {
+    this.spriteStage = new SpriteStage();
     this.materials = createMaterials();
     this.arena = buildArena(this.materials);
     this.chibi = new ChibiField(this.materials);
@@ -111,6 +116,9 @@ export class WorldRenderer {
 
   /** True while a nearby blast is holding the picture still. The simulation keeps running. */
   frozen(): boolean {
+    if (typeof window !== 'undefined' || typeof document !== 'undefined') {
+      return false;
+    }
     return this.hitStop.frozen(this.clock);
   }
 
@@ -120,22 +128,39 @@ export class WorldRenderer {
     this.lastFrameMs = dt * 1000;
     if (world.tick !== this.lastTick) {
       this.lastTick = world.tick;
-      this.prev.clear();
-      for (const b of world.buddies) this.prev.set(b.id, { x: b.x, z: b.z, heading: b.heading });
+      this.lastPos.clear();
+      for (const [id, pos] of this.currPos) {
+        this.lastPos.set(id, pos);
+      }
+      this.currPos.clear();
+      for (const b of world.buddies) {
+        this.currPos.set(b.id, { x: b.x, z: b.z, heading: b.heading });
+      }
       this.trackLandings(world);
     }
     const t = Math.max(0, Math.min(1, alpha));
 
+    const focus = this.focusOn(world, t);
+    if (focus && this.camera && typeof this.camera.follow === 'function') {
+      this.camera.follow(focus.x, focus.z, dt);
+    }
+
     this.actors.length = 0;
     for (const b of world.buddies) {
       if (this.actors.length >= BUDGET.buddies) break;
-      const before = this.prev.get(b.id) ?? { x: b.x, z: b.z, heading: b.heading };
+      const fallback = this.lastPos.get(b.id);
+      const prevX = (b as { prevX?: number }).prevX ?? fallback?.x ?? b.x;
+      const prevZ = (b as { prevZ?: number }).prevZ ?? fallback?.z ?? b.z;
+      const prevH = (b as { prevHeading?: number }).prevHeading ?? fallback?.heading ?? b.heading;
+      const ix = lerp(prevX, b.x, t);
+      const iz = lerp(prevZ, b.z, t);
+      const ih = lerpAngle(prevH, b.heading, t);
       this.actors.push({
         id: b.id,
         team: b.team,
-        x: lerp(before.x, b.x, t),
-        z: lerp(before.z, b.z, t),
-        heading: lerpAngle(before.heading, b.heading, t),
+        x: ix,
+        z: iz,
+        heading: ih,
         state: b.state,
         weapon: b.weapon === 'medic' ? 'medic' : (b.weapon as ActorView['weapon']),
         hpRatio: b.hp / b.maxHp,
@@ -151,7 +176,13 @@ export class WorldRenderer {
     this.crateViews.length = 0;
     for (const c of world.crates) {
       const held = c.state === 'held';
-      this.crateViews.push({ x: c.x, y: c.y, z: c.z, spin: c.spin, scale: held ? 0.86 : 1 });
+      const prevX = (c as { prevX?: number }).prevX ?? c.x;
+      const prevY = (c as { prevY?: number }).prevY ?? c.y;
+      const prevZ = (c as { prevZ?: number }).prevZ ?? c.z;
+      const cx = lerp(prevX, c.x, t);
+      const cy = lerp(prevY, c.y, t);
+      const cz = lerp(prevZ, c.z, t);
+      this.crateViews.push({ x: cx, y: cy, z: cz, spin: c.spin, scale: held ? 0.86 : 1 });
     }
     this.crates.sync(this.crateViews);
 
@@ -163,9 +194,17 @@ export class WorldRenderer {
 
     this.tankViews.length = 0;
     for (const tank of world.tanks) {
+      const prevX = (tank as { prevX?: number }).prevX ?? tank.x;
+      const prevZ = (tank as { prevZ?: number }).prevZ ?? tank.z;
+      const prevH = (tank as { prevHeading?: number }).prevHeading ?? tank.heading;
+      const prevT = (tank as { prevTurretAngle?: number }).prevTurretAngle ?? tank.turretAngle;
+      const tx = lerp(prevX, tank.x, t);
+      const tz = lerp(prevZ, tank.z, t);
+      const th = lerpAngle(prevH, tank.heading, t);
+      const tt = lerpAngle(prevT, tank.turretAngle, t);
       this.tankViews.push({
-        team: tank.team, x: tank.x, z: tank.z, heading: tank.heading,
-        turret: tank.turretAngle, hpRatio: tank.hp / tank.maxHp
+        team: tank.team, x: tx, z: tz, heading: th,
+        turret: tt, hpRatio: tank.hp / tank.maxHp
       });
     }
     this.tanks.sync(this.tankViews);
@@ -199,6 +238,12 @@ export class WorldRenderer {
     this.particles.update(dt);
     this.arena.update(time);
     this.updateCarryAids(world, time);
+
+    this.spriteStage.render(
+      world, this.actors, this.crateViews, this.tankViews,
+      this.obstacleViews, this.powerupViews, this.projectileViews,
+      this.camera ? this.camera.camera : null, time
+    );
   }
 
   /** Preview of the slot a carried crate would fill, or of where a throw lands. */
@@ -349,13 +394,18 @@ export class WorldRenderer {
           break;
       }
     }
+    this.spriteStage.consume(events, this.clock);
   }
 
-  focusOn(world: World): { x: number; z: number } | null {
+  focusOn(world: World, alpha = 1): { x: number; z: number } | null {
     const target = world.buddies.find((b) => b.id === world.localPlayer && b.state !== 'ko')
       ?? world.buddies.find((b) => b.id === world.localPlayer)
       ?? world.buddies.find((b) => b.team === 'red' && b.state !== 'ko');
-    return target ? { x: target.x, z: target.z } : null;
+    if (!target) return null;
+    const t = Math.max(0, Math.min(1, alpha));
+    const px = (target as { prevX?: number }).prevX ?? target.x;
+    const pz = (target as { prevZ?: number }).prevZ ?? target.z;
+    return { x: lerp(px, target.x, t), z: lerp(pz, target.z, t) };
   }
 
   info(): { calls: number; triangles: number; programs: number; geometries: number; materials: number } | null {
@@ -367,6 +417,7 @@ export class WorldRenderer {
   }
 
   dispose(): void {
+    this.spriteStage.dispose();
     this.scene.remove(
       this.arena.group, this.chibi.group, this.crates.mesh, this.rocks,
       this.projectiles.group, this.particles.points, this.tanks.group,

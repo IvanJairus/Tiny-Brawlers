@@ -42,7 +42,7 @@ export class IsoCamera {
 
   follow(x: number, z: number, dt: number): void {
     this.target.set(x, 0, z);
-    const lerp = Math.min(1, dt * 5.5);
+    const lerp = Math.min(1, dt * 14);
     this.smoothed.lerp(this.target, lerp);
 
     const distance = NEAR.distance + (FAR.distance - NEAR.distance) * this.zoom;

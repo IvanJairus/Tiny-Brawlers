@@ -174,6 +174,7 @@ export function botInput(w: World, me: BuddyRec, memory: BotMemory, seq: number)
       raw.moveX = 0;
       raw.moveY = 0;
       raw.build = evaluatePad(mask).id !== 'empty';
+      if (w.clock < 5.0) raw.build = false;
       return raw;
     }
 
@@ -197,6 +198,7 @@ export function botInput(w: World, me: BuddyRec, memory: BotMemory, seq: number)
     const origin = padOrigin(me.team);
     steer(me, origin, raw, 0.9);
     if (distance(me, origin) < 3.2) raw.build = true;
+    if (w.clock < 5.0) raw.build = false;
     return raw;
   }
 

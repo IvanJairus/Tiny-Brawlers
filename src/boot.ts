@@ -19,6 +19,7 @@ import { createKeyboard } from './platform/input/keyboard';
 import { createTouch } from './platform/input/touch';
 import { createMachine, isTicking, type MachineEvent } from './ui/shell/machine';
 import { createRouter } from './ui/shell/router';
+import { openTutorialModal } from './ui/shell/screens';
 import { buildHud } from './ui/hud/bind';
 import { createHudStore } from './ui/hud/store';
 import { projectView, type ViewState } from './sim/core/view';
@@ -210,6 +211,17 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
   hud.onAction('zoomIn', () => camera.nudgeZoom(-0.2));
   hud.onAction('zoomOut', () => camera.nudgeZoom(0.2));
   hud.onAction('restart', () => { if (machine.can('again')) machine.send('again'); });
+  const toggleTutorial = (): void => {
+    openTutorialModal(uiHost);
+  };
+  hud.onAction('help', toggleTutorial);
+
+  const onKeyHelp = (event: KeyboardEvent): void => {
+    if (event.code === 'KeyH' || event.key === '?') {
+      toggleTutorial();
+    }
+  };
+  window.addEventListener('keydown', onKeyHelp);
 
   const onPointerUp = (): void => {
     touchPressed.grab = false;
@@ -428,6 +440,7 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
 
   return () => {
     running = false;
+    window.removeEventListener('keydown', onKeyHelp);
     unsubMachine();
     keyboard.detach();
     touch.detach();

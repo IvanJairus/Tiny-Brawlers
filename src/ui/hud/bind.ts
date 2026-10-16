@@ -2,7 +2,7 @@ import type { ViewState } from '../../sim/core/view';
 import { TEAM_COLORS, TEAM_IDS, type TeamId } from '../../sim/domain/teams';
 import { T } from '../i18n/id';
 
-export type HudAction = 'grab' | 'shoot' | 'build' | 'pause' | 'restart' | 'menu' | 'zoomIn' | 'zoomOut';
+export type HudAction = 'grab' | 'shoot' | 'build' | 'pause' | 'restart' | 'menu' | 'zoomIn' | 'zoomOut' | 'help';
 
 export interface HudBindings {
   root: HTMLElement;
@@ -15,16 +15,29 @@ export interface HudBindings {
   dispose(): void;
 }
 
+function getPadRecipeImage(title: string): string {
+  if (title.includes('Pistol')) return 'assets/tumpukan/tumpukan_resep_pistol.svg';
+  if (title.includes('Shotgun')) return 'assets/tumpukan/tumpukan_1x2_senjata.svg';
+  if (title.includes('Granat')) return 'assets/tumpukan/tumpukan_resep_granat.svg';
+  if (title.includes('Medic Buddy')) return 'assets/tumpukan/tumpukan_resep_buddy_baru_merah.svg';
+  if (title.includes('Medkit') || title.includes('Syringe')) return 'assets/tumpukan/tumpukan_resep_kotak_medis.svg';
+  if (title.includes('Bazooka') || title.includes('Bazoka')) return 'assets/tumpukan/tumpukan_resep_bazoka.svg';
+  if (title.includes('Commando') || title.includes('Sniper')) return 'assets/tumpukan/tumpukan_resep_sniper.svg';
+  if (title.includes('Tank')) return 'assets/tumpukan/tumpukan_resep_tank.svg';
+  return 'assets/tumpukan/tumpukan_slot_2x2.svg';
+}
+
 const HUD_TEMPLATE = `
 <div class="hud-top">
   <section class="card card-player" data-part="playerCard">
     <header><span data-part="teamName" class="team-name"></span><span data-part="clsName" class="cls-name"></span></header>
     <div class="bar"><div class="bar-fill" data-part="hpFill"></div></div>
     <footer><span data-part="hpText"></span><span data-part="weaponText"></span><div class="buff-strip" data-part="buffStrip"></div></footer>
+    <div class="hud-shortcuts" data-part="shortcutsStrip"><span class="shortcut-item"><b>[Klik Kiri/Spasi]</b> Pukul/Tembak</span><span class="shortcut-sep">|</span><span class="shortcut-item"><b>[Klik Kanan/E]</b> Peti</span><span class="shortcut-sep">|</span><span class="shortcut-item"><b>[R]</b> Rakit</span><span class="shortcut-sep">|</span><span class="shortcut-item"><b>[H/?]</b> Resep</span></div>
   </section>
   <section class="card card-scoreboard" data-part="scoreboard"></section>
   <section class="card card-pad" data-part="padCard">
-    <div class="pad-head"><span data-part="padTitle"></span><span class="pill" data-part="padCategory"></span></div>
+    <div class="pad-head"><img class="pad-recipe-preview" data-part="padPreview" src="assets/tumpukan/tumpukan_slot_2x2.svg" alt="" /><span data-part="padTitle"></span><span class="pill" data-part="padCategory"></span></div>
     <div class="pad-slots" data-part="padSlots"></div>
     <div class="pad-foot"><span data-part="padDps"></span><span data-part="padTotal"></span></div>
     <button class="btn btn-build" data-action="build" type="button"></button>
@@ -39,7 +52,10 @@ const HUD_TEMPLATE = `
     </div>
     <button class="btn btn-round btn-grab" data-action="grab" type="button"><span data-part="grabLabel"></span></button>
     <button class="btn btn-round btn-shoot" data-action="shoot" type="button"><span data-part="shootLabel"></span></button>
-    <button class="btn btn-icon" data-part="pauseButton" data-action="pause" type="button">II</button>
+    <div class="menu-pair">
+      <button class="btn btn-icon btn-help" data-part="helpButton" data-action="help" type="button" tabindex="-1" title="Panduan & Resep (H)">?</button>
+      <button class="btn btn-icon" data-part="pauseButton" data-action="pause" type="button">II</button>
+    </div>
   </div>
 </div>
 <p class="sr-only" data-part="announce" aria-live="polite" aria-atomic="true"></p>
@@ -108,6 +124,7 @@ export function buildHud(doc: Document): HudBindings {
   nodes.shootLabel.textContent = T.shoot;
   nodes.zoomInButton.setAttribute('aria-label', T.hudZoomIn);
   nodes.zoomOutButton.setAttribute('aria-label', T.hudZoomOut);
+  if (nodes.helpButton) nodes.helpButton.setAttribute('aria-label', T.tutorial);
   nodes.padCard.classList.add('is-hidden');
 
   const pauseButton = nodes.pauseButton as HTMLButtonElement;
@@ -203,7 +220,10 @@ export function buildHud(doc: Document): HudBindings {
       const showPad = view.pad.nearPad;
       write('padVisible', showPad, () => nodes.padCard.classList.toggle('is-hidden', !showPad));
       if (showPad) {
-        write('padTitle', view.pad.title, () => { nodes.padTitle.textContent = view.pad.title; });
+        write('padTitle', view.pad.title, () => {
+          nodes.padTitle.textContent = view.pad.title;
+          if (nodes.padPreview) nodes.padPreview.setAttribute('src', getPadRecipeImage(view.pad.title));
+        });
         write('padCategory', view.pad.category, () => { nodes.padCategory.textContent = view.pad.category; });
         write('padDps', view.pad.dps, () => { nodes.padDps.textContent = `${view.pad.dps} DPS`; });
         write('padTotal', view.pad.total, () => { nodes.padTotal.textContent = `${view.pad.total}/8 ${T.cratesLabel}`; });

@@ -1,0 +1,362 @@
+{
+ "tumpukan_1x1_biasa": {
+  "x": 0.5,
+  "y": 0.703
+ },
+ "tumpukan_1x2_biasa": {
+  "x": 0.5,
+  "y": 0.667
+ },
+ "tumpukan_1x3_biasa": {
+  "x": 0.5,
+  "y": 0.642
+ },
+ "tumpukan_1x4_biasa": {
+  "x": 0.5,
+  "y": 0.623
+ },
+ "tumpukan_2x1_biasa": {
+  "x": 0.5,
+  "y": 0.667
+ },
+ "tumpukan_2x2_biasa": {
+  "x": 0.5,
+  "y": 0.642
+ },
+ "tumpukan_2x3_biasa": {
+  "x": 0.5,
+  "y": 0.623
+ },
+ "tumpukan_2x4_biasa": {
+  "x": 0.5,
+  "y": 0.609
+ },
+ "tumpukan_1x1_senjata": {
+  "x": 0.5,
+  "y": 0.703
+ },
+ "tumpukan_1x2_senjata": {
+  "x": 0.5,
+  "y": 0.667
+ },
+ "tumpukan_1x3_senjata": {
+  "x": 0.5,
+  "y": 0.642
+ },
+ "tumpukan_1x4_senjata": {
+  "x": 0.5,
+  "y": 0.623
+ },
+ "tumpukan_2x1_senjata": {
+  "x": 0.5,
+  "y": 0.667
+ },
+ "tumpukan_2x2_senjata": {
+  "x": 0.5,
+  "y": 0.642
+ },
+ "tumpukan_2x3_senjata": {
+  "x": 0.5,
+  "y": 0.623
+ },
+ "tumpukan_2x4_senjata": {
+  "x": 0.5,
+  "y": 0.609
+ },
+ "tumpukan_1x1_utilitas": {
+  "x": 0.5,
+  "y": 0.703
+ },
+ "tumpukan_1x2_utilitas": {
+  "x": 0.5,
+  "y": 0.667
+ },
+ "tumpukan_1x3_utilitas": {
+  "x": 0.5,
+  "y": 0.642
+ },
+ "tumpukan_1x4_utilitas": {
+  "x": 0.5,
+  "y": 0.623
+ },
+ "tumpukan_2x1_utilitas": {
+  "x": 0.5,
+  "y": 0.667
+ },
+ "tumpukan_2x2_utilitas": {
+  "x": 0.5,
+  "y": 0.642
+ },
+ "tumpukan_2x3_utilitas": {
+  "x": 0.5,
+  "y": 0.623
+ },
+ "tumpukan_2x4_utilitas": {
+  "x": 0.5,
+  "y": 0.609
+ },
+ "tumpukan_1x1_buddy_merah": {
+  "x": 0.5,
+  "y": 0.703
+ },
+ "tumpukan_1x2_buddy_merah": {
+  "x": 0.5,
+  "y": 0.667
+ },
+ "tumpukan_1x3_buddy_merah": {
+  "x": 0.5,
+  "y": 0.642
+ },
+ "tumpukan_1x4_buddy_merah": {
+  "x": 0.5,
+  "y": 0.623
+ },
+ "tumpukan_2x1_buddy_merah": {
+  "x": 0.5,
+  "y": 0.667
+ },
+ "tumpukan_2x2_buddy_merah": {
+  "x": 0.5,
+  "y": 0.642
+ },
+ "tumpukan_2x3_buddy_merah": {
+  "x": 0.5,
+  "y": 0.623
+ },
+ "tumpukan_2x4_buddy_merah": {
+  "x": 0.5,
+  "y": 0.609
+ },
+ "tumpukan_1x1_buddy_biru": {
+  "x": 0.5,
+  "y": 0.703
+ },
+ "tumpukan_1x2_buddy_biru": {
+  "x": 0.5,
+  "y": 0.667
+ },
+ "tumpukan_1x3_buddy_biru": {
+  "x": 0.5,
+  "y": 0.642
+ },
+ "tumpukan_1x4_buddy_biru": {
+  "x": 0.5,
+  "y": 0.623
+ },
+ "tumpukan_2x1_buddy_biru": {
+  "x": 0.5,
+  "y": 0.667
+ },
+ "tumpukan_2x2_buddy_biru": {
+  "x": 0.5,
+  "y": 0.642
+ },
+ "tumpukan_2x3_buddy_biru": {
+  "x": 0.5,
+  "y": 0.623
+ },
+ "tumpukan_2x4_buddy_biru": {
+  "x": 0.5,
+  "y": 0.609
+ },
+ "tumpukan_1x1_buddy_hijau": {
+  "x": 0.5,
+  "y": 0.703
+ },
+ "tumpukan_1x2_buddy_hijau": {
+  "x": 0.5,
+  "y": 0.667
+ },
+ "tumpukan_1x3_buddy_hijau": {
+  "x": 0.5,
+  "y": 0.642
+ },
+ "tumpukan_1x4_buddy_hijau": {
+  "x": 0.5,
+  "y": 0.623
+ },
+ "tumpukan_2x1_buddy_hijau": {
+  "x": 0.5,
+  "y": 0.667
+ },
+ "tumpukan_2x2_buddy_hijau": {
+  "x": 0.5,
+  "y": 0.642
+ },
+ "tumpukan_2x3_buddy_hijau": {
+  "x": 0.5,
+  "y": 0.623
+ },
+ "tumpukan_2x4_buddy_hijau": {
+  "x": 0.5,
+  "y": 0.609
+ },
+ "tumpukan_1x1_buddy_kuning": {
+  "x": 0.5,
+  "y": 0.703
+ },
+ "tumpukan_1x2_buddy_kuning": {
+  "x": 0.5,
+  "y": 0.667
+ },
+ "tumpukan_1x3_buddy_kuning": {
+  "x": 0.5,
+  "y": 0.642
+ },
+ "tumpukan_1x4_buddy_kuning": {
+  "x": 0.5,
+  "y": 0.623
+ },
+ "tumpukan_2x1_buddy_kuning": {
+  "x": 0.5,
+  "y": 0.667
+ },
+ "tumpukan_2x2_buddy_kuning": {
+  "x": 0.5,
+  "y": 0.642
+ },
+ "tumpukan_2x3_buddy_kuning": {
+  "x": 0.5,
+  "y": 0.623
+ },
+ "tumpukan_2x4_buddy_kuning": {
+  "x": 0.5,
+  "y": 0.609
+ },
+ "tumpukan_1x1_warp": {
+  "x": 0.5,
+  "y": 0.703
+ },
+ "tumpukan_1x2_warp": {
+  "x": 0.5,
+  "y": 0.667
+ },
+ "tumpukan_1x3_warp": {
+  "x": 0.5,
+  "y": 0.642
+ },
+ "tumpukan_1x4_warp": {
+  "x": 0.5,
+  "y": 0.623
+ },
+ "tumpukan_2x1_warp": {
+  "x": 0.5,
+  "y": 0.667
+ },
+ "tumpukan_2x2_warp": {
+  "x": 0.5,
+  "y": 0.642
+ },
+ "tumpukan_2x3_warp": {
+  "x": 0.5,
+  "y": 0.623
+ },
+ "tumpukan_2x4_warp": {
+  "x": 0.5,
+  "y": 0.609
+ },
+ "tumpukan_1x1_emas": {
+  "x": 0.5,
+  "y": 0.703
+ },
+ "tumpukan_1x2_emas": {
+  "x": 0.5,
+  "y": 0.667
+ },
+ "tumpukan_1x3_emas": {
+  "x": 0.5,
+  "y": 0.642
+ },
+ "tumpukan_1x4_emas": {
+  "x": 0.5,
+  "y": 0.623
+ },
+ "tumpukan_2x1_emas": {
+  "x": 0.5,
+  "y": 0.667
+ },
+ "tumpukan_2x2_emas": {
+  "x": 0.5,
+  "y": 0.642
+ },
+ "tumpukan_2x3_emas": {
+  "x": 0.5,
+  "y": 0.623
+ },
+ "tumpukan_2x4_emas": {
+  "x": 0.5,
+  "y": 0.609
+ },
+ "tumpukan_slot_1x1": {
+  "x": 0.5,
+  "y": 0.703
+ },
+ "tumpukan_slot_1x2": {
+  "x": 0.5,
+  "y": 0.667
+ },
+ "tumpukan_slot_1x3": {
+  "x": 0.5,
+  "y": 0.642
+ },
+ "tumpukan_slot_1x4": {
+  "x": 0.5,
+  "y": 0.623
+ },
+ "tumpukan_slot_2x1": {
+  "x": 0.5,
+  "y": 0.667
+ },
+ "tumpukan_slot_2x2": {
+  "x": 0.5,
+  "y": 0.642
+ },
+ "tumpukan_slot_2x3": {
+  "x": 0.5,
+  "y": 0.623
+ },
+ "tumpukan_slot_2x4": {
+  "x": 0.5,
+  "y": 0.609
+ },
+ "tumpukan_resep_pistol": {
+  "x": 0.5,
+  "y": 0.667
+ },
+ "tumpukan_resep_granat": {
+  "x": 0.5,
+  "y": 0.667
+ },
+ "tumpukan_resep_kotak_medis": {
+  "x": 0.5,
+  "y": 0.667
+ },
+ "tumpukan_resep_bazoka": {
+  "x": 0.5,
+  "y": 0.642
+ },
+ "tumpukan_resep_sniper": {
+  "x": 0.5,
+  "y": 0.642
+ },
+ "tumpukan_resep_buddy_baru_merah": {
+  "x": 0.5,
+  "y": 0.667
+ },
+ "tumpukan_resep_buddy_baru_biru": {
+  "x": 0.5,
+  "y": 0.667
+ },
+ "tumpukan_resep_buddy_baru_hijau": {
+  "x": 0.5,
+  "y": 0.667
+ },
+ "tumpukan_resep_buddy_baru_kuning": {
+  "x": 0.5,
+  "y": 0.667
+ },
+ "tumpukan_resep_tank": {
+  "x": 0.5,
+  "y": 0.609
+ }
+}

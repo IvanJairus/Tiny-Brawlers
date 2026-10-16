@@ -99,13 +99,12 @@ export function createWorld(config: WorldConfig): World {
 }
 
 export function seedInitialCrates(w: World, count = CRATE_INITIAL_COUNT): void {
-  const ringAngles = [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2, Math.PI / 4, (3 * Math.PI) / 4, (5 * Math.PI) / 4, (7 * Math.PI) / 4];
   for (let i = 0; i < count; i++) {
-    const isPocket = i >= 8;
-    const angle = isPocket
-      ? ((i - 8) * Math.PI) / 3 + 0.35
-      : ringAngles[i % ringAngles.length] + 0.18;
-    const radius = isPocket ? 12.2 : 3.2 + (i % 2) * 1.6;
+    const ring = i < 6 ? 0 : 1;
+    const idxInRing = ring === 0 ? i : i - 6;
+    const totalInRing = ring === 0 ? 6 : Math.max(1, count - 6);
+    const angle = (idxInRing * Math.PI * 2) / totalInRing + (ring === 0 ? 0.15 : 0.52);
+    const radius = ring === 0 ? 2.1 : 4.2;
     const x = Math.cos(angle) * radius;
     const z = Math.sin(angle) * radius;
     const crate = makeCrate(w.ids.alloc(), x, 0.45, z);

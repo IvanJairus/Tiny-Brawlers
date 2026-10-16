@@ -100,7 +100,13 @@ export const T = {
   leaveNo: 'Lanjut Main',
   hudExit: 'Keluar',
   hudZoomIn: 'Dekatkan kamera',
-  hudZoomOut: 'Jauhkan kamera'
+  hudZoomOut: 'Jauhkan kamera',
+  tutorial: 'Panduan & Buku Resep',
+  tutorialTitle: 'Panduan Main & Buku Resep Stacking Pad',
+  closeTutorial: 'Tutup [X]',
+  tabControls: '1. Shortcut & Kontrol',
+  tabRecipes: '2. Buku Resep Senjata & Unit',
+  tabArena: '3. Arena & Power-Up'
 } as const;
 
 export type CopyKey = keyof typeof T;

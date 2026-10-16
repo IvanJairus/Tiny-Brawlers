@@ -323,7 +323,8 @@ export function applySnapshot(world: World, snapshot: Snapshot): void {
   world.buddies.length = 0;
   for (const b of snapshot.buddies) {
     world.buddies.push({
-      id: b.id, team: b.team, cls: b.cls, x: b.x, z: b.z, vx: 0, vz: 0, heading: b.heading,
+      id: b.id, team: b.team, cls: b.cls, x: b.x, z: b.z, prevX: b.x, prevZ: b.z,
+      vx: 0, vz: 0, heading: b.heading, prevHeading: b.heading,
       hp: b.hp, maxHp: b.maxHp, state: b.state, weapon: b.weapon,
       grenades: b.grenades, rockets: b.rockets, medkits: b.medkits,
       carryCrate: b.carryCrate, koTimer: 0, fireCooldown: 0, invuln: 0,
@@ -335,7 +336,8 @@ export function applySnapshot(world: World, snapshot: Snapshot): void {
   world.crates.length = 0;
   for (const c of snapshot.crates) {
     world.crates.push({
-      id: c.id, x: c.x, y: c.y, z: c.z, vx: 0, vy: 0, vz: 0, spin: c.spin, spinZ: 0,
+      id: c.id, x: c.x, y: c.y, z: c.z, prevX: c.x, prevY: c.y, prevZ: c.z,
+      vx: 0, vy: 0, vz: 0, spin: c.spin, spinZ: 0,
       state: c.state, heldBy: c.heldBy, padTeam: c.padTeam, padSlot: c.padSlot,
       claimTeam: null, settled: 0, dead: false
     });
@@ -353,7 +355,9 @@ export function applySnapshot(world: World, snapshot: Snapshot): void {
   world.tanks.length = 0;
   for (const t of snapshot.tanks) {
     world.tanks.push({
-      id: t.id, team: t.team, x: t.x, z: t.z, heading: t.heading, turretAngle: t.turret,
+      id: t.id, team: t.team, x: t.x, z: t.z, prevX: t.x, prevZ: t.z,
+      heading: t.heading, prevHeading: t.heading,
+      turretAngle: t.turret, prevTurretAngle: t.turret,
       hp: t.hp, maxHp: 600, driver: t.driver, fireCooldown: 0, destroyed: t.hp <= 0
     });
   }

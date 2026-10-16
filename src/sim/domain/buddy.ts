@@ -12,6 +12,9 @@ export interface BuddyRec {
   cls: BuddyClass;
   x: number;
   z: number;
+  prevX: number;
+  prevZ: number;
+  prevHeading: number;
   vx: number;
   vz: number;
   heading: number;
@@ -42,7 +45,7 @@ export function makeBuddy(
 ): BuddyRec {
   const stats = CLASS_STATS[cls];
   return {
-    id, team, cls, x, z, vx: 0, vz: 0, heading: 0,
+    id, team, cls, x, z, prevX: x, prevZ: z, prevHeading: 0, vx: 0, vz: 0, heading: 0,
     hp: stats.maxHp, maxHp: stats.maxHp,
     state: 'idle', weapon: 'none', grenades: 0, rockets: 0, medkits: 0,
     carryCrate: 0 as EntityId, koTimer: 0, fireCooldown: 0, invuln: 0,
@@ -62,6 +65,10 @@ export function speedOf(b: BuddyRec): number {
  * ground plane, which is what both the keyboard and the stick produce.
  */
 export function stepBuddy(b: BuddyRec, move: { x: number; y: number }, dt: number): void {
+  b.prevX = b.x;
+  b.prevZ = b.z;
+  b.prevHeading = b.heading;
+
   if (b.invuln > 0) b.invuln = Math.max(0, b.invuln - dt);
   if (b.fireCooldown > 0) b.fireCooldown = Math.max(0, b.fireCooldown - dt);
   if (b.meleeTimer > 0) b.meleeTimer = Math.max(0, b.meleeTimer - dt);

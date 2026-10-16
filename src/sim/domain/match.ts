@@ -99,6 +99,8 @@ export function tickRespawns(w: World, dt: number): void {
     const base = BASE_COORDINATES[b.team];
     b.x = base.x * 0.74 + w.rngWorld.float(-2, 2);
     b.z = base.z * 0.74 + w.rngWorld.float(-2, 2);
+    b.prevX = b.x;
+    b.prevZ = b.z;
     b.hp = CLASS_STATS[b.cls].maxHp;
     b.maxHp = CLASS_STATS[b.cls].maxHp;
     b.state = 'idle';

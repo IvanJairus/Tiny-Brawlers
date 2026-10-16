@@ -1,7 +1,7 @@
 export const BUDGET = {
   drawCalls: 60,
   materials: 12,
-  geometries: 30,
+  geometries: 36,
   triangles: 45000,
   glPrograms: 12,
   particles: 512,
