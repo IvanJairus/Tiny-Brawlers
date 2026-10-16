@@ -4,8 +4,8 @@ export interface CameraOptions {
   reducedMotion?: boolean;
 }
 
-const NEAR = { distance: 11.5, height: 9.5 };
-const FAR = { distance: 32, height: 27 };
+const NEAR = { distance: 7.2, height: 6.0 };
+const FAR = { distance: 16.0, height: 13.5 };
 
 /**
  * Action-isometric: the character stays readable up close and the camera pulls
@@ -25,6 +25,15 @@ export class IsoCamera {
     this.camera = new THREE.PerspectiveCamera(46, aspect, 0.5, 300);
     this.camera.position.set(0, NEAR.height, NEAR.distance);
     this.smoothed.set(0, 0, 0);
+  }
+
+  teleport(x: number, z: number): void {
+    this.target.set(x, 0, z);
+    this.smoothed.set(x, 0, z);
+    const distance = NEAR.distance + (FAR.distance - NEAR.distance) * this.zoom;
+    const height = NEAR.height + (FAR.height - NEAR.height) * this.zoom;
+    this.camera.position.set(x, height, z + distance);
+    this.camera.lookAt(x, 1.1 + this.zoom * 1.4, z);
   }
 
   setZoom(value: number): void {

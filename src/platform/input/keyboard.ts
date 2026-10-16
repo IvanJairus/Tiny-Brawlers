@@ -23,8 +23,13 @@ export function createKeyboard(
   let mouseGrab = false;
 
   const onKeyDown = (event: KeyboardEvent): void => {
-    if (MOVE_KEYS.has(event.code)) down.add(event.code);
-    if (event.code === 'Space' || event.code === 'KeyF' || event.code === 'KeyE' || event.code === 'KeyR' || event.code === 'KeyQ') {
+    down.add(event.code);
+    if (event.key) down.add(event.key.toLowerCase());
+    if (
+      event.code === 'Space' || event.code === 'KeyF' || event.code === 'KeyE' ||
+      event.code === 'KeyR' || event.code === 'KeyQ' ||
+      event.key === ' ' || event.key === 'f' || event.key === 'e' || event.key === 'r' || event.key === 'q'
+    ) {
       event.preventDefault();
     }
     if (event.code === 'Equal' || event.code === 'NumpadAdd') onZoom(-ZOOM_STEP);
@@ -32,6 +37,7 @@ export function createKeyboard(
   };
   const onKeyUp = (event: KeyboardEvent): void => {
     down.delete(event.code);
+    if (event.key) down.delete(event.key.toLowerCase());
   };
   const onMouseDown = (event: MouseEvent): void => {
     if (event.target instanceof HTMLElement && event.target.tagName === 'CANVAS') {
@@ -74,19 +80,19 @@ export function createKeyboard(
     read(): RawAxes {
       let x = 0;
       let y = 0;
-      if (down.has('KeyW') || down.has('ArrowUp')) y -= 1;
-      if (down.has('KeyS') || down.has('ArrowDown')) y += 1;
-      if (down.has('KeyA') || down.has('ArrowLeft')) x -= 1;
-      if (down.has('KeyD') || down.has('ArrowRight')) x += 1;
+      if (down.has('KeyW') || down.has('ArrowUp') || down.has('w')) y -= 1;
+      if (down.has('KeyS') || down.has('ArrowDown') || down.has('s')) y += 1;
+      if (down.has('KeyA') || down.has('ArrowLeft') || down.has('a')) x -= 1;
+      if (down.has('KeyD') || down.has('ArrowRight') || down.has('d')) x += 1;
       const len = Math.hypot(x, y) || 1;
       return {
         moveX: x / (x && y ? Math.SQRT2 : 1),
         moveY: y / (x && y ? Math.SQRT2 : 1),
         aimX: len > 0 ? x / len : 0,
         aimY: len > 0 ? y / len : 0,
-        attack: down.has('Space') || down.has('KeyF') || mouseAttack,
-        grab: down.has('KeyE') || mouseGrab,
-        build: down.has('KeyR') || down.has('KeyQ'),
+        attack: down.has('Space') || down.has('KeyF') || down.has('f') || down.has(' ') || mouseAttack,
+        grab: down.has('KeyE') || down.has('e') || mouseGrab,
+        build: down.has('KeyR') || down.has('KeyQ') || down.has('r') || down.has('q'),
         zoom: 0
       };
     }

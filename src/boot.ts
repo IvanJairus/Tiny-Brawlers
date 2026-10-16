@@ -104,6 +104,8 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
     stats.built = 0;
     stats.knockouts = 0;
     stats.cratesDelivered = 0;
+    const focus = renderer.focusOn(session.world, 1);
+    if (focus) camera.teleport(focus.x, focus.z);
     return session.world;
   }
 
@@ -111,6 +113,8 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
   renderer.setBiome(settings.biome);
   let netLink: NetLink | null = null;
   let world = session.world;
+  const initFocus = renderer.focusOn(world, 1);
+  if (initFocus) camera.teleport(initFocus.x, initFocus.z);
   let view = projectView(world, stats);
   store.set(view);
 
@@ -334,9 +338,6 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
       world = session.world;
       if (machine.can('loaded')) machine.send('loaded');
     }
-
-    const focus = renderer.focusOn(world);
-    if (focus) camera.follow(focus.x, focus.z, Math.min(0.1, elapsed / 1000));
 
     renderer.sync(world, stepper.alpha(), now / 1000, Math.min(0.1, elapsed / 1000));
     const frameEvents = drainEvents(world.events);

@@ -145,7 +145,7 @@ function driveBots(w: World): void {
 }
 
 function nearOwnPad(b: BuddyRec, w: World): boolean {
-  return distance(b, padOrigin(b.team)) < PAD.halfWidth + 1.3;
+  return distance(b, padOrigin(b.team)) < PAD.halfWidth + 2.5;
 }
 
 function handleGrab(w: World, b: BuddyRec, cmd: typeof EMPTY_INPUT, prev: typeof EMPTY_INPUT): void {
@@ -158,7 +158,8 @@ function handleGrab(w: World, b: BuddyRec, cmd: typeof EMPTY_INPUT, prev: typeof
       return;
     }
     const mask = w.pads[b.team];
-    const slot = nearOwnPad(b, w) ? findBestSlot(mask, b.team, b.x, b.z) : -1;
+    const isNearPad = nearOwnPad(b, w);
+    const slot = isNearPad ? findBestSlot(mask, b.team, b.x, b.z) : -1;
     if (slot >= 0) {
       const next = setSlot(mask, slot, true);
       if (next !== mask) {
@@ -180,16 +181,25 @@ function handleGrab(w: World, b: BuddyRec, cmd: typeof EMPTY_INPUT, prev: typeof
     return;
   }
 
-  const mountable = w.tanks.find((t) => t.team === b.team && !t.destroyed && t.driver === (NO_ENTITY as EntityId) && distance(b, t) < 2.4);
+  const mountable = w.tanks.find((t) => t.team === b.team && !t.destroyed && t.driver === (NO_ENTITY as EntityId) && distance(b, t) < 2.8);
   if (mountable) {
     mountable.driver = b.id;
     emit(w, { kind: 'pickup', entity: mountable.id, buddy: b.id, at: { x: b.x, z: b.z } });
     return;
   }
 
+  const dirX = Math.sin(b.heading);
+  const dirZ = Math.cos(b.heading);
   const target = w.crates
-    .filter((c) => (c.state === 'loose' || c.state === 'dropping') && c.settled > 0.2 && distance(b, c) < 1.5)
-    .sort((x, y) => distance(b, x) - distance(b, y))[0];
+    .filter((c) => (c.state === 'loose' || c.state === 'dropping') && c.settled > 0.05 && distance(b, c) < 2.8)
+    .sort((x, y) => {
+      const dx1 = x.x - b.x; const dz1 = x.z - b.z;
+      const dx2 = y.x - b.x; const dz2 = y.z - b.z;
+      const d1 = Math.hypot(dx1, dz1); const d2 = Math.hypot(dx2, dz2);
+      const dot1 = d1 > 0.01 ? (dx1 * dirX + dz1 * dirZ) / d1 : 1;
+      const dot2 = d2 > 0.01 ? (dx2 * dirX + dz2 * dirZ) / d2 : 1;
+      return (d1 - dot1 * 0.8) - (d2 - dot2 * 0.8);
+    })[0];
   if (!target) return;
   attachCrateToBuddy(target, b.id);
   target.y = CARRY_HEIGHT;

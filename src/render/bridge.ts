@@ -257,7 +257,7 @@ export class WorldRenderer {
     }
 
     const origin = padOrigin(me.team);
-    const slot = distance(me, origin) < PAD.halfWidth + 1.3
+    const slot = distance(me, origin) < PAD.halfWidth + 2.5
       ? findBestSlot(world.pads[me.team], me.team, me.x, me.z)
       : -1;
     if (slot >= 0) {
