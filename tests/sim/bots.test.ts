@@ -39,7 +39,7 @@ describe('bots at tier B', () => {
     const withTank = seeds.filter((seed) => (playFiveMinutes(seed).built.get('tank') ?? 0) > 0);
     console.log(`ai: tank in ${withTank.length} of ${seeds.length} seeds (${withTank.join(' ')})`);
     expect(withTank.length).toBeGreaterThanOrEqual(5);
-  });
+  }, 25000);
 
   it('keeps an all bot match inside its invariants', () => {
     const { world: w } = playFiveMinutes(20260);

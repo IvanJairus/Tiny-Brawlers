@@ -112,11 +112,23 @@ function nearestEnemy(w: World, me: BuddyRec): BuddyRec | null {
 
 function nearestLooseCrate(w: World, me: BuddyRec): CrateRec | null {
   let best: CrateRec | null = null;
-  let bestD = Infinity;
+  let bestScore = Infinity;
+  const pad = padOrigin(me.team);
   for (const c of w.crates) {
     if (c.state !== 'loose' && !(c.state === 'thrown' && c.settled > 0.3)) continue;
     const d = distance(me, c);
-    if (d < bestD) { bestD = d; best = c; }
+    let score = d + distance(c, pad) * 0.35;
+    for (const ally of w.buddies) {
+      if (ally.team === me.team && ally.id !== me.id && ally.state !== 'ko' && ally.carryCrate === (0 as EntityId)) {
+        if (distance(ally, c) < d * 0.85) {
+          score += 5.0;
+        }
+      }
+    }
+    if (score < bestScore) {
+      bestScore = score;
+      best = c;
+    }
   }
   return best;
 }
@@ -139,7 +151,8 @@ export function botInput(w: World, me: BuddyRec, memory: BotMemory, seq: number)
     return raw;
   }
 
-  if (me.cls === 'fighter' && me.weapon === 'none' && me.carryCrate === (0 as EntityId)) {
+  // During opening 4s of match, bots prioritize gathering crates to base over brawl
+  if (w.clock >= 4.0 && me.cls === 'fighter' && me.weapon === 'none' && me.carryCrate === (0 as EntityId)) {
     const carrierFoe = w.buddies.find(
       (b) => b.team !== me.team && b.state !== 'ko' && !w.eliminated[b.team] &&
         b.carryCrate !== (0 as EntityId) && distance(me, b) < 1.55
