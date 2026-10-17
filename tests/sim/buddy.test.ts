@@ -80,7 +80,7 @@ describe('buddy movement', () => {
   it('never leaves the island through the grass', () => {
     const b = buddy('constructor');
     for (let i = 0; i < 4000; i++) stepBuddy(b, { x: 1, y: 1 }, 1 / 30);
-    expect(Math.abs(b.x)).toBeLessThanOrEqual(31);
+    expect(Math.abs(b.x)).toBeLessThanOrEqual(25);
     expect(isOutOfBounds(b)).toBe(false);
   });
 

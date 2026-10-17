@@ -92,7 +92,7 @@ export function createWorld(config: WorldConfig): World {
     troopTimer: 20,
     localPlayer: 0 as EntityId,
     biome: config.biome ?? 'rumput',
-    obstacles: createDefaultObstacles(10000),
+    obstacles: createDefaultObstacles(10000, config.biome ?? 'rumput'),
     powerups: [],
     nextAuxId: 11000
   };
@@ -104,7 +104,7 @@ export function seedInitialCrates(w: World, count = CRATE_INITIAL_COUNT): void {
     const idxInRing = ring === 0 ? i : i - 6;
     const totalInRing = ring === 0 ? 6 : Math.max(1, count - 6);
     const angle = (idxInRing * Math.PI * 2) / totalInRing + (ring === 0 ? 0.15 : 0.52);
-    const radius = ring === 0 ? 2.1 : 4.2;
+    const radius = ring === 0 ? 1.8 : 3.5;
     const x = Math.cos(angle) * radius;
     const z = Math.sin(angle) * radius;
     const crate = makeCrate(w.ids.alloc(), x, 0.45, z);

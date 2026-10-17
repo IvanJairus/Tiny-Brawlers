@@ -38,43 +38,59 @@ export function brickStageOf(hp: number, maxHp: number): BrickStage {
   return 'broken';
 }
 
-export const DEFAULT_OBSTACLE_SPECS: ReadonlyArray<{
+export interface ObstacleSpec {
   kind: ObstacleKind;
   x: number;
   z: number;
   halfSize: number;
-}> = [
-  // 8 hard obstacles (tembok_keras, halfSize: 0.9)
-  { kind: 'hard', x: -5.5, z: -9.5, halfSize: 0.9 },
-  { kind: 'hard', x: 5.5, z: -9.5, halfSize: 0.9 },
-  { kind: 'hard', x: -5.5, z: 9.5, halfSize: 0.9 },
-  { kind: 'hard', x: 5.5, z: 9.5, halfSize: 0.9 },
-  { kind: 'hard', x: -9.5, z: -5.5, halfSize: 0.9 },
-  { kind: 'hard', x: -9.5, z: 5.5, halfSize: 0.9 },
-  { kind: 'hard', x: 9.5, z: -5.5, halfSize: 0.9 },
-  { kind: 'hard', x: 9.5, z: 5.5, halfSize: 0.9 },
+}
 
-  // 16 soft obstacles (bata_lunak, halfSize: 0.85)
-  { kind: 'soft', x: -2.2, z: -16.5, halfSize: 0.85 },
-  { kind: 'soft', x: 2.2, z: -16.5, halfSize: 0.85 },
-  { kind: 'soft', x: -2.2, z: 16.5, halfSize: 0.85 },
-  { kind: 'soft', x: 2.2, z: 16.5, halfSize: 0.85 },
-  { kind: 'soft', x: -16.5, z: -2.2, halfSize: 0.85 },
-  { kind: 'soft', x: -16.5, z: 2.2, halfSize: 0.85 },
-  { kind: 'soft', x: 16.5, z: -2.2, halfSize: 0.85 },
-  { kind: 'soft', x: 16.5, z: 2.2, halfSize: 0.85 },
-  { kind: 'soft', x: -3.8, z: -7.2, halfSize: 0.85 },
-  { kind: 'soft', x: 3.8, z: -7.2, halfSize: 0.85 },
-  { kind: 'soft', x: -3.8, z: 7.2, halfSize: 0.85 },
-  { kind: 'soft', x: 3.8, z: 7.2, halfSize: 0.85 },
-  { kind: 'soft', x: -13.5, z: -6.5, halfSize: 0.85 },
-  { kind: 'soft', x: 13.5, z: -6.5, halfSize: 0.85 },
-  { kind: 'soft', x: -13.5, z: 6.5, halfSize: 0.85 },
-  { kind: 'soft', x: 13.5, z: 6.5, halfSize: 0.85 }
-];
+function mirrorQuad(
+  kind: ObstacleKind,
+  ax: number,
+  az: number,
+  halfSize: number
+): ObstacleSpec[] {
+  return [
+    { kind, x: -ax, z: -az, halfSize },
+    { kind, x: ax, z: -az, halfSize },
+    { kind, x: -ax, z: az, halfSize },
+    { kind, x: ax, z: az, halfSize }
+  ];
+}
 
-export function createDefaultObstacles(startId = 10000): ObstacleRec[] {
-  return DEFAULT_OBSTACLE_SPECS.map((spec, i) => {
+export const BIOME_OBSTACLE_SPECS: Record<BiomeKind, ReadonlyArray<ObstacleSpec>> = {
+  rumput: [
+    ...mirrorQuad('hard', 4.8, 8.4, 0.9),
+    ...mirrorQuad('hard', 8.4, 4.8, 0.9),
+    ...mirrorQuad('soft', 2.2, 13.5, 0.85),
+    ...mirrorQuad('soft', 13.5, 2.2, 0.85),
+    ...mirrorQuad('soft', 3.5, 6.4, 0.85),
+    ...mirrorQuad('soft', 11.2, 5.6, 0.85)
+  ],
+  gurun: [
+    ...mirrorQuad('hard', 3.6, 7.6, 0.9),
+    ...mirrorQuad('hard', 12.4, 4.8, 0.9),
+    ...mirrorQuad('soft', 7.6, 3.6, 0.85),
+    ...mirrorQuad('soft', 4.8, 12.4, 0.85),
+    ...mirrorQuad('soft', 2.4, 14.2, 0.85),
+    ...mirrorQuad('soft', 14.2, 2.4, 0.85)
+  ],
+  salju: [
+    ...mirrorQuad('hard', 6.2, 2.6, 0.9),
+    ...mirrorQuad('hard', 2.6, 6.2, 0.9),
+    ...mirrorQuad('soft', 5.4, 9.2, 0.85),
+    ...mirrorQuad('soft', 9.2, 5.4, 0.85),
+    ...mirrorQuad('soft', 2.2, 12.8, 0.85),
+    ...mirrorQuad('soft', 12.8, 2.2, 0.85)
+  ]
+};
+
+export const DEFAULT_OBSTACLE_SPECS: ReadonlyArray<ObstacleSpec> = BIOME_OBSTACLE_SPECS.rumput;
+
+export function createDefaultObstacles(startId = 10000, biome: BiomeKind = 'rumput'): ObstacleRec[] {
+  const specs = BIOME_OBSTACLE_SPECS[biome] ?? DEFAULT_OBSTACLE_SPECS;
+  return specs.map((spec, i) => {
     const hp = spec.kind === 'hard' ? 999999 : SOFT_BRICK_HP;
     return {
       id: (startId + i) as EntityId,

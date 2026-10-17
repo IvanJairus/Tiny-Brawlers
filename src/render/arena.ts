@@ -15,13 +15,14 @@ export interface Arena {
 const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
 const cyl = (rt: number, rb: number, h: number, seg = 10) => new THREE.CylinderGeometry(rt, rb, h, seg);
 
-const PLAZA_RADIUS = 7.6;
+const PLAZA_RADIUS = 6.8;
+const POCKET_DIST = 13.5;
 
 function islandParts(biome: 'rumput' | 'gurun' | 'salju' = 'rumput'): Part[] {
   const theme = BIOME_PALETTE[biome] ?? BIOME_PALETTE.rumput;
   const parts: Part[] = [
     { geometry: box(ARENA_HALF * 2, 0.5, ARENA_HALF * 2), color: theme.top, position: [0, -0.25, 0] },
-    { geometry: box(62, 2.2, 62), color: theme.cliff, position: [0, -1.35, 0] }
+    { geometry: box(ARENA_HALF * 2 - 2, 2.2, ARENA_HALF * 2 - 2), color: theme.cliff, position: [0, -1.35, 0] }
   ];
 
   for (const [x, z, rotY, len] of [
@@ -41,31 +42,31 @@ function islandParts(biome: 'rumput' | 'gurun' | 'salju' = 'rumput'): Part[] {
   // Crates drop in the middle, so the middle is drawn as a plaza and each base is
   // joined to it by one kerbed road. Stone road colors match UHD reference batu_1..4.png.
   parts.push({ geometry: cyl(PLAZA_RADIUS, PLAZA_RADIUS, 0.06, 28), color: PALETTE.stoneRoad, position: [0, 0.03, 0] });
-  parts.push({ geometry: cyl(PLAZA_RADIUS - 1.2, PLAZA_RADIUS - 1.2, 0.07, 28), color: PALETTE.stoneRoadDark, position: [0, 0.035, 0] });
-  parts.push({ geometry: cyl(2.3, 2.3, 0.08, 20), color: PALETTE.stoneRoad, position: [0, 0.042, 0] });
+  parts.push({ geometry: cyl(PLAZA_RADIUS - 1.1, PLAZA_RADIUS - 1.1, 0.07, 28), color: PALETTE.stoneRoadDark, position: [0, 0.035, 0] });
+  parts.push({ geometry: cyl(2.1, 2.1, 0.08, 20), color: PALETTE.stoneRoad, position: [0, 0.042, 0] });
 
   for (const team of TEAM_IDS) {
     const base = BASE_COORDINATES[team];
     const angle = Math.atan2(base.x, base.z);
     const radius = Math.hypot(base.x, base.z);
     const from = PLAZA_RADIUS - 0.6;
-    const to = radius - 4.6;
+    const to = radius - 4.2;
     const length = to - from;
     const mid = (from + to) * 0.5;
     const dirX = Math.sin(angle);
     const dirZ = Math.cos(angle);
 
     parts.push({
-      geometry: box(2.6, 0.06, length),
+      geometry: box(2.4, 0.06, length),
       color: PALETTE.stoneRoad,
       position: [dirX * mid, 0.032, dirZ * mid],
       rotation: [0, angle, 0]
     });
     for (const side of [-1, 1]) {
       parts.push({
-        geometry: box(0.3, 0.1, length),
+        geometry: box(0.28, 0.1, length),
         color: PALETTE.stoneRoadDark,
-        position: [dirX * mid + dirZ * 1.45 * side, 0.04, dirZ * mid - dirX * 1.45 * side],
+        position: [dirX * mid + dirZ * 1.35 * side, 0.04, dirZ * mid - dirX * 1.35 * side],
         rotation: [0, angle, 0]
       });
     }
@@ -73,29 +74,31 @@ function islandParts(biome: 'rumput' | 'gurun' | 'salju' = 'rumput'): Part[] {
 
   // 4 cardinal side-pocket plazas
   for (const [px, pz] of [
-    [0, -16.5],
-    [0, 16.5],
-    [-16.5, 0],
-    [16.5, 0]
+    [0, -POCKET_DIST],
+    [0, POCKET_DIST],
+    [-POCKET_DIST, 0],
+    [POCKET_DIST, 0]
   ] as const) {
-    parts.push({ geometry: cyl(2.8, 2.8, 0.06, 16), color: PALETTE.stoneRoad, position: [px, 0.03, pz] });
-    parts.push({ geometry: cyl(1.8, 1.8, 0.07, 14), color: PALETTE.path, position: [px, 0.035, pz] });
+    parts.push({ geometry: cyl(2.5, 2.5, 0.06, 16), color: PALETTE.stoneRoad, position: [px, 0.03, pz] });
+    parts.push({ geometry: cyl(1.6, 1.6, 0.07, 14), color: PALETTE.path, position: [px, 0.035, pz] });
   }
 
   // 4 cardinal connector lanes
-  parts.push({ geometry: box(2.2, 0.055, 9.4), color: PALETTE.stoneRoad, position: [0, 0.03, -11.8] });
-  parts.push({ geometry: box(2.2, 0.055, 9.4), color: PALETTE.stoneRoad, position: [0, 0.03, 11.8] });
-  parts.push({ geometry: box(9.4, 0.055, 2.2), color: PALETTE.stoneRoad, position: [-11.8, 0.03, 0] });
-  parts.push({ geometry: box(9.4, 0.055, 2.2), color: PALETTE.stoneRoad, position: [11.8, 0.03, 0] });
+  const laneLen = POCKET_DIST - (PLAZA_RADIUS - 0.6);
+  const laneMid = ((PLAZA_RADIUS - 0.6) + POCKET_DIST) * 0.5;
+  parts.push({ geometry: box(2.1, 0.055, laneLen), color: PALETTE.stoneRoad, position: [0, 0.03, -laneMid] });
+  parts.push({ geometry: box(2.1, 0.055, laneLen), color: PALETTE.stoneRoad, position: [0, 0.03, laneMid] });
+  parts.push({ geometry: box(laneLen, 0.055, 2.1), color: PALETTE.stoneRoad, position: [-laneMid, 0.03, 0] });
+  parts.push({ geometry: box(laneLen, 0.055, 2.1), color: PALETTE.stoneRoad, position: [laneMid, 0.03, 0] });
 
   // 8 outer flanking road segments connecting base pad area to cardinal pockets
   for (const sx of [-1, 1] as const) {
     for (const sz of [-1, 1] as const) {
-      const baseX = sx * 14;
-      const baseZ = sz * 14;
+      const baseX = sx * 11.55;
+      const baseZ = sz * 11.55;
       const targets: ReadonlyArray<readonly [number, number]> = [
-        [0, sz * 16.5],
-        [sx * 16.5, 0]
+        [0, sz * POCKET_DIST],
+        [sx * POCKET_DIST, 0]
       ];
       for (const [tx, tz] of targets) {
         const dx = tx - baseX;
@@ -105,7 +108,7 @@ function islandParts(biome: 'rumput' | 'gurun' | 'salju' = 'rumput'): Part[] {
         const midZ = (baseZ + tz) * 0.5;
         const angle = Math.atan2(dx, dz);
         parts.push({
-          geometry: box(1.9, 0.05, len),
+          geometry: box(1.8, 0.05, len),
           color: PALETTE.pathDark,
           position: [midX, 0.031, midZ],
           rotation: [0, angle, 0]
@@ -116,9 +119,9 @@ function islandParts(biome: 'rumput' | 'gurun' | 'salju' = 'rumput'): Part[] {
 
   // 12 small biome detail accents
   const accents: ReadonlyArray<readonly [number, number]> = [
-    [-8, -15], [8, -15], [-8, 15], [8, 15],
-    [-15, -8], [15, -8], [-15, 8], [15, 8],
-    [-11, -5], [11, -5], [-11, 5], [11, 5]
+    [-6.5, -12.5], [6.5, -12.5], [-6.5, 12.5], [6.5, 12.5],
+    [-12.5, -6.5], [12.5, -6.5], [-12.5, 6.5], [12.5, 6.5],
+    [-9.2, -4.2], [9.2, -4.2], [-9.2, 4.2], [9.2, 4.2]
   ];
   for (const [ax, az] of accents) {
     parts.push({

@@ -7,7 +7,7 @@ import { attachCrateToBuddy, makeCrate, placeCrateOnPad } from '../../src/sim/do
 import { padOrigin } from '../../src/sim/domain/pad';
 import { makeProjectile, type ProjectileRec } from '../../src/sim/domain/projectile';
 import { tickRespawns } from '../../src/sim/domain/match';
-import { brickStageOf, damageObstacle } from '../../src/sim/domain/obstacles';
+import { BIOME_IDS, BIOME_OBSTACLE_SPECS, brickStageOf, damageObstacle } from '../../src/sim/domain/obstacles';
 import { encodeInput } from '../../src/sim/input/actions';
 import { NO_ENTITY, type EntityId } from '../../src/sim/core/ids';
 import type { TeamId } from '../../src/sim/domain/teams';
@@ -365,7 +365,7 @@ describe('v3.0 gameplay features', () => {
   });
 
   describe('6. Smooth Sim Interpolation & Fair Match-Start Central Plaza Crate Seeding', () => {
-    it('spawns all initial crates in the central plaza within 5m of center and >14m from any pad', () => {
+    it('spawns all initial crates in the central plaza within 5m of center and >12m from any pad', () => {
       const session = createSoloSession(42, 'fighter');
       const w = session.world;
 
@@ -377,13 +377,35 @@ describe('v3.0 gameplay features', () => {
         for (const team of ['red', 'blue', 'yellow', 'cyan'] as const) {
           const pad = padOrigin(team);
           const distToPad = Math.hypot(crate.x - pad.x, crate.z - pad.z);
-          expect(distToPad).toBeGreaterThanOrEqual(14.0);
+          expect(distToPad).toBeGreaterThanOrEqual(12.0);
         }
       }
 
       for (const b of w.buddies) {
         expect(b.weapon).toBe('none');
       }
+    });
+
+    it('provides distinct point-symmetric obstacle layouts for all 3 biomes', () => {
+      for (const biome of BIOME_IDS) {
+        const specs = BIOME_OBSTACLE_SPECS[biome];
+        expect(specs.length).toBeGreaterThanOrEqual(16);
+        for (const spec of specs) {
+          const mirror = specs.find(
+            (m) =>
+              m.kind === spec.kind &&
+              Math.abs(m.x + spec.x) < 1e-6 &&
+              Math.abs(m.z + spec.z) < 1e-6 &&
+              Math.abs(m.halfSize - spec.halfSize) < 1e-6
+          );
+          expect(mirror).toBeDefined();
+        }
+      }
+      const rumputW = createWorld({ seed: 1, biome: 'rumput' });
+      const gurunW = createWorld({ seed: 1, biome: 'gurun' });
+      const saljuW = createWorld({ seed: 1, biome: 'salju' });
+      expect(rumputW.obstacles[0].x).not.toBe(gurunW.obstacles[0].x);
+      expect(gurunW.obstacles[0].x).not.toBe(saljuW.obstacles[0].x);
     });
 
     it('ensures no enemy bot crafts a weapon during the first 5 seconds (150 ticks)', () => {

@@ -7,9 +7,9 @@ export const MAX_ACCUMULATOR_MS = TICK_MS * MAX_CATCHUP_STEPS;
 export const SNAPSHOT_HZ = 15;
 export const VIEW_STATE_HZ = 15;
 
-export const ARENA_HALF = 32;
+export const ARENA_HALF = 26;
 export const ARENA_SURFACE_Y = 0;
-export const VOID_DISTANCE = 46;
+export const VOID_DISTANCE = 36;
 
 export const CRATE_SIZE = 0.9;
 export const CRATE_MAX_ALIVE = 24;
@@ -20,10 +20,10 @@ export const BUNKER_MAX_HP = 1000;
 export const TANK_MAX_ALIVE = 4;
 
 export const BASE_COORDINATES: Record<'red' | 'blue' | 'yellow' | 'cyan', { x: number; z: number }> = {
-  red: { x: -21.2, z: -21.2 },
-  blue: { x: 21.2, z: -21.2 },
-  yellow: { x: -21.2, z: 21.2 },
-  cyan: { x: 21.2, z: 21.2 }
+  red: { x: -17.5, z: -17.5 },
+  blue: { x: 17.5, z: -17.5 },
+  yellow: { x: -17.5, z: 17.5 },
+  cyan: { x: 17.5, z: 17.5 }
 };
 
 export const PAD = {
