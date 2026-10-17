@@ -9,7 +9,7 @@ import type { BuddyRec } from '../domain/buddy';
 import { makeCrate, type CrateRec } from '../domain/crate';
 import type { ProjectileRec } from '../domain/projectile';
 import type { TankRec } from '../domain/tank';
-import type { BotMemory } from '../ai/bot';
+import type { BotDifficulty, BotMemory } from '../ai/bot';
 import { createDefaultObstacles, type BiomeKind, type ObstacleRec, type PowerUpRec } from '../domain/obstacles';
 
 export interface World {
@@ -39,6 +39,7 @@ export interface World {
   troopTimer: number;
   localPlayer: EntityId;
   biome: BiomeKind;
+  botDifficulty?: BotDifficulty;
   obstacles: ObstacleRec[];
   powerups: PowerUpRec[];
   nextAuxId: number;
@@ -48,6 +49,7 @@ export interface WorldConfig {
   seed: number;
   teams?: TeamId[];
   biome?: BiomeKind;
+  botDifficulty?: BotDifficulty;
 }
 
 export function createWorld(config: WorldConfig): World {
@@ -92,6 +94,7 @@ export function createWorld(config: WorldConfig): World {
     troopTimer: 20,
     localPlayer: 0 as EntityId,
     biome: config.biome ?? 'rumput',
+    botDifficulty: config.botDifficulty ?? 'normal',
     obstacles: createDefaultObstacles(10000, config.biome ?? 'rumput'),
     powerups: [],
     nextAuxId: 11000

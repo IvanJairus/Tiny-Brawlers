@@ -192,7 +192,7 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
     setSetting: (key, value) => {
       if (key === 'quality') {
         settings.quality = value === 'low' ? 'low' : 'high';
-        stage.setScale(settings.quality === 'low' ? 0.75 : 1);
+        stage.setRenderScale(settings.quality === 'low' ? 0.75 : 1);
       } else if (key === 'biome') {
         settings.biome = value as BiomeKind;
         renderer.setBiome(settings.biome);

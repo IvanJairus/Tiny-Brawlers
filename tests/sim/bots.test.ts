@@ -53,4 +53,65 @@ describe('bots at tier B', () => {
     }
     for (const team of TEAM_IDS) expect(w.bunkerHp[team]).toBeGreaterThanOrEqual(0);
   });
+
+  it('does not fire when an obstacle blocks line of sight to the target', async () => {
+    const { botInput, makeBotMemory } = await import('../../src/sim/ai/bot');
+    const { makeBuddy } = await import('../../src/sim/domain/buddy');
+    const w = createWorld({ seed: 42 });
+    w.obstacles = [
+      { id: 10000 as never, kind: 'soft', x: 0, z: 3, halfSize: 0.9, hp: 60, maxHp: 60, dead: false }
+    ];
+    const bot = makeBuddy(1 as never, 'red', 'fighter', 0, 0, true);
+    bot.weapon = 'pistol';
+    const foe = makeBuddy(2 as never, 'blue', 'fighter', 0, 6, true);
+    w.buddies.push(bot, foe);
+
+    const raw = botInput(w, bot, makeBotMemory(), 1);
+    expect(raw.attack).toBe(false);
+  });
+
+  it('defers a crate that is closer to a human teammate instead of stealing it', async () => {
+    const { botInput, makeBotMemory } = await import('../../src/sim/ai/bot');
+    const { makeBuddy } = await import('../../src/sim/domain/buddy');
+    const { makeCrate } = await import('../../src/sim/domain/crate');
+    const w = createWorld({ seed: 42 });
+    w.obstacles = [];
+
+    const human = makeBuddy(1 as never, 'red', 'fighter', 0, 0, false);
+    human.ownedByPlayer = true;
+    const bot = makeBuddy(2 as never, 'red', 'fighter', 0, 2, true);
+
+    const humanCrate = makeCrate(10 as never, 0, 0.45, 0.8);
+    humanCrate.state = 'loose';
+    const otherCrate = makeCrate(11 as never, 4, 0.45, 2);
+    otherCrate.state = 'loose';
+    w.buddies.push(human, bot);
+    w.crates.push(humanCrate, otherCrate);
+
+    const raw = botInput(w, bot, makeBotMemory(), 1);
+    // Bot steers toward otherCrate (+X) instead of humanCrate (-Z)
+    expect(raw.moveX).toBeGreaterThan(0.5);
+  });
+
+  it('triggers a perpendicular detour when stuck in place for 30 ticks', async () => {
+    const { botInput, makeBotMemory } = await import('../../src/sim/ai/bot');
+    const { makeBuddy } = await import('../../src/sim/domain/buddy');
+    const { makeCrate } = await import('../../src/sim/domain/crate');
+    const w = createWorld({ seed: 42 });
+    w.obstacles = [];
+
+    const bot = makeBuddy(1 as never, 'red', 'fighter', 0, 0, true);
+    const crate = makeCrate(10 as never, 0, 0.45, 8);
+    crate.state = 'loose';
+    w.buddies.push(bot);
+    w.crates.push(crate);
+
+    const mem = makeBotMemory();
+    for (let i = 0; i < 31; i++) {
+      botInput(w, bot, mem, i);
+    }
+    expect(mem.detourTicks).toBeGreaterThan(0);
+    const detourRaw = botInput(w, bot, mem, 32);
+    expect(Math.abs(detourRaw.moveX)).toBeGreaterThan(0.5);
+  });
 });
