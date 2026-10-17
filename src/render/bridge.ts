@@ -122,9 +122,6 @@ export class WorldRenderer {
 
   /** True while a nearby blast is holding the picture still. The simulation keeps running. */
   frozen(): boolean {
-    if (typeof window !== 'undefined' || typeof document !== 'undefined') {
-      return false;
-    }
     return this.hitStop.frozen(this.clock);
   }
 

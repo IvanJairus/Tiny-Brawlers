@@ -21,8 +21,8 @@ export interface WeaponDef {
  */
 export const WEAPONS: Record<Exclude<ItemType, 'none' | 'medic_unit' | 'commando' | 'tank' | 'ammo'>, WeaponDef> = {
   pistol: {
-    id: 'pistol', cooldown: 0.33, range: 18, pellets: 1, spread: 0.02,
-    damagePerPellet: 30, projectile: null, ammo: Infinity, label: 'Pistol'
+    id: 'pistol', cooldown: 0.4, range: 18, pellets: 1, spread: 0.02,
+    damagePerPellet: 22, projectile: null, ammo: Infinity, label: 'Pistol'
   },
   shotgun: {
     id: 'shotgun', cooldown: 0.25, range: 11, pellets: 5, spread: 0.28,

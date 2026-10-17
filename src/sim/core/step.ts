@@ -27,7 +27,6 @@ import {
 } from '../domain/obstacles';
 
 const BULLET_SPEED = 32;
-const BULLET_LIFE = 0.45;
 const ROCKET_SPEED = 20;
 const GRENADE_LIFE = 3;
 
@@ -467,13 +466,14 @@ function fireWeapon(w: World, b: BuddyRec): void {
       dirX * ROCKET_SPEED,
       0,
       dirZ * ROCKET_SPEED,
-      2.2,
+      def.range / ROCKET_SPEED,
       ROCKET_DAMAGE * (b.fireTimer > 0 ? 1.35 : 1)
     );
     return;
   }
 
   b.fireCooldown = def.cooldown;
+  const bulletLife = def.range / BULLET_SPEED;
   for (let p = 0; p < def.pellets; p++) {
     const spread = def.spread * (p - (def.pellets - 1) / 2);
     const angle = b.heading + spread;
@@ -484,7 +484,7 @@ function fireWeapon(w: World, b: BuddyRec): void {
       Math.sin(angle) * BULLET_SPEED,
       0,
       Math.cos(angle) * BULLET_SPEED,
-      BULLET_LIFE,
+      bulletLife,
       damageOf(b.cls, def) * (b.fireTimer > 0 ? 1.35 : 1)
     );
   }
@@ -507,6 +507,7 @@ function performMelee(w: World, b: BuddyRec): void {
     MELEE_DAMAGE * CLASS_STATS[b.cls].damageMultiplier * (b.fireTimer > 0 ? 1.35 : 1)
   );
 
+  const targets: Array<{ foe: BuddyRec; dx: number; dz: number; d: number }> = [];
   for (const foe of w.buddies) {
     if (foe.team === b.team || foe.state === 'ko' || w.eliminated[foe.team]) continue;
     const dx = foe.x - b.x;
@@ -515,7 +516,11 @@ function performMelee(w: World, b: BuddyRec): void {
     if (d > MELEE_RANGE) continue;
     const dot = d > 1e-4 ? (dx / d) * dirX + (dz / d) * dirZ : 1;
     if (dot < -0.25 && d > 0.85) continue;
+    targets.push({ foe, dx, dz, d });
+  }
+  targets.sort((a, bTarget) => a.d - bTarget.d);
 
+  for (const { foe, dx, dz, d } of targets.slice(0, 2)) {
     // Disarm enemy crate carrier so crate drops loose and can be stolen!
     if (foe.carryCrate !== (NO_ENTITY as EntityId)) {
       const carried = findCrate(w, foe.carryCrate);
@@ -674,7 +679,7 @@ function explode(w: World, p: ProjectileRec): void {
     if (b.state === 'ko') continue;
     const d = distance(b, p);
     if (d > radius) continue;
-    const falloff = 1 - (d / radius) * 0.6;
+    const falloff = 1 - (d / radius) * 0.82;
     // The blast shoves everyone caught in it (allies included) but only hurts
     // enemies, so a misthrown grenade still lets you rocket-shove your own squad.
     const nx = d > 1e-4 ? (b.x - p.x) / d : 0;

@@ -95,6 +95,7 @@ export class ChibiField {
   private weapons = new Map<string, THREE.InstancedMesh>();
   private geometries: THREE.BufferGeometry[] = [];
   private dummy = new THREE.Object3D();
+  private flashColor = new THREE.Color();
 
   constructor(materials: SharedMaterials) {
     for (const team of TEAM_IDS) {
@@ -166,6 +167,7 @@ export class ChibiField {
 
     for (const mesh of [...this.torsos.values(), this.heads, this.arms, this.boots, this.shadows, this.flash, ...this.weapons.values()]) {
       mesh.instanceMatrix.needsUpdate = true;
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     }
   }
 
@@ -188,17 +190,21 @@ export class ChibiField {
     const forwardX = Math.sin(actor.heading);
     const forwardZ = Math.cos(actor.heading);
 
+    this.flashColor.setScalar(1 + actor.flash * 2.2);
+    const torsoMesh = this.torsos.get(actor.team)!;
     this.dummy.position.set(actor.x, bob + sag, actor.z);
     this.dummy.rotation.set(ko ? -Math.PI / 2.2 : 0, actor.heading, ko ? 0 : swing * 0.06);
     this.dummy.scale.set((1 + squash + load) * pop, (1 - squash * 1.6 - load * 2.1) * pop, (1 + squash + load) * pop);
     this.dummy.updateMatrix();
-    this.torsos.get(actor.team)!.setMatrixAt(teamIndex, this.dummy.matrix);
+    torsoMesh.setMatrixAt(teamIndex, this.dummy.matrix);
+    torsoMesh.setColorAt(teamIndex, this.flashColor);
 
     this.dummy.position.set(actor.x, bob + sag, actor.z);
     this.dummy.rotation.set(ko ? -Math.PI / 2.2 : 0, actor.heading, 0);
     this.dummy.scale.set(pop, pop, pop);
     this.dummy.updateMatrix();
     this.heads.setMatrixAt(slot, this.dummy.matrix);
+    this.heads.setColorAt(slot, this.flashColor);
 
     const armLift = carrying ? -2.5 : -0.35;
     for (const side of [-1, 1]) {

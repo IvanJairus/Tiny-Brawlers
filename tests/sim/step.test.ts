@@ -127,10 +127,44 @@ describe('combat', () => {
 
     press(w, shooter.id, { attack: true });
     run(w, 0.3);
-    expect(victim.hp).toBeLessThan(100);
+    expect(victim.hp).toBeCloseTo(102.5, 5);
     const afterFirst = victim.hp;
     run(w, 0.1);
     expect(victim.hp).toBe(afterFirst);
+  });
+
+  it('enforces weapon range so shotgun expires at 11u while pistol reaches 16u', () => {
+    const w = testWorld();
+    w.obstacles = [];
+    const sgShooter = addBuddy(w, 'red', 'fighter', 0, 0);
+    sgShooter.weapon = 'shotgun';
+    sgShooter.heading = Math.PI / 2;
+    const farTarget = addBuddy(w, 'blue', 'fighter', 15.5, 0);
+
+    press(w, sgShooter.id, { attack: true });
+    run(w, 0.65);
+    expect(farTarget.hp).toBe(130);
+
+    sgShooter.weapon = 'pistol';
+    sgShooter.fireCooldown = 0;
+    press(w, sgShooter.id, { attack: true });
+    run(w, 0.65);
+    expect(farTarget.hp).toBeLessThan(130);
+  });
+
+  it('caps melee hits to the 2 nearest enemies in cone', () => {
+    const w = testWorld();
+    const brawler = addBuddy(w, 'red', 'fighter', 0, 0);
+    brawler.heading = Math.PI / 2;
+    const f1 = addBuddy(w, 'blue', 'fighter', 0.9, -0.2);
+    const f2 = addBuddy(w, 'blue', 'fighter', 1.1, 0.2);
+    const f3 = addBuddy(w, 'blue', 'fighter', 1.6, 0);
+
+    press(w, brawler.id, { attack: true });
+    run(w, 0.05);
+    expect(f1.hp).toBeLessThan(130);
+    expect(f2.hp).toBeLessThan(130);
+    expect(f3.hp).toBe(130);
   });
 
   it('never damages the shooter team with their own blast', () => {
