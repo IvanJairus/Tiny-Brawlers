@@ -10,6 +10,7 @@ export interface GameAudio {
   cue(event: SimEvent): void;
   setEnabled(enabled: boolean): void;
   setMusic(enabled: boolean): void;
+  setVolumes(master: number, music: number, sfx: number): void;
   dispose(): void;
 }
 
@@ -31,13 +32,15 @@ export function createGameAudio(injected?: AudioGraph): GameAudio {
   const bgm = createBgm(graph);
   let enabled = true;
   let musicEnabled = true;
+  let masterVol = 0.7;
+  let sfxVol = 1.0;
   const recent = new Map<string, number>();
 
   return {
     graph,
     bgm,
     cue(event: SimEvent): void {
-      if (!enabled) return;
+      if (!enabled || sfxVol <= 0.001) return;
       const patchName = EVENT_TO_PATCH[event.kind];
       if (!patchName) return;
       const at = 'at' in event ? event.at : null;
@@ -52,16 +55,22 @@ export function createGameAudio(injected?: AudioGraph): GameAudio {
         if (recent.size > 64) recent.clear();
       }
       const patch = patchName === 'shoot' && event.kind === 'shot' && event.weapon === 'shotgun' ? SFX.shotgun : SFX[patchName];
-      graph.play(patch);
+      graph.play(sfxVol === 1 ? patch : { ...patch, volume: patch.volume * sfxVol });
     },
     setEnabled(value: boolean): void {
       enabled = value;
-      graph.setMaster(value ? 0.7 : 0);
+      graph.setMaster(value ? masterVol : 0);
       if (!value) bgm.stop();
     },
     setMusic(value: boolean): void {
       musicEnabled = value;
       if (!value) bgm.stop();
+    },
+    setVolumes(master: number, music: number, sfx: number): void {
+      masterVol = Math.max(0, Math.min(1, master));
+      sfxVol = Math.max(0, Math.min(1, sfx));
+      bgm.setVolume(music);
+      graph.setMaster(enabled ? masterVol : 0);
     },
     beginPlayback(): void {
       graph.resume();

@@ -13,25 +13,96 @@ export interface Recipe {
   dps: number;
   crateCount: number;
   description: string;
+  shapeHint: string;
+  stackImg: string;
+  iconImg: string;
 }
 
 const r = (
   id: string, title: string, category: RecipeCategory, itemType: ItemType,
-  dps: number, crateCount: number, description: string
-): Recipe => ({ id, title, category, itemType, dps, crateCount, description });
+  dps: number, crateCount: number, description: string,
+  shapeHint = '', stackImg = 'assets/tumpukan/tumpukan_slot_2x2.svg', iconImg = ''
+): Recipe => ({
+  id, title, category, itemType, dps, crateCount, description, shapeHint, stackImg, iconImg
+});
 
 export const RECIPES = {
-  empty: r('empty', 'Pad Kosong', 'empty', 'none', 0, 0, 'Taruh minimal 1 peti di pad untuk mulai merakit.'),
-  pistol: r('pistol', 'Pistol Standard', 'weapon', 'pistol', 90, 1, 'Senjata awal dengan peluru tak terbatas.'),
-  grenade: r('grenade', 'Granat Nanas (x5)', 'weapon', 'grenade', 320, 2, 'Ledakan area membal, meledak setelah 3 detik.'),
-  shotgun: r('shotgun', 'Shotgun Penghancur', 'weapon', 'shotgun', 220, 2, 'Sebaran lima peluru untuk jarak dekat.'),
-  medicUnit: r('medicUnit', 'Medic Buddy', 'unit', 'medic_unit', 0, 3, 'Dokter AI yang menyembuhkan kawan di sekitarnya.'),
-  medkit: r('medkit', 'Medic Syringe (Medkit)', 'weapon', 'medic', 0, 3, 'Suntikan penyembuh untuk diri atau kawan.'),
-  bazooka: r('bazooka', 'Rocket Bazooka', 'weapon', 'bazooka', 450, 4, 'Proyektil ledak berat yang merusak bangunan.'),
-  commando: r('commando', 'Commando Buddy', 'unit', 'commando', 220, 4, 'Prajurit AI bersenjata senapan mesin.'),
-  tank: r('tank', 'Heavy Battle Tank', 'vehicle', 'tank', 980, 8, 'Kendaraan lapis baja meriam ganda.'),
-  ammo: r('ammo', 'Paket Amunisi', 'support', 'ammo', 0, 0, 'Formasi tidak beraturan menghasilkan suplai darurat.')
+  empty: r(
+    'empty', 'Pad Kosong', 'empty', 'none', 0, 0,
+    'Taruh minimal 1 peti di pad untuk mulai merakit.'
+  ),
+  pistol: r(
+    'pistol', 'Pistol Standard', 'weapon', 'pistol', 90, 1,
+    '22 DMG per peluru, tembakan jarak menengah, amunisi tak terbatas.',
+    '1 Peti (Slot 1x1 Bawah)',
+    'assets/tumpukan/tumpukan_resep_pistol.svg',
+    'assets/senjata/pistol.svg'
+  ),
+  grenade: r(
+    'grenade', 'Granat Nanas (x5)', 'weapon', 'grenade', 320, 2,
+    'Bom lambung area, sangat efektif menghancurkan tembok bata dan markas.',
+    '2 Peti Bertumpuk (1 Bawah + 1 Atas)',
+    'assets/tumpukan/tumpukan_resep_granat.svg',
+    'assets/senjata/granat.svg'
+  ),
+  shotgun: r(
+    'shotgun', 'Shotgun Penghancur', 'weapon', 'shotgun', 220, 2,
+    'Menembakkan 5 peluru menyebar sekaligus untuk jarak dekat.',
+    '2 Peti Sejajar (2 Slot Bawah)',
+    'assets/tumpukan/tumpukan_1x2_senjata.svg',
+    'assets/senjata/senapan_mesin.svg'
+  ),
+  medicUnit: r(
+    'medicUnit', 'Medic Buddy', 'unit', 'medic_unit', 0, 3,
+    'Menambah 1 anggota tim baru dengan aura penyembuh otomatis di sekitarnya.',
+    '3 Peti Tumpuk L (2 Bawah + 1 Atas)',
+    'assets/tumpukan/tumpukan_resep_buddy_baru_merah.svg',
+    'assets/karakter/biskuit_karamel_depan.svg'
+  ),
+  medkit: r(
+    'medkit', 'Medic Syringe (Medkit)', 'weapon', 'medic', 0, 3,
+    'Memulihkan HP rekan tim atau membangkitkan rekan KO kembali ke 100% HP.',
+    '3 Peti Lapis Bawah (3 Slot Bawah)',
+    'assets/tumpukan/tumpukan_resep_kotak_medis.svg',
+    'assets/senjata/kotak_medis.svg'
+  ),
+  bazooka: r(
+    'bazooka', 'Rocket Bazooka', 'weapon', 'bazooka', 450, 4,
+    'Roket ledak berat berdaya hancur tinggi terhadap markas lawan dan Tank.',
+    '4 Peti Datar (2x2 Lapis Bawah)',
+    'assets/tumpukan/tumpukan_resep_bazoka.svg',
+    'assets/senjata/bazoka.svg'
+  ),
+  commando: r(
+    'commando', 'Commando Buddy', 'unit', 'commando', 220, 4,
+    'Merekrut prajurit elit (Kacang Radar) bersenjata jarak jauh.',
+    '4 Peti Tegak (2 Bawah + 2 Atas)',
+    'assets/tumpukan/tumpukan_resep_sniper.svg',
+    'assets/senjata/sniper.svg'
+  ),
+  tank: r(
+    'tank', 'Tank Lapis Baja', 'vehicle', 'tank', 980, 8,
+    'Kendaraan tempur lapis baja meriam berat. Dekati Tank dan tekan E untuk naik atau turun!',
+    '8 Peti Penuh (2x2x2 Dua Lapis)',
+    'assets/tumpukan/tumpukan_resep_tank.svg',
+    'assets/kendaraan/tank_merah_samping.svg'
+  ),
+  ammo: r(
+    'ammo', 'Paket Amunisi', 'support', 'ammo', 0, 0,
+    'Formasi tidak beraturan menghasilkan suplai darurat.'
+  )
 };
+
+export const CRAFTABLE_RECIPES: readonly Recipe[] = [
+  RECIPES.pistol,
+  RECIPES.shotgun,
+  RECIPES.grenade,
+  RECIPES.medicUnit,
+  RECIPES.medkit,
+  RECIPES.bazooka,
+  RECIPES.commando,
+  RECIPES.tank
+];
 
 function isFlat2x2(mask: PadMask): boolean {
   return (mask & 0x0f) === 0x0f && (mask & 0xf0) === 0;

@@ -5,6 +5,9 @@ export interface Settings {
   startClass: BuddyClass;
   sound: boolean;
   music: boolean;
+  masterVolume: number;
+  musicVolume: number;
+  sfxVolume: number;
   quality: 'high' | 'low';
   reducedMotion: boolean;
   biome: BiomeKind;
@@ -16,10 +19,17 @@ const DEFAULTS: Settings = {
   startClass: 'fighter',
   sound: true,
   music: true,
+  masterVolume: 0.7,
+  musicVolume: 0.8,
+  sfxVolume: 1.0,
   quality: 'high',
   reducedMotion: false,
   biome: 'rumput'
 };
+
+function clampVol(val: unknown, fallback: number): number {
+  return typeof val === 'number' && Number.isFinite(val) ? Math.max(0, Math.min(1, val)) : fallback;
+}
 
 export function loadSettings(): Settings {
   try {
@@ -30,6 +40,9 @@ export function loadSettings(): Settings {
       startClass: parsed.startClass === 'healer' || parsed.startClass === 'constructor' ? parsed.startClass : 'fighter',
       sound: parsed.sound !== false,
       music: parsed.music !== false,
+      masterVolume: clampVol(parsed.masterVolume, DEFAULTS.masterVolume),
+      musicVolume: clampVol(parsed.musicVolume, DEFAULTS.musicVolume),
+      sfxVolume: clampVol(parsed.sfxVolume, DEFAULTS.sfxVolume),
       quality: parsed.quality === 'low' ? 'low' : 'high',
       reducedMotion: parsed.reducedMotion === true,
       biome: parsed.biome === 'gurun' || parsed.biome === 'salju' ? parsed.biome : 'rumput'

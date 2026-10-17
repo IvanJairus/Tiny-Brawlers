@@ -230,9 +230,9 @@
   position: absolute;
   bottom: 66px;
   left: 50%;
-  width: 118px;
-  height: 118px;
-  margin: 0 0 0 -59px;
+  width: var(--stick-ring-size, 118px);
+  height: var(--stick-ring-size, 118px);
+  margin: 0 0 0 var(--stick-ring-half, -59px);
   border: 2px dashed rgba(22, 32, 43, 0.45);
   border-radius: 50%;
   opacity: 0.35;

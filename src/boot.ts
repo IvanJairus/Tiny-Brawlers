@@ -85,6 +85,7 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
   if (meter) document.body.appendChild(meter.element);
   const ascii = new URLSearchParams(window.location.search).get('ascii') === '1' ? createAsciiView(document) : null;
   if (ascii) document.body.appendChild(ascii.element);
+  audio.setVolumes(settings.masterVolume, settings.musicVolume, settings.sfxVolume);
   audio.setEnabled(settings.sound);
   audio.setMusic(settings.music);
   const touchPressed = { grab: false, shoot: false, build: false };
@@ -189,10 +190,15 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
     lobby: lobbyActions,
     settings,
     setSetting: (key, value) => {
-      if (key === 'quality') settings.quality = value === 'low' ? 'low' : 'high';
-      else if (key === 'biome') {
+      if (key === 'quality') {
+        settings.quality = value === 'low' ? 'low' : 'high';
+        stage.setScale(settings.quality === 'low' ? 0.75 : 1);
+      } else if (key === 'biome') {
         settings.biome = value as BiomeKind;
         renderer.setBiome(settings.biome);
+      } else if (key === 'masterVolume' || key === 'musicVolume' || key === 'sfxVolume') {
+        settings[key] = Math.max(0, Math.min(1, Number(value)));
+        audio.setVolumes(settings.masterVolume, settings.musicVolume, settings.sfxVolume);
       } else if (key === 'sound' || key === 'music' || key === 'reducedMotion') {
         settings[key] = Boolean(value);
         if (key === 'sound') audio.setEnabled(Boolean(value));

@@ -185,5 +185,19 @@ describe('tutorial modal and recipe book', () => {
     openTutorialModal(h.host);
     expect(document.querySelector('.tutorial-overlay')).toBeNull();
   });
+
+  it('renders master, music, and SFX volume sliders in pause settings', () => {
+    h.router.show('paused', null);
+    const buttons = Array.from(h.host.querySelectorAll('button'));
+    const settingsBtn = buttons.find((b) => b.textContent?.includes('Pengaturan'))!;
+    expect(settingsBtn).toBeTruthy();
+    settingsBtn.click();
+
+    const sliders = h.host.querySelectorAll<HTMLInputElement>('[data-role="volume-slider"]');
+    expect(sliders.length).toBe(3);
+    expect(sliders[0].dataset.setting).toBe('masterVolume');
+    expect(sliders[1].dataset.setting).toBe('musicVolume');
+    expect(sliders[2].dataset.setting).toBe('sfxVolume');
+  });
 });
 

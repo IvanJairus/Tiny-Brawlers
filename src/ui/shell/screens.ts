@@ -1,5 +1,6 @@
 import { T } from '../i18n/id';
 import type { BuddyClass } from '../../sim/domain/classes';
+import { CRAFTABLE_RECIPES } from '../../sim/domain/recipes';
 import { TEAM_COLORS } from '../../sim/domain/teams';
 import type { ViewState } from '../../sim/core/view';
 import type { Screen } from './machine';
@@ -12,8 +13,20 @@ export interface ScreenContext {
   netplay: boolean;
   canPause(): boolean;
   lobby: LobbyActions;
-  settings: { sound: boolean; music: boolean; quality: 'high' | 'low'; reducedMotion: boolean; biome?: BiomeKind };
-  setSetting: (key: 'sound' | 'music' | 'quality' | 'reducedMotion' | 'biome', value: boolean | string) => void;
+  settings: {
+    sound: boolean;
+    music: boolean;
+    masterVolume?: number;
+    musicVolume?: number;
+    sfxVolume?: number;
+    quality: 'high' | 'low';
+    reducedMotion: boolean;
+    biome?: BiomeKind;
+  };
+  setSetting: (
+    key: 'sound' | 'music' | 'masterVolume' | 'musicVolume' | 'sfxVolume' | 'quality' | 'reducedMotion' | 'biome',
+    value: boolean | string | number
+  ) => void;
 }
 
 export interface MountedScreen {
@@ -101,7 +114,7 @@ export function openTutorialModal(host: HTMLElement): HTMLElement {
           <div class="key-row"><span class="key-tag">Desktop</span> <code>WASD</code> atau <code>Tombol Panah</code></div>
           <div class="key-row"><span class="key-tag">Mobile</span> <code>Stik Virtual Kiri</code></div>
         </div>
-        <p class="control-desc">Gerakkan karakter ke segala arah di arena. Di desktop, arah hadap mengikuti <b>kursor mouse</b> — jadi kamu bisa mundur sambil menembak ke depan. Hindari proyektil lawan, ambil posisi strategis di balik tembok, dan serbu markas musuh!</p>
+        <p class="control-desc">Gerakkan karakter ke segala arah di arena. Di desktop, arah hadap mengikuti <b>kursor mouse</b>, jadi kamu bisa mundur sambil menembak ke depan. Hindari proyektil lawan, ambil posisi strategis di balik tembok, dan serbu markas musuh!</p>
       </article>
 
       <article class="control-card">
@@ -132,7 +145,7 @@ export function openTutorialModal(host: HTMLElement): HTMLElement {
           <div class="key-row"><span class="key-tag">Desktop</span> <code>Klik Kanan</code> atau <code>E</code></div>
           <div class="key-row"><span class="key-tag">Mobile</span> Tombol Biru <code>Ambil / Taruh</code></div>
         </div>
-        <p class="control-desc">Tekan di dekat peti untuk mengangkatnya. Bawa ke <b>Stacking Pad</b> markasmu lalu tekan lagi untuk <b>menaruh peti ke slot pad</b>. Jika ditekan di luar pad, peti akan <b>dilempar ke depan (25 DMG ke lawan)</b>. Tekan di dekat Tank timmu untuk mengemudikannya!</p>
+        <p class="control-desc">Tekan di dekat peti untuk mengangkatnya. Bawa ke <b>Stacking Pad</b> markasmu lalu tekan lagi untuk <b>menaruh peti ke slot pad</b>. Jika ditekan di luar pad, peti akan <b>dilempar ke depan (25 DMG ke lawan)</b>. Tekan di dekat Tank timmu untuk naik atau turun!</p>
       </article>
 
       <article class="control-card">
@@ -152,108 +165,24 @@ export function openTutorialModal(host: HTMLElement): HTMLElement {
     </div>
   `;
 
-  // Panel 2: Recipes
+  // Panel 2: Recipes built directly from CRAFTABLE_RECIPES (recipes.ts single source of truth)
   const panelRecipes = document.createElement('section');
   panelRecipes.className = 'tutorial-panel panel-recipes';
-  panelRecipes.innerHTML = `
-    <div class="recipes-grid">
+  const recipesHtml = CRAFTABLE_RECIPES.map(
+    (rec, idx) => `
       <article class="recipe-card">
-        <div class="recipe-num">1</div>
+        <div class="recipe-num">${idx + 1}</div>
         <div class="recipe-images">
-          <img src="assets/tumpukan/tumpukan_resep_pistol.svg" class="recipe-stack-img" alt="Pistol Pad" />
-          <span class="recipe-arrow">-></span>
-          <img src="assets/senjata/pistol.svg" class="recipe-icon-img" alt="Pistol" />
+          <img src="${rec.stackImg}" class="recipe-stack-img" alt="${rec.title} Pad" />
+          <span class="recipe-arrow">-&gt;</span>
+          <img src="${rec.iconImg}" class="recipe-icon-img" alt="${rec.title}" />
         </div>
-        <h4 class="recipe-title">1. Pistol Standard</h4>
-        <span class="recipe-req">1 Peti (Slot 1x1 Bawah)</span>
-        <p class="recipe-detail">16 DMG per peluru, tembakan cepat jarak menengah, amunisi tak terbatas.</p>
-      </article>
-
-      <article class="recipe-card">
-        <div class="recipe-num">2</div>
-        <div class="recipe-images">
-          <img src="assets/tumpukan/tumpukan_1x2_senjata.svg" class="recipe-stack-img" alt="Shotgun Pad" />
-          <span class="recipe-arrow">-></span>
-          <img src="assets/senjata/senapan_mesin.svg" class="recipe-icon-img" alt="Shotgun" />
-        </div>
-        <h4 class="recipe-title">2. Shotgun Penghancur</h4>
-        <span class="recipe-req">2 Peti Sejajar (2 Slot Bawah)</span>
-        <p class="recipe-detail">Menembakkan 5 peluru menyebar sekaligus (45 DMG total jarak dekat).</p>
-      </article>
-
-      <article class="recipe-card">
-        <div class="recipe-num">3</div>
-        <div class="recipe-images">
-          <img src="assets/tumpukan/tumpukan_resep_granat.svg" class="recipe-stack-img" alt="Granat Pad" />
-          <span class="recipe-arrow">-></span>
-          <img src="assets/senjata/granat.svg" class="recipe-icon-img" alt="Granat" />
-        </div>
-        <h4 class="recipe-title">3. Granat Lempar x3</h4>
-        <span class="recipe-req">2 Peti Bertumpuk (1 Bawah + 1 Atas)</span>
-        <p class="recipe-detail">3 bom lambung (55 DMG area), sangat efektif menghancurkan tembok bata & markas.</p>
-      </article>
-
-      <article class="recipe-card">
-        <div class="recipe-num">4</div>
-        <div class="recipe-images">
-          <img src="assets/tumpukan/tumpukan_resep_buddy_baru_merah.svg" class="recipe-stack-img" alt="Buddy Pad" />
-          <span class="recipe-arrow">-></span>
-          <img src="assets/karakter/biskuit_karamel_depan.svg" class="recipe-icon-img" alt="Buddy" />
-        </div>
-        <h4 class="recipe-title">4. Buddy Baru / Medic</h4>
-        <span class="recipe-req">3 Peti Tumpuk L (2 Bawah + 1 Atas)</span>
-        <p class="recipe-detail">Menambah 1 anggota tim baru dengan aura penyembuh otomatis di sekitarnya.</p>
-      </article>
-
-      <article class="recipe-card">
-        <div class="recipe-num">5</div>
-        <div class="recipe-images">
-          <img src="assets/tumpukan/tumpukan_resep_kotak_medis.svg" class="recipe-stack-img" alt="Medkit Pad" />
-          <span class="recipe-arrow">-></span>
-          <img src="assets/senjata/kotak_medis.svg" class="recipe-icon-img" alt="Kotak Medis" />
-        </div>
-        <h4 class="recipe-title">5. Kotak Medis x3</h4>
-        <span class="recipe-req">3 Peti Lapis Bawah (3 Slot Bawah)</span>
-        <p class="recipe-detail">Memulihkan +50 HP rekan tim atau membangkitkan rekan KO kembali ke 100% HP.</p>
-      </article>
-
-      <article class="recipe-card">
-        <div class="recipe-num">6</div>
-        <div class="recipe-images">
-          <img src="assets/tumpukan/tumpukan_resep_bazoka.svg" class="recipe-stack-img" alt="Bazoka Pad" />
-          <span class="recipe-arrow">-></span>
-          <img src="assets/senjata/bazoka.svg" class="recipe-icon-img" alt="Bazoka" />
-        </div>
-        <h4 class="recipe-title">6. Bazoka x4 Roket</h4>
-        <span class="recipe-req">4 Peti Datar (2x2 Lapis Bawah)</span>
-        <p class="recipe-detail">4 roket berat (70 DMG ledakan besar), penghancur utama markas lawan & Tank.</p>
-      </article>
-
-      <article class="recipe-card">
-        <div class="recipe-num">7</div>
-        <div class="recipe-images">
-          <img src="assets/tumpukan/tumpukan_resep_sniper.svg" class="recipe-stack-img" alt="Sniper Pad" />
-          <span class="recipe-arrow">-></span>
-          <img src="assets/senjata/sniper.svg" class="recipe-icon-img" alt="Sniper" />
-        </div>
-        <h4 class="recipe-title">7. Unit Komando / Sniper</h4>
-        <span class="recipe-req">4 Peti Tegak (2 Bawah + 2 Atas)</span>
-        <p class="recipe-detail">Merekrut petarung elit (Kacang Radar) yang langsung dipersenjatai roket jarak jauh.</p>
-      </article>
-
-      <article class="recipe-card">
-        <div class="recipe-num">8</div>
-        <div class="recipe-images">
-          <img src="assets/tumpukan/tumpukan_resep_tank.svg" class="recipe-stack-img" alt="Tank Pad" />
-          <span class="recipe-arrow">-></span>
-          <img src="assets/kendaraan/tank_merah_samping.svg" class="recipe-icon-img" alt="Tank" />
-        </div>
-        <h4 class="recipe-title">8. Tank Lapis Baja</h4>
-        <span class="recipe-req">8 Peti Penuh (2x2x2 Dua Lapis)</span>
-        <p class="recipe-detail">Kendaraan tempur baja (400 HP, meriam 85 DMG). Dekati Tank & tekan E untuk naik!</p>
-      </article>
-    </div>
-  `;
+        <h4 class="recipe-title">${idx + 1}. ${rec.title}</h4>
+        <span class="recipe-req">${rec.shapeHint}</span>
+        <p class="recipe-detail">${rec.description}</p>
+      </article>`
+  ).join('');
+  panelRecipes.innerHTML = `<div class="recipes-grid">${recipesHtml}</div>`;
 
   // Panel 3: Arena & Power-Ups
   const panelArena = document.createElement('section');
@@ -501,25 +430,55 @@ function settingsPanel(ctx: ScreenContext): HTMLElement {
   const wrap = document.createElement('div');
   wrap.className = 'settings-panel';
 
-  const row = (label: string, value: string, onToggle: () => void): void => {
+  const row = (label: string, getValue: () => string, onToggle: () => void): void => {
     const line = document.createElement('div');
     line.className = 'setting-row';
     const name = document.createElement('span');
     name.textContent = label;
-    const btn = button(value, 'ghost', () => {
+    const btn = button(getValue(), 'ghost', () => {
       onToggle();
-      name.textContent = label;
+      btn.textContent = getValue();
     });
     btn.dataset.role = 'setting';
     line.append(name, btn);
     wrap.appendChild(line);
   };
 
-  row(T.sound, ctx.settings.sound ? T.soundOn : T.soundOff, () => ctx.setSetting('sound', !ctx.settings.sound));
-  row(T.music, ctx.settings.music ? T.on : T.off, () => ctx.setSetting('music', !ctx.settings.music));
-  row(T.quality, ctx.settings.quality === 'high' ? T.qualityHigh : T.qualityLow,
+  const sliderRow = (
+    label: string,
+    key: 'masterVolume' | 'musicVolume' | 'sfxVolume',
+    initial: number
+  ): void => {
+    const line = document.createElement('div');
+    line.className = 'setting-row setting-slider-row';
+    const name = document.createElement('span');
+    const pct = () => `${Math.round((ctx.settings[key] ?? initial) * 100)}%`;
+    name.textContent = `${label} (${pct()})`;
+    const input = document.createElement('input');
+    input.type = 'range';
+    input.min = '0';
+    input.max = '100';
+    input.value = String(Math.round((ctx.settings[key] ?? initial) * 100));
+    input.dataset.role = 'volume-slider';
+    input.dataset.setting = key;
+    input.setAttribute('aria-label', label);
+    input.addEventListener('input', () => {
+      const next = Math.max(0, Math.min(1, Number(input.value) / 100));
+      ctx.setSetting(key, next);
+      name.textContent = `${label} (${Math.round(next * 100)}%)`;
+    });
+    line.append(name, input);
+    wrap.appendChild(line);
+  };
+
+  row(T.sound, () => (ctx.settings.sound ? T.soundOn : T.soundOff), () => ctx.setSetting('sound', !ctx.settings.sound));
+  row(T.music, () => (ctx.settings.music ? T.on : T.off), () => ctx.setSetting('music', !ctx.settings.music));
+  sliderRow(T.masterVolume, 'masterVolume', 0.7);
+  sliderRow(T.musicVolume, 'musicVolume', 0.8);
+  sliderRow(T.sfxVolume, 'sfxVolume', 1.0);
+  row(T.quality, () => (ctx.settings.quality === 'high' ? T.qualityHigh : T.qualityLow),
     () => ctx.setSetting('quality', ctx.settings.quality === 'high' ? 'low' : 'high'));
-  row(T.reducedMotion, ctx.settings.reducedMotion ? T.on : T.off,
+  row(T.reducedMotion, () => (ctx.settings.reducedMotion ? T.on : T.off),
     () => ctx.setSetting('reducedMotion', !ctx.settings.reducedMotion));
   return wrap;
 }

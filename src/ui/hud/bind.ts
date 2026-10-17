@@ -1,4 +1,6 @@
 import type { ViewState } from '../../sim/core/view';
+import { BUNKER_MAX_HP } from '../../sim/domain/constants';
+import { CRAFTABLE_RECIPES } from '../../sim/domain/recipes';
 import { TEAM_COLORS, TEAM_IDS, type TeamId } from '../../sim/domain/teams';
 import { T } from '../i18n/id';
 
@@ -16,14 +18,8 @@ export interface HudBindings {
 }
 
 function getPadRecipeImage(title: string): string {
-  if (title.includes('Pistol')) return 'assets/tumpukan/tumpukan_resep_pistol.svg';
-  if (title.includes('Shotgun')) return 'assets/tumpukan/tumpukan_1x2_senjata.svg';
-  if (title.includes('Granat')) return 'assets/tumpukan/tumpukan_resep_granat.svg';
-  if (title.includes('Medic Buddy')) return 'assets/tumpukan/tumpukan_resep_buddy_baru_merah.svg';
-  if (title.includes('Medkit') || title.includes('Syringe')) return 'assets/tumpukan/tumpukan_resep_kotak_medis.svg';
-  if (title.includes('Bazooka') || title.includes('Bazoka')) return 'assets/tumpukan/tumpukan_resep_bazoka.svg';
-  if (title.includes('Commando') || title.includes('Sniper')) return 'assets/tumpukan/tumpukan_resep_sniper.svg';
-  if (title.includes('Tank')) return 'assets/tumpukan/tumpukan_resep_tank.svg';
+  const match = CRAFTABLE_RECIPES.find((r) => r.title === title || title.includes(r.title));
+  if (match) return match.stackImg;
   return 'assets/tumpukan/tumpukan_slot_2x2.svg';
 }
 
@@ -212,7 +208,7 @@ export function buildHud(doc: Document): HudBindings {
         const hp = Math.round(view.bunkerHp[team]);
         write(`bunker-${team}`, hp, () => {
           pills[team].value.textContent = String(hp);
-          pills[team].fill.style.width = `${(Math.max(0, hp) / 1000) * 100}%`;
+          pills[team].fill.style.width = `${(Math.max(0, hp) / BUNKER_MAX_HP) * 100}%`;
           pills[team].bar.classList.toggle('is-out', view.eliminated[team]);
         });
       }

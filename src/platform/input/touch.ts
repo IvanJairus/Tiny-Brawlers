@@ -9,6 +9,8 @@ export interface TouchSource {
 }
 
 const STICK_MAX = 46;
+export const STICK_RING_SIZE = 118;
+export const STICK_RING_HALF = STICK_RING_SIZE / 2;
 
 /**
  * The stick is dynamic: it appears under the thumb anywhere on the left half, so
@@ -44,7 +46,7 @@ export function createTouch(target: Window & typeof globalThis = window): TouchS
     dy = 0;
     area.classList.add('is-active');
     if (ring) {
-      ring.style.left = `${event.clientX - rect.left - 59}px`;
+      ring.style.left = `${event.clientX - rect.left - STICK_RING_HALF}px`;
       ring.style.bottom = 'auto';
       ring.style.top = `${event.clientY - rect.top}px`;
     }
@@ -81,6 +83,8 @@ export function createTouch(target: Window & typeof globalThis = window): TouchS
   return {
     attach(host) {
       area = host;
+      host.style.setProperty('--stick-ring-size', `${STICK_RING_SIZE}px`);
+      host.style.setProperty('--stick-ring-half', `-${STICK_RING_HALF}px`);
       ring = host.querySelector<HTMLElement>('[data-part="stickRing"]');
       knob = host.querySelector<HTMLElement>('[data-part="stickKnob"]');
       host.addEventListener('pointerdown', onDown);
