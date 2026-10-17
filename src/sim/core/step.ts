@@ -11,7 +11,7 @@ import { attachCrateToBuddy, CARRY_HEIGHT, detachCrate, makeCrate, placeCrateOnP
 import { findBestSlot, isSlotFilled, padOrigin, setSlot, slotPosition } from '../domain/pad';
 import { evaluatePad } from '../domain/recipes';
 import { blastOf, isFinished, makeProjectile, stepProjectile, type ProjectileRec } from '../domain/projectile';
-import { canRecruit, damageBunker, refreshElimination, spawnBuddy, tickReinforcements, tickRespawns } from '../domain/match';
+import { canRecruit, damageBunker, refreshElimination, respawnDelayFor, spawnBuddy, tickReinforcements, tickRespawns } from '../domain/match';
 import { aimTurret, makeTank, stepTank, TANK_MAX_HP, type TankRec } from '../domain/tank';
 import {
   GRENADE_DAMAGE, MEDKIT_HEAL, ROCKET_DAMAGE, TANK_SHELL_COOLDOWN, TANK_SHELL_DAMAGE, damageOf, weaponOf
@@ -41,6 +41,41 @@ export function stepWorld(w: World, dt: number): void {
   for (const b of w.buddies) {
     const cmd = w.inputs.get(b.id) ?? EMPTY_INPUT;
     const prev = w.prevInputs.get(b.id) ?? EMPTY_INPUT;
+    const drivenTank = w.tanks.find((t) => !t.destroyed && t.driver === b.id);
+    if (drivenTank) {
+      if (b.state === 'ko') {
+        drivenTank.driver = NO_ENTITY as EntityId;
+        w.prevInputs.set(b.id, cmd);
+        continue;
+      }
+      if (b.invuln > 0) b.invuln = Math.max(0, b.invuln - dt);
+      if (b.fireCooldown > 0) b.fireCooldown = Math.max(0, b.fireCooldown - dt);
+      if (cmd.grab === 1 && prev.grab === 0) {
+        drivenTank.driver = NO_ENTITY as EntityId;
+        b.x = drivenTank.x + Math.cos(drivenTank.heading) * 1.7;
+        b.z = drivenTank.z - Math.sin(drivenTank.heading) * 1.7;
+        resolveCircleObstacles(b, BUDDY_RADIUS, w.obstacles);
+        b.prevX = b.x;
+        b.prevZ = b.z;
+        b.vx = 0;
+        b.vz = 0;
+        w.prevInputs.set(b.id, cmd);
+        continue;
+      }
+      b.prevX = b.x;
+      b.prevZ = b.z;
+      b.prevHeading = b.heading;
+      b.x = drivenTank.x;
+      b.z = drivenTank.z;
+      b.vx = 0;
+      b.vz = 0;
+      b.kx = 0;
+      b.kz = 0;
+      b.state = 'idle';
+      w.prevInputs.set(b.id, cmd);
+      continue;
+    }
+
     stepBuddy(b, decodeMove(cmd), dt);
     resolveCircleObstacles(b, 0.48, w.obstacles);
     const aim = decodeAim(cmd);
@@ -73,6 +108,10 @@ const BUDDY_RADIUS = 0.48;
 const TANK_RADIUS = 1.15;
 const MAX_PUSH_PER_PASS = 0.28;
 
+function isDrivingTank(w: World, buddyId: EntityId): boolean {
+  return w.tanks.some((t) => !t.destroyed && t.driver === buddyId);
+}
+
 /**
  * Buddies are solid to each other and to tanks: pairs split the overlap evenly
  * and a tank pushes a buddy fully out (the tank is the heavier body). Two
@@ -83,10 +122,10 @@ function separateBuddies(w: World, iterations = 2): void {
   for (let pass = 0; pass < iterations; pass++) {
     for (let i = 0; i < w.buddies.length; i++) {
       const a = w.buddies[i];
-      if (a.state === 'ko') continue;
+      if (a.state === 'ko' || isDrivingTank(w, a.id)) continue;
       for (let j = i + 1; j < w.buddies.length; j++) {
         const b = w.buddies[j];
-        if (b.state === 'ko') continue;
+        if (b.state === 'ko' || isDrivingTank(w, b.id)) continue;
         const dx = b.x - a.x;
         const dz = b.z - a.z;
         const d = Math.hypot(dx, dz);
@@ -352,7 +391,14 @@ export function buildPad(w: World, team: TeamId, builder?: BuddyRec): string {
   w.padCrates[team] = [];
 
   const origin = padOrigin(team);
-  const receiver = builder ?? w.buddies.find((b) => b.team === team && b.state !== 'ko');
+  const receiver = builder
+    ?? w.buddies
+      .filter((b) => b.team === team && b.state !== 'ko')
+      .sort((a, b) => {
+        if (a.ownedByPlayer !== b.ownedByPlayer) return a.ownedByPlayer ? -1 : 1;
+        if (a.isBot !== b.isBot) return a.isBot ? 1 : -1;
+        return distance(a, origin) - distance(b, origin);
+      })[0];
 
   switch (recipe.itemType) {
     case 'pistol':
@@ -618,13 +664,6 @@ function stepProjectiles(w: World, dt: number): void {
       p.fuse = 0;
     }
 
-    if (p.kind === 'bullet' && w.pads[p.team] !== 0 && distance(p, padOrigin(p.team)) < PAD.halfWidth) {
-      const shooter = findBuddy(w, p.owner);
-      if (!shooter || !shooter.isBot) {
-        buildPad(w, p.team, shooter);
-      }
-    }
-
     const hit = w.buddies.find(
       (b) => b.state !== 'ko' && b.team !== p.team && !w.eliminated[b.team] &&
         sweptDistance(fromX, fromZ, p.x, p.z, b.x, b.z) < 0.9
@@ -715,7 +754,7 @@ export function fell(w: World, target: BuddyRec): void {
     carried.claimTeam = null;
   }
   target.carryCrate = NO_ENTITY as EntityId;
-  knockout(target, 5);
+  knockout(target, respawnDelayFor(target));
   emit(w, { kind: 'knockout', entity: target.id, at: { x: target.x, z: target.z } });
 }
 
@@ -724,10 +763,17 @@ function stepTanks(w: World, dt: number): void {
     if (t.destroyed) continue;
     const driver = t.driver !== (NO_ENTITY as EntityId) ? findBuddy(w, t.driver) : undefined;
     if (driver && driver.state === 'ko') t.driver = NO_ENTITY as EntityId;
-    if (driver) {
+    if (driver && t.driver !== (NO_ENTITY as EntityId)) {
       const cmd = w.inputs.get(driver.id) ?? EMPTY_INPUT;
       const fwd = -cmd.my / 127;
       stepTank(t, { fwd, turn: cmd.mx / 127 }, dt);
+      const aim = decodeAim(cmd);
+      if (Math.hypot(aim.x, aim.y) > 0.2) {
+        aimTurret(t, Math.atan2(aim.x, aim.y), dt);
+      }
+      driver.x = t.x;
+      driver.z = t.z;
+      driver.heading = t.turretAngle;
       aimTankFire(w, t, driver);
     } else {
       const target = w.buddies

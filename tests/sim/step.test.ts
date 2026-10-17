@@ -271,6 +271,34 @@ describe('tanks', () => {
     expect(tank.driver).toBe(NO_ENTITY as EntityId);
   });
 
+  it('locks driver to tank seat without double-firing and allows dismounting with grab', () => {
+    const w = testWorld();
+    const driver = addBuddy(w, 'red', 'fighter', 0, 0);
+    driver.weapon = 'grenade';
+    driver.grenades = 5;
+    w.pads.red = maskOf([0, 1, 2, 3, 4, 5, 6, 7]);
+    buildPad(w, 'red', driver);
+    const tank = w.tanks[0];
+
+    driver.x = tank.x;
+    driver.z = tank.z;
+    press(w, driver.id, { grab: true });
+    run(w, 0.05);
+    expect(tank.driver).toBe(driver.id);
+
+    press(w, driver.id, { moveY: -1, attack: true, grab: false });
+    run(w, 0.2);
+    expect(driver.x).toBeCloseTo(tank.x, 5);
+    expect(driver.z).toBeCloseTo(tank.z, 5);
+    expect(driver.grenades).toBe(5);
+    expect(w.projectiles.some((p) => p.kind === 'shell')).toBe(true);
+
+    press(w, driver.id, { grab: true });
+    run(w, 0.05);
+    expect(tank.driver).toBe(NO_ENTITY as EntityId);
+    expect(Math.hypot(driver.x - tank.x, driver.z - tank.z)).toBeGreaterThan(1.0);
+  });
+
   it('removes a destroyed tank and frees its id', () => {
     const w = testWorld();
     const owner = addBuddy(w, 'red', 'fighter', 0, 0);

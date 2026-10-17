@@ -152,9 +152,9 @@ export class WorldRenderer {
     for (const b of world.buddies) {
       if (this.actors.length >= BUDGET.buddies) break;
       const fallback = this.lastPos.get(b.id);
-      const prevX = (b as { prevX?: number }).prevX ?? fallback?.x ?? b.x;
-      const prevZ = (b as { prevZ?: number }).prevZ ?? fallback?.z ?? b.z;
-      const prevH = (b as { prevHeading?: number }).prevHeading ?? fallback?.heading ?? b.heading;
+      const prevX = b.prevX !== b.x ? b.prevX : (fallback?.x ?? b.x);
+      const prevZ = b.prevZ !== b.z ? b.prevZ : (fallback?.z ?? b.z);
+      const prevH = b.prevHeading !== b.heading ? b.prevHeading : (fallback?.heading ?? b.heading);
       const ix = lerp(prevX, b.x, t);
       const iz = lerp(prevZ, b.z, t);
       const ih = lerpAngle(prevH, b.heading, t);
@@ -179,12 +179,9 @@ export class WorldRenderer {
     this.crateViews.length = 0;
     for (const c of world.crates) {
       const held = c.state === 'held';
-      const prevX = (c as { prevX?: number }).prevX ?? c.x;
-      const prevY = (c as { prevY?: number }).prevY ?? c.y;
-      const prevZ = (c as { prevZ?: number }).prevZ ?? c.z;
-      const cx = lerp(prevX, c.x, t);
-      const cy = lerp(prevY, c.y, t);
-      const cz = lerp(prevZ, c.z, t);
+      const cx = lerp(c.prevX, c.x, t);
+      const cy = lerp(c.prevY, c.y, t);
+      const cz = lerp(c.prevZ, c.z, t);
       this.crateViews.push({ x: cx, y: cy, z: cz, spin: c.spin, scale: held ? 0.86 : 1 });
     }
     this.crates.sync(this.crateViews);
@@ -197,14 +194,10 @@ export class WorldRenderer {
 
     this.tankViews.length = 0;
     for (const tank of world.tanks) {
-      const prevX = (tank as { prevX?: number }).prevX ?? tank.x;
-      const prevZ = (tank as { prevZ?: number }).prevZ ?? tank.z;
-      const prevH = (tank as { prevHeading?: number }).prevHeading ?? tank.heading;
-      const prevT = (tank as { prevTurretAngle?: number }).prevTurretAngle ?? tank.turretAngle;
-      const tx = lerp(prevX, tank.x, t);
-      const tz = lerp(prevZ, tank.z, t);
-      const th = lerpAngle(prevH, tank.heading, t);
-      const tt = lerpAngle(prevT, tank.turretAngle, t);
+      const tx = lerp(tank.prevX, tank.x, t);
+      const tz = lerp(tank.prevZ, tank.z, t);
+      const th = lerpAngle(tank.prevHeading, tank.heading, t);
+      const tt = lerpAngle(tank.prevTurretAngle, tank.turretAngle, t);
       this.tankViews.push({
         team: tank.team, x: tx, z: tz, heading: th,
         turret: tt, hpRatio: tank.hp / tank.maxHp
@@ -406,9 +399,7 @@ export class WorldRenderer {
       ?? world.buddies.find((b) => b.team === 'red' && b.state !== 'ko');
     if (!target) return null;
     const t = Math.max(0, Math.min(1, alpha));
-    const px = (target as { prevX?: number }).prevX ?? target.x;
-    const pz = (target as { prevZ?: number }).prevZ ?? target.z;
-    return { x: lerp(px, target.x, t), z: lerp(pz, target.z, t) };
+    return { x: lerp(target.prevX, target.x, t), z: lerp(target.prevZ, target.z, t) };
   }
 
   info(): { calls: number; triangles: number; programs: number; geometries: number; materials: number } | null {

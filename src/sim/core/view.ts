@@ -56,7 +56,7 @@ export interface MatchStats {
 export function projectView(w: World, stats: MatchStats): ViewState {
   const me = w.buddies.find((b) => b.id === w.localPlayer);
   const team = me?.team ?? 'red';
-  const padTeam: TeamId = 'red';
+  const padTeam: TeamId = team;
   const mask = w.pads[padTeam];
   const recipe = evaluatePad(mask);
   const origin = padOrigin(padTeam);

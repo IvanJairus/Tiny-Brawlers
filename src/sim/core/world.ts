@@ -162,6 +162,19 @@ export function hashWorld(w: World): number {
   }
   for (const p of w.projectiles) h = mix(h, p.id), h = mix(h, p.x), h = mix(h, p.y), h = mix(h, p.z);
   for (const t of w.tanks) h = mix(h, t.id), h = mix(h, t.x), h = mix(h, t.z), h = mix(h, t.hp);
+  for (const o of w.obstacles) {
+    if (!o.dead) {
+      h = mix(h, o.id);
+      h = mix(h, o.hp);
+    }
+  }
+  for (const pu of w.powerups) {
+    if (!pu.dead) {
+      h = mix(h, pu.id);
+      h = mix(h, pu.x);
+      h = mix(h, pu.z);
+    }
+  }
   for (const team of TEAM_IDS) {
     h = mix(h, w.pads[team]);
     h = mix(h, w.bunkerHp[team]);
