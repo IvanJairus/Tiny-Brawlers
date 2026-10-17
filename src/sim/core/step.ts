@@ -1,6 +1,6 @@
 import { EMPTY_INPUT, decodeAim, decodeMove } from '../input/actions';
 import {
-  ARENA_SURFACE_Y, BASE_COORDINATES, BLAST_KNOCK_IMPULSE, CRATE_BONK_DAMAGE, CRATE_DROP_RADIUS,
+  ARENA_HALF, ARENA_SURFACE_Y, BASE_COORDINATES, BLAST_KNOCK_IMPULSE, CRATE_BONK_DAMAGE, CRATE_DROP_RADIUS,
   CRATE_MAX_ALIVE, CRATE_SPAWN_INTERVAL_S, CRATE_WAVE_MAX, CRATE_WAVE_MIN, HEART_HEAL_AMOUNT,
   MELEE_COOLDOWN_S, MELEE_DAMAGE, MELEE_KNOCK_IMPULSE, MELEE_RANGE, PAD, POWERUP_DURATION_S,
   SHIELD_MAX_HP, VOID_DISTANCE
@@ -78,6 +78,7 @@ export function stepWorld(w: World, dt: number): void {
 
     stepBuddy(b, decodeMove(cmd), dt);
     resolveCircleObstacles(b, 0.48, w.obstacles);
+    resolveBunkerObstacles(w, b, 0.48);
     const aim = decodeAim(cmd);
     if (Math.hypot(aim.x, aim.y) > 0.2) b.heading = Math.atan2(aim.x, aim.y);
     if (b.state === 'ko') { w.prevInputs.set(b.id, cmd); continue; }
@@ -91,7 +92,10 @@ export function stepWorld(w: World, dt: number): void {
   stepProjectiles(w, dt);
   stepTanks(w, dt);
   for (const t of w.tanks) {
-    if (!t.destroyed) resolveCircleObstacles(t, 1.15, w.obstacles);
+    if (!t.destroyed) {
+      resolveCircleObstacles(t, 1.15, w.obstacles);
+      resolveBunkerObstacles(w, t, 1.15);
+    }
   }
   separateBuddies(w);
   separateTanksFromBuddies(w);
@@ -106,7 +110,34 @@ export function stepWorld(w: World, dt: number): void {
 
 const BUDDY_RADIUS = 0.48;
 const TANK_RADIUS = 1.15;
+const BUNKER_COLLISION_RADIUS = 3.5;
 const MAX_PUSH_PER_PASS = 0.28;
+
+function clampToArena(entity: { x: number; z: number }): void {
+  const limit = ARENA_HALF - 1;
+  if (Math.abs(entity.x) <= VOID_DISTANCE && Math.abs(entity.z) <= VOID_DISTANCE) {
+    entity.x = Math.max(-limit, Math.min(limit, entity.x));
+    entity.z = Math.max(-limit, Math.min(limit, entity.z));
+  }
+}
+
+function resolveBunkerObstacles(w: World, entity: { x: number; z: number }, radius: number): void {
+  const minDist = BUNKER_COLLISION_RADIUS + radius;
+  for (const team of Object.keys(BASE_COORDINATES) as TeamId[]) {
+    if (w.eliminated[team] || w.bunkerHp[team] <= 0) continue;
+    const base = BASE_COORDINATES[team];
+    const dx = entity.x - base.x;
+    const dz = entity.z - base.z;
+    const d = Math.hypot(dx, dz);
+    if (d < minDist) {
+      const nx = d > 1e-4 ? dx / d : -Math.sign(base.x) * Math.SQRT1_2;
+      const nz = d > 1e-4 ? dz / d : -Math.sign(base.z) * Math.SQRT1_2;
+      entity.x = base.x + nx * minDist;
+      entity.z = base.z + nz * minDist;
+      clampToArena(entity);
+    }
+  }
+}
 
 function isDrivingTank(w: World, buddyId: EntityId): boolean {
   return w.tanks.some((t) => !t.destroyed && t.driver === buddyId);
@@ -141,7 +172,11 @@ function separateBuddies(w: World, iterations = 2): void {
     }
   }
   for (const b of w.buddies) {
-    if (b.state !== 'ko') resolveCircleObstacles(b, BUDDY_RADIUS, w.obstacles);
+    if (b.state !== 'ko') {
+      resolveCircleObstacles(b, BUDDY_RADIUS, w.obstacles);
+      resolveBunkerObstacles(w, b, BUDDY_RADIUS);
+      clampToArena(b);
+    }
   }
 }
 
@@ -162,7 +197,11 @@ function separateTanksFromBuddies(w: World): void {
     }
   }
   for (const b of w.buddies) {
-    if (b.state !== 'ko') resolveCircleObstacles(b, BUDDY_RADIUS, w.obstacles);
+    if (b.state !== 'ko') {
+      resolveCircleObstacles(b, BUDDY_RADIUS, w.obstacles);
+      resolveBunkerObstacles(w, b, BUDDY_RADIUS);
+      clampToArena(b);
+    }
   }
 }
 
@@ -335,6 +374,18 @@ function stepCrates(w: World, dt: number): void {
         c.vx *= -0.25;
         c.vz *= -0.25;
         c.state = 'loose';
+      } else if (c.claimTeam) {
+        for (const team of Object.keys(BASE_COORDINATES) as TeamId[]) {
+          if (team === c.claimTeam || w.eliminated[team] || w.bunkerHp[team] <= 0) continue;
+          const base = BASE_COORDINATES[team];
+          if (Math.hypot(base.x - c.x, base.z - c.z) < 4.5) {
+            damageBunker(w, team, CRATE_BONK_DAMAGE, c.claimTeam);
+            c.vx *= -0.35;
+            c.vz *= -0.35;
+            c.state = 'loose';
+            break;
+          }
+        }
       }
     }
 
@@ -599,6 +650,22 @@ function performMelee(w: World, b: BuddyRec): void {
       break;
     }
   }
+
+  // Punch enemy bunker walls when standing next to them
+  for (const team of Object.keys(BASE_COORDINATES) as TeamId[]) {
+    if (team === b.team || w.eliminated[team] || w.bunkerHp[team] <= 0) continue;
+    const base = BASE_COORDINATES[team];
+    const dx = base.x - b.x;
+    const dz = base.z - b.z;
+    const d = Math.hypot(dx, dz);
+    if (d <= 5.4) {
+      const dot = d > 1e-4 ? (dx / d) * dirX + (dz / d) * dirZ : 1;
+      if (dot > -0.15) {
+        damageBunker(w, team, punchDmg, b.team);
+        break;
+      }
+    }
+  }
 }
 
 function hitSoftBrick(w: World, obs: ObstacleRec, amount: number): void {
@@ -676,8 +743,18 @@ function stepProjectiles(w: World, dt: number): void {
         continue;
       }
     }
+
+    const bunkerTeam = hitEnemyBunker(w, p, fromX, fromZ);
+    if (bunkerTeam) {
+      if (p.kind === 'bullet') {
+        damageBunker(w, bunkerTeam, p.damage * 0.5, p.team);
+        p.dead = true;
+        continue;
+      }
+      p.fuse = 0;
+    }
+
     if (p.kind !== 'shell' && p.kind !== 'bullet' && p.y <= 0.15) p.fuse = Math.min(p.fuse, 0.05);
-    if (p.kind !== 'shell' && p.kind !== 'bullet' && nearEnemyBunker(w, p)) p.fuse = 0;
     if (p.fuse <= 0) {
       if (p.kind !== 'bullet') {
         explode(w, p);
@@ -696,13 +773,13 @@ function sweptDistance(ax: number, az: number, bx: number, bz: number, px: numbe
   return Math.hypot(px - (ax + dx * t), pz - (az + dz * t));
 }
 
-function nearEnemyBunker(w: World, p: ProjectileRec): boolean {
+function hitEnemyBunker(w: World, p: ProjectileRec, fromX: number, fromZ: number): TeamId | null {
   for (const team of Object.keys(BASE_COORDINATES) as TeamId[]) {
-    if (team === p.team || w.eliminated[team]) continue;
+    if (team === p.team || w.eliminated[team] || w.bunkerHp[team] <= 0) continue;
     const base = BASE_COORDINATES[team];
-    if (Math.hypot(base.x - p.x, base.z - p.z) < 3) return true;
+    if (sweptDistance(fromX, fromZ, p.x, p.z, base.x, base.z) < 4.35) return team;
   }
-  return false;
+  return null;
 }
 
 function directHit(w: World, p: ProjectileRec, target: BuddyRec): void {
@@ -730,10 +807,10 @@ function explode(w: World, p: ProjectileRec): void {
     if (dealt > 0 && b.hp <= 0) fell(w, b);
   }
   for (const team of Object.keys(BASE_COORDINATES) as TeamId[]) {
-    if (team === p.team) continue;
+    if (team === p.team || w.eliminated[team] || w.bunkerHp[team] <= 0) continue;
     const base = BASE_COORDINATES[team];
-    if (Math.hypot(base.x - p.x, base.z - p.z) > radius + 2.5) continue;
-    damageBunker(w, team, damage * 0.5, p.team);
+    if (Math.hypot(base.x - p.x, base.z - p.z) > radius + 4.35) continue;
+    damageBunker(w, team, damage * 0.85, p.team);
   }
   for (const obs of w.obstacles) {
     if (obs.dead || obs.kind !== 'soft') continue;
@@ -779,13 +856,28 @@ function stepTanks(w: World, dt: number): void {
       const target = w.buddies
         .filter((b) => b.team !== t.team && b.state !== 'ko' && !w.eliminated[b.team])
         .sort((a, b) => distance(a, t) - distance(b, t))[0];
-      if (target && distance(target, t) < 20) aimTank(w, t, target, dt);
+      if (target && distance(target, t) < 20) {
+        aimTank(w, t, target, dt);
+      } else {
+        for (const team of Object.keys(BASE_COORDINATES) as TeamId[]) {
+          if (team === t.team || w.eliminated[team] || w.bunkerHp[team] <= 0) continue;
+          const base = BASE_COORDINATES[team];
+          if (Math.hypot(base.x - t.x, base.z - t.z) < 22) {
+            aimTankAtPoint(w, t, base.x, base.z, dt);
+            break;
+          }
+        }
+      }
     }
   }
 }
 
 function aimTank(w: World, t: TankRec, target: BuddyRec, dt: number): void {
-  const angle = Math.atan2(target.x - t.x, target.z - t.z);
+  aimTankAtPoint(w, t, target.x, target.z, dt);
+}
+
+function aimTankAtPoint(w: World, t: TankRec, tx: number, tz: number, dt: number): void {
+  const angle = Math.atan2(tx - t.x, tz - t.z);
   aimTurret(t, angle, dt);
   if (Math.abs(((angle - t.turretAngle + Math.PI * 3) % (Math.PI * 2)) - Math.PI) < 0.08 && t.fireCooldown <= 0) fireTank(w, t);
 }

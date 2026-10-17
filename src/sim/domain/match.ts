@@ -82,12 +82,16 @@ export function squadSize(w: World, team: TeamId): number {
 }
 
 export function canRecruit(w: World, team: TeamId): boolean {
-  return squadSize(w, team) < SQUAD_SIZE_MAX;
+  return !w.eliminated[team] && w.bunkerHp[team] > 0 && squadSize(w, team) < SQUAD_SIZE_MAX;
 }
 
 export function tickRespawns(w: World, dt: number): void {
   for (const b of w.buddies) {
     if (b.state !== 'ko' || w.eliminated[b.team]) continue;
+    if (w.bunkerHp[b.team] <= 0) {
+      if (b.id !== w.localPlayer) b.remove = true;
+      continue;
+    }
     if (b.koTimer > 0) continue;
     const alive = w.buddies.filter((x) => x.team === b.team && x.state !== 'ko' && !x.remove).length;
     if (alive >= SQUAD_SIZE_MAX) {
@@ -115,7 +119,9 @@ export function tickReinforcements(w: World, dt: number): void {
   if (w.troopTimer > 0) return;
   w.troopTimer = REINFORCEMENT_INTERVAL_S;
   for (const team of aliveTeams(w)) {
-    if (squadSize(w, team) < SQUAD_SIZE_MAX) spawnBuddy(w, team, 'fighter', true);
+    if (w.bunkerHp[team] > 0 && squadSize(w, team) < SQUAD_SIZE_MAX) {
+      spawnBuddy(w, team, 'fighter', true);
+    }
   }
 }
 

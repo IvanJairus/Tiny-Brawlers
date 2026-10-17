@@ -386,6 +386,10 @@ export class WorldRenderer {
         case 'powerup':
           this.particles.burst(ev.at.x, 0.9, ev.at.z, COLOR.heal, 12, 3.0, -0.2, 0.55);
           break;
+        case 'bunkerHit':
+          this.particles.burst(ev.at.x, 1.8, ev.at.z, COLOR.fire, 14, 4.8, 1.1, 0.48);
+          this.particles.burst(ev.at.x, 1.2, ev.at.z, COLOR.smoke, 10, 3.2, 0.4, 0.85);
+          break;
         default:
           break;
       }

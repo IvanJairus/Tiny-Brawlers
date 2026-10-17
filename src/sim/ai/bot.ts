@@ -335,9 +335,23 @@ export function botInput(w: World, me: BuddyRec, memory: BotMemory, seq: number)
     }
   }
 
-  if (hostileTeam) steer(me, BASE_COORDINATES[hostileTeam], raw, 0.05, w);
-  else steer(me, padOrigin(me.team), raw, 0.05, w);
-  applyStuckDetour(me, memory, raw);
+  if (hostileTeam) {
+    const enemyBase = BASE_COORDINATES[hostileTeam];
+    const distToBase = distance(me, enemyBase);
+    steer(me, enemyBase, raw, 4.2, w);
+    applyStuckDetour(me, memory, raw);
+    if (w.bunkerHp[hostileTeam] > 0 && distToBase < 13.5) {
+      const baseAngle = Math.atan2(enemyBase.x - me.x, enemyBase.z - me.z);
+      raw.aimX = Math.sin(baseAngle);
+      raw.aimY = Math.cos(baseAngle);
+      if (me.weapon !== 'none' || distToBase <= 5.0) {
+        raw.attack = diff.fireEvery <= 1 || (w.tick + me.id) % diff.fireEvery === 0;
+      }
+    }
+  } else {
+    steer(me, padOrigin(me.team), raw, 0.05, w);
+    applyStuckDetour(me, memory, raw);
+  }
   return raw;
 }
 

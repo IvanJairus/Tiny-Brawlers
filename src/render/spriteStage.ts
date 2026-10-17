@@ -6,6 +6,8 @@ import type { TankView } from './tanks';
 import type { ObstacleView, PowerUpView } from './obstacles';
 import type { ProjectileView } from './projectiles';
 import type { SimEvent } from '../sim/core/events';
+import { BASE_COORDINATES, BUNKER_MAX_HP } from '../sim/domain/constants';
+import { TEAM_COLORS, TEAM_IDS, type TeamId } from '../sim/domain/teams';
 
 interface SpriteBurst {
   type: 'explosion' | 'impact' | 'heal' | 'teleport' | 'dust';
@@ -13,6 +15,16 @@ interface SpriteBurst {
   z: number;
   start: number;
   duration: number;
+}
+
+interface FloatingNumber {
+  x: number;
+  z: number;
+  text: string;
+  color: string;
+  start: number;
+  duration: number;
+  big: boolean;
 }
 
 interface DrawableItem {
@@ -26,6 +38,14 @@ export class SpriteStage {
   private container: HTMLElement | null = null;
   private images = new Map<string, HTMLImageElement>();
   private bursts: SpriteBurst[] = [];
+  private floaters: FloatingNumber[] = [];
+  private bunkerFlashUntil: Record<TeamId, number> = { red: 0, blue: 0, yellow: 0, cyan: 0 };
+  private prevBunkerHp: Record<TeamId, number> = {
+    red: BUNKER_MAX_HP,
+    blue: BUNKER_MAX_HP,
+    yellow: BUNKER_MAX_HP,
+    cyan: BUNKER_MAX_HP
+  };
   private clock = 0;
 
   private vProj = new THREE.Vector3();
@@ -85,7 +105,32 @@ export class SpriteStage {
   consume(events: SimEvent[], time = this.clock): void {
     this.clock = time;
     for (const event of events) {
-      const ev = event as unknown as { kind: string; at?: { x: number; z: number } };
+      const ev = event as unknown as {
+        kind: string;
+        at?: { x: number; z: number };
+        amount?: number;
+        team?: TeamId;
+        hp?: number;
+      };
+      if (ev.kind === 'bunkerHit' && ev.team && ev.at) {
+        const prevHp = this.prevBunkerHp[ev.team] ?? BUNKER_MAX_HP;
+        const nextHp = ev.hp ?? prevHp;
+        const delta = Math.max(1, Math.round(prevHp - nextHp));
+        this.prevBunkerHp[ev.team] = nextHp;
+        this.bunkerFlashUntil[ev.team] = time + 0.35;
+        this.bursts.push({ type: 'explosion', x: ev.at.x, z: ev.at.z, start: time, duration: 0.45 });
+        this.floaters.push({
+          x: ev.at.x + (Math.sin(time * 37) * 0.9),
+          z: ev.at.z,
+          text: `-${delta} MARKAS`,
+          color: '#fbbf24',
+          start: time,
+          duration: 0.95,
+          big: true
+        });
+        continue;
+      }
+
       if (!ev.at) continue;
       const x = ev.at.x;
       const z = ev.at.z;
@@ -94,11 +139,41 @@ export class SpriteStage {
         case 'explosion':
           this.bursts.push({ type: 'explosion', x, z, start: time, duration: 0.42 });
           break;
-        case 'damage':
+        case 'damage': {
+          this.bursts.push({ type: 'impact', x, z, start: time, duration: 0.25 });
+          const dmg = Math.round(ev.amount ?? 0);
+          if (dmg > 0) {
+            this.floaters.push({
+              x,
+              z,
+              text: `-${dmg}`,
+              color: dmg >= 45 ? '#fb923c' : '#fef08a',
+              start: time,
+              duration: 0.75,
+              big: dmg >= 45
+            });
+          }
+          break;
+        }
         case 'melee':
           this.bursts.push({ type: 'impact', x, z, start: time, duration: 0.25 });
           break;
-        case 'heal':
+        case 'heal': {
+          this.bursts.push({ type: 'heal', x, z, start: time, duration: 0.45 });
+          const healed = Math.round(ev.amount ?? 0);
+          if (healed >= 5) {
+            this.floaters.push({
+              x,
+              z,
+              text: `+${healed}`,
+              color: '#4ade80',
+              start: time,
+              duration: 0.7,
+              big: false
+            });
+          }
+          break;
+        }
         case 'powerup':
           this.bursts.push({ type: 'heal', x, z, start: time, duration: 0.45 });
           break;
@@ -142,6 +217,7 @@ export class SpriteStage {
     if (!this.canvas || !this.ctx) return;
 
     this.clock = time;
+
     const parent = this.canvas.parentElement;
     if (!parent) return;
 
@@ -164,10 +240,117 @@ export class SpriteStage {
 
     const drawables: DrawableItem[] = [];
 
-    // In Option 1 (Clean 3D World), Base Buildings, Stacking Pads, Obstacles,
-    // Power-Ups, Crates, Tanks, Weapons, and Chibi characters are rendered purely in 3D by Three.js!
-    // SpriteStage renders only floating status indicators, the player marker, and VFX bursts.
+    // 1. World-space Bunker HP Bars & Status Banners above each Team Base
+    if (world.bunkerHp && world.eliminated) {
+      const localBuddy = actors.find((a) => a.id === world.localPlayer);
+      const myTeam: TeamId = localBuddy?.team ?? 'red';
 
+      for (const team of TEAM_IDS) {
+        const base = BASE_COORDINATES[team];
+        const hp = Math.max(0, Math.round(world.bunkerHp[team] ?? 0));
+        const elim = Boolean(world.eliminated[team]);
+        const pBase = this.project(base.x, 4.2, base.z, camera, width, height);
+
+        if (pBase.visible) {
+          const flashLeft = Math.max(0, (this.bunkerFlashUntil[team] ?? 0) - time);
+          const shakeX = flashLeft > 0 ? Math.sin(time * 75) * pBase.scale * 0.14 : 0;
+          const teamInfo = TEAM_COLORS[team];
+          const isAlly = team === myTeam;
+
+          drawables.push({
+            depth: base.z + 0.1,
+            draw: (c) => {
+              const barW = Math.max(68, pBase.scale * 3.1);
+              const barH = Math.max(8, pBase.scale * 0.34);
+              const bx = pBase.sx - barW / 2 + shakeX;
+              const by = pBase.sy;
+
+              c.save();
+              // Header label
+              c.font = `bold ${Math.max(10, Math.round(pBase.scale * 0.34))}px sans-serif`;
+              c.textAlign = 'center';
+              c.textBaseline = 'bottom';
+              const title = elim
+                ? `MARKAS ${teamInfo.label.toUpperCase()} [GUGUR]`
+                : hp <= 0
+                  ? `MARKAS ${teamInfo.label.toUpperCase()} [HANCUR!]`
+                  : isAlly
+                    ? `MARKAS KAMU (${hp})`
+                    : `MARKAS ${teamInfo.label.toUpperCase()} (${hp})`;
+
+              c.lineWidth = 3;
+              c.strokeStyle = 'rgba(10, 12, 18, 0.9)';
+              c.strokeText(title, pBase.sx + shakeX, by - 4);
+              c.fillStyle = flashLeft > 0 ? '#ffffff' : teamInfo.css;
+              c.fillText(title, pBase.sx + shakeX, by - 4);
+
+              // HP Bar track
+              c.fillStyle = 'rgba(12, 15, 22, 0.88)';
+              c.strokeStyle = flashLeft > 0 ? '#ffffff' : teamInfo.css;
+              c.lineWidth = flashLeft > 0 ? 2.5 : 1.5;
+              c.beginPath();
+              c.roundRect(bx - 2, by - 2, barW + 4, barH + 4, 4);
+              c.fill();
+              c.stroke();
+
+              if (hp > 0) {
+                const ratio = Math.max(0, Math.min(1, hp / BUNKER_MAX_HP));
+                c.fillStyle = flashLeft > 0 ? '#fde047' : teamInfo.css;
+                c.beginPath();
+                c.roundRect(bx, by, barW * ratio, barH, 3);
+                c.fill();
+              } else {
+                // Destroyed warning stripe
+                c.fillStyle = '#ef4444';
+                c.font = `bold ${Math.max(9, Math.round(pBase.scale * 0.28))}px sans-serif`;
+                c.textBaseline = 'top';
+                c.fillText('RESPAWN MATI!', pBase.sx + shakeX, by + barH + 4);
+              }
+              c.restore();
+            }
+          });
+        } else if (!elim && team !== myTeam) {
+          // Off-screen indicator arrow pointing toward living enemy bases
+          const cx = width * 0.5;
+          const cy = height * 0.5;
+          const dx = pBase.sx - cx;
+          const dy = pBase.sy - cy;
+          const angle = Math.atan2(dy, dx);
+          const padX = width * 0.42;
+          const padY = height * 0.38;
+          const edgeT = Math.min(
+            padX / Math.max(1, Math.abs(Math.cos(angle))),
+            padY / Math.max(1, Math.abs(Math.sin(angle)))
+          );
+          const ix = cx + Math.cos(angle) * edgeT;
+          const iy = cy + Math.sin(angle) * edgeT;
+          const teamInfo = TEAM_COLORS[team];
+
+          drawables.push({
+            depth: 999,
+            draw: (c) => {
+              c.save();
+              c.translate(ix, iy);
+              c.rotate(angle);
+              c.fillStyle = teamInfo.css;
+              c.strokeStyle = '#0f172a';
+              c.lineWidth = 2;
+              c.beginPath();
+              c.moveTo(10, 0);
+              c.lineTo(-8, -7);
+              c.lineTo(-5, 0);
+              c.lineTo(-8, 7);
+              c.closePath();
+              c.fill();
+              c.stroke();
+              c.restore();
+            }
+          });
+        }
+      }
+    }
+
+    // 2. Actor Indicators & Player Marker
     for (const actor of actors) {
       const pActor = this.project(actor.x, 0, actor.z, camera, width, height);
       if (!pActor.visible) continue;
@@ -255,7 +438,7 @@ export class SpriteStage {
       });
     }
 
-    // Animated VFX Bursts
+    // 3. Animated VFX Bursts
     const activeBursts: SpriteBurst[] = [];
     for (const burst of this.bursts) {
       const elapsed = time - burst.start;
@@ -308,6 +491,39 @@ export class SpriteStage {
     }
     this.bursts = activeBursts;
 
+    // 4. Floating Combat Numbers (damage & bunker hits)
+    const activeFloaters: FloatingNumber[] = [];
+    for (const fl of this.floaters) {
+      const elapsed = time - fl.start;
+      if (elapsed > fl.duration || elapsed < 0) continue;
+      activeFloaters.push(fl);
+
+      const progress = elapsed / fl.duration;
+      const liftY = 1.4 + progress * 1.9;
+      const pFl = this.project(fl.x, liftY, fl.z, camera, width, height);
+      if (!pFl.visible) continue;
+
+      const alpha = progress < 0.7 ? 1 : Math.max(0, 1 - (progress - 0.7) / 0.3);
+      drawables.push({
+        depth: fl.z + 0.5,
+        draw: (c) => {
+          c.save();
+          c.globalAlpha = alpha;
+          const fontSize = Math.max(12, Math.round(pFl.scale * (fl.big ? 0.52 : 0.38)));
+          c.font = `900 ${fontSize}px sans-serif`;
+          c.textAlign = 'center';
+          c.textBaseline = 'middle';
+          c.lineWidth = 3.5;
+          c.strokeStyle = 'rgba(15, 17, 23, 0.92)';
+          c.strokeText(fl.text, pFl.sx, pFl.sy);
+          c.fillStyle = fl.color;
+          c.fillText(fl.text, pFl.sx, pFl.sy);
+          c.restore();
+        }
+      });
+    }
+    this.floaters = activeFloaters;
+
     // Depth sort back to front (painter's algorithm)
     drawables.sort((a, b) => a.depth - b.depth);
 
@@ -316,18 +532,49 @@ export class SpriteStage {
       item.draw(ctx);
     }
 
-    // Mouse-aim crosshair, always on top of the world markers
+    // 5. Mouse-aim crosshair & aim line, always on top of the world markers
     if (reticle) {
       const p = this.project(reticle.x, 0.05, reticle.z, camera, width, height);
       if (p.visible) {
-        const r = Math.max(5, p.scale * 0.32);
+        const localActor = actors.find((a) => a.id === world.localPlayer && a.state !== 'ko');
+        const myTeam = localActor?.team ?? 'red';
+        const lockedEnemy = actors.some(
+          (a) => a.team !== myTeam && a.state !== 'ko' && Math.hypot(a.x - reticle.x, a.z - reticle.z) < 1.35
+        );
+        const lockedBunker = world.bunkerHp
+          ? TEAM_IDS.some(
+              (t) =>
+                t !== myTeam &&
+                !world.eliminated?.[t] &&
+                (world.bunkerHp[t] ?? 0) > 0 &&
+                Math.hypot(BASE_COORDINATES[t].x - reticle.x, BASE_COORDINATES[t].z - reticle.z) < 4.5
+            )
+          : false;
+        const isLocked = lockedEnemy || lockedBunker;
+
+        if (localActor) {
+          const pMe = this.project(localActor.x, 0.35, localActor.z, camera, width, height);
+          if (pMe.visible) {
+            ctx.save();
+            ctx.setLineDash([5, 6]);
+            ctx.strokeStyle = isLocked ? 'rgba(239, 68, 68, 0.55)' : 'rgba(255, 255, 255, 0.28)';
+            ctx.lineWidth = 1.75;
+            ctx.beginPath();
+            ctx.moveTo(pMe.sx, pMe.sy);
+            ctx.lineTo(p.sx, p.sy);
+            ctx.stroke();
+            ctx.restore();
+          }
+        }
+
+        const r = Math.max(5, p.scale * (isLocked ? 0.42 : 0.32));
         ctx.save();
         ctx.translate(p.sx, p.sy);
-        ctx.strokeStyle = 'rgba(15, 17, 23, 0.75)';
+        ctx.strokeStyle = 'rgba(15, 17, 23, 0.8)';
         ctx.lineWidth = 3.5;
         this.drawCrosshair(ctx, r);
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = isLocked ? '#ef4444' : '#ffffff';
+        ctx.lineWidth = 1.8;
         this.drawCrosshair(ctx, r);
         ctx.restore();
       }
@@ -359,5 +606,6 @@ export class SpriteStage {
     this.container = null;
     this.images.clear();
     this.bursts.length = 0;
+    this.floaters.length = 0;
   }
 }

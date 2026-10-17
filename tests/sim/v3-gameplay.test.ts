@@ -452,5 +452,94 @@ describe('v3.0 gameplay features', () => {
       expect(b.x).toBeGreaterThan(oldX);
     });
   });
+
+  describe('7. Base Destruction & Match Completion', () => {
+    it('allows pistol bullets, melee punches, and thrown crates to damage enemy bunkers', () => {
+      const w = createWorld({ seed: 42 });
+      w.obstacles = [];
+      const blueBase = { x: 17.5, z: -17.5 };
+
+      // 1. Pistol bullet damages enemy bunker and stops on impact
+      const bullet = createBullet(10, 'red', blueBase.x - 5, blueBase.z, 32, 0, 1.0, 22);
+      w.projectiles.push(bullet);
+      stepWorld(w, 0.1);
+      expect(bullet.dead).toBe(true);
+      expect(w.bunkerHp.blue).toBeLessThan(1000);
+
+      // 2. Melee punch next to enemy bunker damages it
+      const hpAfterBullet = w.bunkerHp.blue;
+      const brawler = makeBuddy(1 as EntityId, 'red', 'fighter', blueBase.x - 4.2, blueBase.z, false);
+      brawler.heading = Math.PI / 2;
+      brawler.weapon = 'none';
+      w.buddies.push(brawler);
+      setInput(
+        w,
+        brawler.id,
+        encodeInput(1, {
+          moveX: 0,
+          moveY: 0,
+          aimX: 1,
+          aimY: 0,
+          attack: true,
+          grab: false,
+          build: false,
+          zoom: 0
+        })
+      );
+      stepWorld(w, 0.033);
+      expect(w.bunkerHp.blue).toBeLessThan(hpAfterBullet);
+
+      // 3. Thrown crate bonks enemy bunker and deals damage
+      const hpAfterPunch = w.bunkerHp.blue;
+      const crate = makeCrate(20 as EntityId, blueBase.x - 4.0, 0.8, blueBase.z);
+      crate.state = 'thrown';
+      crate.claimTeam = 'red';
+      crate.vx = 10;
+      crate.vz = 0;
+      w.crates.push(crate);
+      stepWorld(w, 0.033);
+      expect(w.bunkerHp.blue).toBeLessThan(hpAfterPunch);
+    });
+
+    it('stops respawning KO buddies once their bunker is destroyed (0 HP) and ends the match when the last enemy falls', () => {
+      const w = createWorld({ seed: 42, teams: ['red', 'blue'] });
+      const redHero = makeBuddy(1 as EntityId, 'red', 'fighter', 0, 0, false);
+      const blueKo = makeBuddy(2 as EntityId, 'blue', 'fighter', 12, -12, true);
+      blueKo.state = 'ko';
+      blueKo.hp = 0;
+      blueKo.koTimer = 0;
+      const blueLast = makeBuddy(3 as EntityId, 'blue', 'fighter', 1.4, 0, false);
+      blueLast.hp = 10;
+
+      w.buddies.push(redHero, blueKo, blueLast);
+      w.bunkerHp.blue = 0;
+
+      // Even with koTimer = 0, blueKo must NOT respawn because blue bunker is 0 HP
+      tickRespawns(w, 0.1);
+      expect(blueKo.state).toBe('ko');
+      expect(blueKo.remove).toBe(true);
+
+      // Punch the last standing blue buddy -> blue team is eliminated and match ends!
+      setInput(
+        w,
+        redHero.id,
+        encodeInput(1, {
+          moveX: 0,
+          moveY: 0,
+          aimX: 1,
+          aimY: 0,
+          attack: true,
+          grab: false,
+          build: false,
+          zoom: 0
+        })
+      );
+      stepWorld(w, 0.033);
+
+      expect(w.eliminated.blue).toBe(true);
+      expect(w.over).toBe(true);
+      expect(w.winner).toBe('red');
+    });
+  });
 });
 
