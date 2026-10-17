@@ -49,6 +49,18 @@ export const MELEE_COOLDOWN_S = 0.36;
 export const MELEE_KNOCKBACK = 1.15;
 export const CRATE_BONK_DAMAGE = 25;
 
+/** Seconds for a buddy to reach full run speed from a standstill. */
+export const MOVE_ACCEL_S = 0.12;
+/** Seconds for a buddy to bleed full speed down to zero when input stops. */
+export const MOVE_DECEL_S = 0.09;
+/** Exponential decay rate (1/s) of shove velocity. Total slide ≈ impulse / this. */
+export const KNOCK_DECAY = 8;
+/** Input authority multiplier while a shove is still decaying, so a hit lands. */
+export const KNOCK_CONTROL = 0.35;
+/** Impulse units; with the decay above this yields ≈ MELEE_KNOCKBACK of slide. */
+export const MELEE_KNOCK_IMPULSE = MELEE_KNOCKBACK * KNOCK_DECAY;
+export const BLAST_KNOCK_IMPULSE = 10;
+
 export const SOFT_BRICK_HP = 60;
 export const POWERUP_DURATION_S = 12;
 export const SHIELD_MAX_HP = 60;

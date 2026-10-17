@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { applyDamage, distance, heal, isOutOfBounds, knockout, revive, speedOf, stepBuddy } from '../../src/sim/domain/buddy';
+import { applyDamage, distance, heal, isOutOfBounds, knockout, revive, shove, speedOf, stepBuddy } from '../../src/sim/domain/buddy';
 import { CLASS_STATS } from '../../src/sim/domain/classes';
-import { NO_ENTITY, type EntityId } from '../../src/sim/core/ids';
+import { type EntityId } from '../../src/sim/core/ids';
 import { makeBuddy } from '../../src/sim/domain/buddy';
+import { createWorld } from '../../src/sim/core/world';
+import { stepWorld } from '../../src/sim/core/step';
+import { spawnBuddy } from '../../src/sim/domain/match';
+import { encodeInput } from '../../src/sim/input/actions';
 
 const buddy = (cls: 'fighter' | 'healer' | 'constructor') =>
   makeBuddy(1 as EntityId, 'red', cls, 0, 0, false);
@@ -38,11 +42,18 @@ describe('class stats', () => {
 });
 
 describe('buddy movement', () => {
-  it('moves along the input direction at class speed', () => {
+  it('accelerates along the input direction up to class speed and decelerates to stop', () => {
     const b = buddy('fighter');
+    for (let i = 0; i < 4; i++) stepBuddy(b, { x: 0, y: 1 }, 1 / 30);
+    expect(b.vz).toBeCloseTo(6.8, 5);
+    const zBefore = b.z;
     stepBuddy(b, { x: 0, y: 1 }, 1 / 30);
-    expect(b.z).toBeCloseTo(6.8 / 30, 5);
+    expect(b.z - zBefore).toBeCloseTo(6.8 / 30, 5);
     expect(b.state).toBe('walk');
+
+    for (let i = 0; i < 4; i++) stepBuddy(b, { x: 0, y: 0 }, 1 / 30);
+    expect(b.vz).toBe(0);
+    expect(b.state).toBe('idle');
   });
 
   it('faces where it walks', () => {
@@ -79,6 +90,43 @@ describe('buddy movement', () => {
     stepBuddy(b, { x: 1, y: 0 }, 1 / 30);
     expect(b.x).toBe(0);
     expect(b.state).toBe('ko');
+  });
+
+  it('slides under a knockback impulse and decays back to zero', () => {
+    const b = buddy('fighter');
+    shove(b, 0, 9.2);
+    expect(b.kz).toBeCloseTo(9.2, 5);
+    for (let i = 0; i < 30; i++) stepBuddy(b, { x: 0, y: 0 }, 1 / 30);
+    expect(b.z).toBeGreaterThan(0.9);
+    expect(b.z).toBeLessThan(1.35);
+    for (let i = 0; i < 60; i++) stepBuddy(b, { x: 0, y: 0 }, 1 / 30);
+    expect(b.kz).toBe(0);
+  });
+
+  it('pushes two overlapping buddies apart symmetrically', () => {
+    const w = createWorld({ seed: 11 });
+    const a = spawnBuddy(w, 'red', 'fighter', false);
+    const b = spawnBuddy(w, 'blue', 'fighter', false);
+    a.x = 0; a.z = 0;
+    b.x = 0.1; b.z = 0;
+    for (let i = 0; i < 3; i++) stepWorld(w, 1 / 30);
+    expect(distance(a, b)).toBeGreaterThanOrEqual(0.95);
+    expect(a.x).toBeLessThan(0);
+    expect(b.x).toBeGreaterThan(0.1);
+  });
+
+  it('hits a point-blank target without skipping over the first 0.64m', () => {
+    const w = createWorld({ seed: 12 });
+    const shooter = spawnBuddy(w, 'red', 'fighter', false);
+    const target = spawnBuddy(w, 'blue', 'fighter', false);
+    shooter.x = 0; shooter.z = 0; shooter.heading = 0; shooter.weapon = 'pistol';
+    target.x = 0; target.z = 0.25; target.invuln = 0;
+    const hpBefore = target.hp;
+    w.inputs.set(shooter.id, encodeInput(1, {
+      moveX: 0, moveY: 0, aimX: 0, aimY: 1, attack: true, grab: false, build: false, zoom: 0
+    }));
+    stepWorld(w, 1 / 30);
+    expect(target.hp).toBeLessThan(hpBefore);
   });
 });
 

@@ -324,7 +324,7 @@ export function applySnapshot(world: World, snapshot: Snapshot): void {
   for (const b of snapshot.buddies) {
     world.buddies.push({
       id: b.id, team: b.team, cls: b.cls, x: b.x, z: b.z, prevX: b.x, prevZ: b.z,
-      vx: 0, vz: 0, heading: b.heading, prevHeading: b.heading,
+      vx: 0, vz: 0, kx: 0, kz: 0, heading: b.heading, prevHeading: b.heading,
       hp: b.hp, maxHp: b.maxHp, state: b.state, weapon: b.weapon,
       grenades: b.grenades, rockets: b.rockets, medkits: b.medkits,
       carryCrate: b.carryCrate, koTimer: 0, fireCooldown: 0, invuln: 0,

@@ -1,11 +1,12 @@
 import { EMPTY_INPUT, decodeAim, decodeMove } from '../input/actions';
 import {
-  ARENA_SURFACE_Y, BASE_COORDINATES, CRATE_BONK_DAMAGE, CRATE_DROP_RADIUS, CRATE_MAX_ALIVE,
-  CRATE_SPAWN_INTERVAL_S, CRATE_WAVE_MAX, CRATE_WAVE_MIN, HEART_HEAL_AMOUNT, MELEE_COOLDOWN_S,
-  MELEE_DAMAGE, MELEE_KNOCKBACK, MELEE_RANGE, PAD, POWERUP_DURATION_S, SHIELD_MAX_HP, VOID_DISTANCE
+  ARENA_SURFACE_Y, BASE_COORDINATES, BLAST_KNOCK_IMPULSE, CRATE_BONK_DAMAGE, CRATE_DROP_RADIUS,
+  CRATE_MAX_ALIVE, CRATE_SPAWN_INTERVAL_S, CRATE_WAVE_MAX, CRATE_WAVE_MIN, HEART_HEAL_AMOUNT,
+  MELEE_COOLDOWN_S, MELEE_DAMAGE, MELEE_KNOCK_IMPULSE, MELEE_RANGE, PAD, POWERUP_DURATION_S,
+  SHIELD_MAX_HP, VOID_DISTANCE
 } from '../domain/constants';
 import { CLASS_STATS } from '../domain/classes';
-import { applyDamage, distance, knockout, revive, stepBuddy, heal, type BuddyRec } from '../domain/buddy';
+import { applyDamage, distance, knockout, revive, shove, stepBuddy, heal, type BuddyRec } from '../domain/buddy';
 import { attachCrateToBuddy, CARRY_HEIGHT, detachCrate, makeCrate, placeCrateOnPad, stepCrate, throwCrate, THROW_LIFT, type CrateRec } from '../domain/crate';
 import { findBestSlot, isSlotFilled, padOrigin, setSlot, slotPosition } from '../domain/pad';
 import { evaluatePad } from '../domain/recipes';
@@ -58,6 +59,8 @@ export function stepWorld(w: World, dt: number): void {
   for (const t of w.tanks) {
     if (!t.destroyed) resolveCircleObstacles(t, 1.15, w.obstacles);
   }
+  separateBuddies(w);
+  separateTanksFromBuddies(w);
   stepPowerUps(w, dt);
   tickHealAuras(w, dt);
   tickRespawns(w, dt);
@@ -65,6 +68,64 @@ export function stepWorld(w: World, dt: number): void {
   recoverFromVoid(w);
   refreshElimination(w);
   reap(w);
+}
+
+const BUDDY_RADIUS = 0.48;
+const TANK_RADIUS = 1.15;
+const MAX_PUSH_PER_PASS = 0.28;
+
+/**
+ * Buddies are solid to each other and to tanks: pairs split the overlap evenly
+ * and a tank pushes a buddy fully out (the tank is the heavier body). Two
+ * iterations let a buddy squeezed between two bodies escape instead of jitter.
+ */
+function separateBuddies(w: World, iterations = 2): void {
+  const minDist = BUDDY_RADIUS * 2;
+  for (let pass = 0; pass < iterations; pass++) {
+    for (let i = 0; i < w.buddies.length; i++) {
+      const a = w.buddies[i];
+      if (a.state === 'ko') continue;
+      for (let j = i + 1; j < w.buddies.length; j++) {
+        const b = w.buddies[j];
+        if (b.state === 'ko') continue;
+        const dx = b.x - a.x;
+        const dz = b.z - a.z;
+        const d = Math.hypot(dx, dz);
+        if (d >= minDist) continue;
+        const nx = d > 1e-4 ? dx / d : 1;
+        const nz = d > 1e-4 ? dz / d : 0;
+        const push = Math.min(MAX_PUSH_PER_PASS, (minDist - d) / 2);
+        a.x -= nx * push;
+        a.z -= nz * push;
+        b.x += nx * push;
+        b.z += nz * push;
+      }
+    }
+  }
+  for (const b of w.buddies) {
+    if (b.state !== 'ko') resolveCircleObstacles(b, BUDDY_RADIUS, w.obstacles);
+  }
+}
+
+function separateTanksFromBuddies(w: World): void {
+  for (const t of w.tanks) {
+    if (t.destroyed) continue;
+    for (const b of w.buddies) {
+      if (b.state === 'ko' || b.id === t.driver) continue;
+      const dx = b.x - t.x;
+      const dz = b.z - t.z;
+      const d = Math.hypot(dx, dz);
+      const minDist = TANK_RADIUS + BUDDY_RADIUS;
+      if (d >= minDist) continue;
+      const nx = d > 1e-4 ? dx / d : 1;
+      const nz = d > 1e-4 ? dz / d : 0;
+      b.x = t.x + nx * minDist;
+      b.z = t.z + nz * minDist;
+    }
+  }
+  for (const b of w.buddies) {
+    if (b.state !== 'ko') resolveCircleObstacles(b, BUDDY_RADIUS, w.obstacles);
+  }
 }
 
 function stepPowerUps(w: World, dt: number): void {
@@ -472,9 +533,7 @@ function performMelee(w: World, b: BuddyRec): void {
     const dealt = applyDamage(foe, punchDmg);
     const pushX = d > 1e-4 ? dx / d : dirX;
     const pushZ = d > 1e-4 ? dz / d : dirZ;
-    foe.x += pushX * MELEE_KNOCKBACK;
-    foe.z += pushZ * MELEE_KNOCKBACK;
-    resolveCircleObstacles(foe, 0.48, w.obstacles);
+    shove(foe, pushX * MELEE_KNOCK_IMPULSE, pushZ * MELEE_KNOCK_IMPULSE);
     emit(w, { kind: 'damage', entity: foe.id, amount: dealt, fromTeam: b.team, at: { x: foe.x, z: foe.z } });
     if (dealt > 0 && foe.hp <= 0) fell(w, foe);
   }
@@ -523,9 +582,12 @@ function spawnProjectile(
   vx: number, vy: number, vz: number, fuse: number, damage: number
 ): void {
   const radius = kind === 'bullet' ? 0 : kind === 'shell' ? 2.2 : kind === 'grenade' ? 3.4 + owner.bombBonus : 4.6;
+  // Spawning at the owner's center means the swept checks cover the whole flight:
+  // a muzzle offset used to skip the first stretch and let point-blank shots
+  // pass through walls and enemies.
   w.projectiles.push(makeProjectile({
     kind, team: owner.team, owner: owner.id,
-    x: owner.x + vx * 0.02, y: ARENA_SURFACE_Y + 1.1, z: owner.z + vz * 0.02,
+    x: owner.x, y: ARENA_SURFACE_Y + 1.1, z: owner.z,
     vx, vy, vz, fuse, damage, radius
   }, w.ids.alloc()));
 }
@@ -609,10 +671,16 @@ function explode(w: World, p: ProjectileRec): void {
   const { radius, damage } = blastOf(p);
   emit(w, { kind: 'explosion', entity: p.id, radius, at: { x: p.x, z: p.z } });
   for (const b of w.buddies) {
-    if (b.state === 'ko' || b.team === p.team || w.eliminated[b.team]) continue;
+    if (b.state === 'ko') continue;
     const d = distance(b, p);
     if (d > radius) continue;
     const falloff = 1 - (d / radius) * 0.6;
+    // The blast shoves everyone caught in it (allies included) but only hurts
+    // enemies, so a misthrown grenade still lets you rocket-shove your own squad.
+    const nx = d > 1e-4 ? (b.x - p.x) / d : 0;
+    const nz = d > 1e-4 ? (b.z - p.z) / d : 0;
+    shove(b, nx * BLAST_KNOCK_IMPULSE * falloff, nz * BLAST_KNOCK_IMPULSE * falloff);
+    if (b.team === p.team || w.eliminated[b.team]) continue;
     const dealt = applyDamage(b, damage * falloff);
     emit(w, { kind: 'damage', entity: b.id, amount: dealt, fromTeam: p.team, at: { x: b.x, z: b.z } });
     if (dealt > 0 && b.hp <= 0) fell(w, b);
