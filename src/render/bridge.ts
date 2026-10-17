@@ -76,6 +76,7 @@ export class WorldRenderer {
   private currPos = new Map<EntityId, Interpolated>();
   private lastTick = -1;
   private spriteStage: SpriteStage;
+  private reticle: { x: number; z: number } | null = null;
   private actors: ActorView[] = [];
   private crateViews: CrateView[] = [];
   private projectileViews: ProjectileView[] = [];
@@ -112,6 +113,11 @@ export class WorldRenderer {
 
   attachCamera(camera: IsoCamera): void {
     this.camera = camera;
+  }
+
+  /** Ground point under the mouse cursor, drawn as a crosshair. Null hides it. */
+  setReticle(point: { x: number; z: number } | null): void {
+    this.reticle = point;
   }
 
   /** True while a nearby blast is holding the picture still. The simulation keeps running. */
@@ -242,7 +248,7 @@ export class WorldRenderer {
     this.spriteStage.render(
       world, this.actors, this.crateViews, this.tankViews,
       this.obstacleViews, this.powerupViews, this.projectileViews,
-      this.camera ? this.camera.camera : null, time
+      this.camera ? this.camera.camera : null, time, this.reticle
     );
   }
 

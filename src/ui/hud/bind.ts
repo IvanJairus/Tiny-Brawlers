@@ -33,7 +33,7 @@ const HUD_TEMPLATE = `
     <header><span data-part="teamName" class="team-name"></span><span data-part="clsName" class="cls-name"></span></header>
     <div class="bar"><div class="bar-fill" data-part="hpFill"></div></div>
     <footer><span data-part="hpText"></span><span data-part="weaponText"></span><div class="buff-strip" data-part="buffStrip"></div></footer>
-    <div class="hud-shortcuts" data-part="shortcutsStrip"><span class="shortcut-item"><b>[Klik Kiri/Spasi]</b> Pukul/Tembak</span><span class="shortcut-sep">|</span><span class="shortcut-item"><b>[Klik Kanan/E]</b> Peti</span><span class="shortcut-sep">|</span><span class="shortcut-item"><b>[R]</b> Rakit</span><span class="shortcut-sep">|</span><span class="shortcut-item"><b>[H/?]</b> Resep</span></div>
+    <div class="hud-shortcuts" data-part="shortcutsStrip"><span class="shortcut-item"><b>[Mouse]</b> Bidik</span><span class="shortcut-sep">|</span><span class="shortcut-item"><b>[Klik Kiri/Spasi]</b> Pukul/Tembak</span><span class="shortcut-sep">|</span><span class="shortcut-item"><b>[Klik Kanan/E]</b> Peti</span><span class="shortcut-sep">|</span><span class="shortcut-item"><b>[R]</b> Rakit</span><span class="shortcut-sep">|</span><span class="shortcut-item"><b>[H/?]</b> Resep</span></div>
   </section>
   <section class="card card-scoreboard" data-part="scoreboard"></section>
   <section class="card card-pad" data-part="padCard">

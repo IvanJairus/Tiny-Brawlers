@@ -269,23 +269,61 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
   let steps = 0;
   const stepper = createStepper((dt) => {
     session.step(dt, mergeAxes());
-    touchLatched.grab = false;
-    touchLatched.shoot = false;
-    touchLatched.build = false;
     steps++;
     if (world.over && machine.screen === 'playing' && machine.can('finished')) machine.send('finished');
   });
+
+  const rayOrigin = new THREE.Vector3();
+  const rayDir = new THREE.Vector3();
+
+  /** Where the mouse ray meets the ground plane, or null on touch-only play. */
+  function groundPointFromCursor(): { x: number; z: number } | null {
+    const cursor = keyboard.cursor();
+    if (!cursor) return null;
+    const rect = container.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return null;
+    const ndcX = ((cursor.x - rect.left) / rect.width) * 2 - 1;
+    const ndcY = -(((cursor.y - rect.top) / rect.height) * 2 - 1);
+    rayOrigin.copy(camera.camera.position);
+    rayDir.set(ndcX, ndcY, 0.5).unproject(camera.camera).sub(rayOrigin);
+    if (rayDir.lengthSq() < 1e-8) return null;
+    rayDir.normalize();
+    if (Math.abs(rayDir.y) < 1e-4) return null;
+    const t = -rayOrigin.y / rayDir.y;
+    if (t <= 0) return null;
+    return { x: rayOrigin.x + rayDir.x * t, z: rayOrigin.z + rayDir.z * t };
+  }
 
   function mergeAxes(): RawAxes {
     const fromKey = keyboard.read();
     const fromTouch = touch.read();
     const moveX = Math.abs(fromTouch.moveX) > Math.abs(fromKey.moveX) ? fromTouch.moveX : fromKey.moveX;
     const moveY = Math.abs(fromTouch.moveY) > Math.abs(fromKey.moveY) ? fromTouch.moveY : fromKey.moveY;
+    // Aim priority: an active touch stick, then the mouse cursor (twin-stick on
+    // desktop), then the movement direction as before.
+    let aimX = fromTouch.aimX;
+    let aimY = fromTouch.aimY;
+    if (Math.hypot(aimX, aimY) < 0.15) {
+      const point = groundPointFromCursor();
+      const me = world.buddies.find((b) => b.id === world.localPlayer);
+      if (point && me) {
+        const dx = point.x - me.x;
+        const dz = point.z - me.z;
+        const len = Math.hypot(dx, dz);
+        if (len > 0.001) {
+          aimX = dx / len;
+          aimY = dz / len;
+        }
+      } else {
+        aimX = moveX;
+        aimY = moveY;
+      }
+    }
     return {
       moveX,
       moveY,
-      aimX: moveX,
-      aimY: moveY,
+      aimX,
+      aimY,
       attack: fromKey.attack || touchPressed.shoot || touchLatched.shoot,
       grab: fromKey.grab || touchPressed.grab || touchLatched.grab,
       build: fromKey.build || touchPressed.build || touchLatched.build,
@@ -318,8 +356,14 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
     const elapsed = last === 0 ? TICK_S * 1000 : Math.min(250, now - last);
     last = now;
 
-    if (isTicking(machine.screen)) stepper.push(elapsed);
-    else stepper.reset();
+    if (isTicking(machine.screen)) {
+      stepper.push(elapsed);
+      // Clear latches once per frame, after every catch-up step has seen them,
+      // so a tap shorter than one tick is never swallowed.
+      touchLatched.grab = false;
+      touchLatched.shoot = false;
+      touchLatched.build = false;
+    } else stepper.reset();
 
     if (machine.screen === 'lobby') {
       const problem = session.error();
@@ -339,6 +383,7 @@ export function boot(container: HTMLElement, uiHost: HTMLElement): () => void {
       if (machine.can('loaded')) machine.send('loaded');
     }
 
+    renderer.setReticle(machine.screen === 'playing' ? groundPointFromCursor() : null);
     renderer.sync(world, stepper.alpha(), now / 1000, Math.min(0.1, elapsed / 1000));
     const frameEvents = drainEvents(world.events);
     renderer.consume(frameEvents);

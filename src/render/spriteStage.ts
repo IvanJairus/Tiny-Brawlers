@@ -127,7 +127,8 @@ export class SpriteStage {
     _powerups: PowerUpView[],
     _projectiles: ProjectileView[],
     camera: THREE.Camera | null,
-    time: number
+    time: number,
+    reticle: { x: number; z: number } | null = null
   ): void {
     if (!camera || typeof document === 'undefined') return;
 
@@ -314,6 +315,39 @@ export class SpriteStage {
     for (const item of drawables) {
       item.draw(ctx);
     }
+
+    // Mouse-aim crosshair, always on top of the world markers
+    if (reticle) {
+      const p = this.project(reticle.x, 0.05, reticle.z, camera, width, height);
+      if (p.visible) {
+        const r = Math.max(5, p.scale * 0.32);
+        ctx.save();
+        ctx.translate(p.sx, p.sy);
+        ctx.strokeStyle = 'rgba(15, 17, 23, 0.75)';
+        ctx.lineWidth = 3.5;
+        this.drawCrosshair(ctx, r);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        this.drawCrosshair(ctx, r);
+        ctx.restore();
+      }
+    }
+  }
+
+  private drawCrosshair(ctx: CanvasRenderingContext2D, r: number): void {
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, 0, 1.6, 0, Math.PI * 2);
+    ctx.fillStyle = ctx.strokeStyle;
+    ctx.fill();
+    ctx.beginPath();
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+      ctx.moveTo(dx * (r + 2), dy * (r + 2));
+      ctx.lineTo(dx * (r + 7), dy * (r + 7));
+    }
+    ctx.stroke();
   }
 
   dispose(): void {

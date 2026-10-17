@@ -58,6 +58,11 @@ body {
   touch-action: none;
 }
 
+/* The drawn crosshair replaces the system cursor while playing. */
+body[data-screen='playing'] #stage {
+  cursor: none;
+}
+
 #ui {
   position: fixed;
   inset: 0;

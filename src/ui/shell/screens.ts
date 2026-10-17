@@ -101,7 +101,7 @@ export function openTutorialModal(host: HTMLElement): HTMLElement {
           <div class="key-row"><span class="key-tag">Desktop</span> <code>WASD</code> atau <code>Tombol Panah</code></div>
           <div class="key-row"><span class="key-tag">Mobile</span> <code>Stik Virtual Kiri</code></div>
         </div>
-        <p class="control-desc">Gerakkan karakter ke segala arah di arena. Hindari proyektil lawan, ambil posisi strategis di balik tembok, dan serbu markas musuh!</p>
+        <p class="control-desc">Gerakkan karakter ke segala arah di arena. Di desktop, arah hadap mengikuti <b>kursor mouse</b> — jadi kamu bisa mundur sambil menembak ke depan. Hindari proyektil lawan, ambil posisi strategis di balik tembok, dan serbu markas musuh!</p>
       </article>
 
       <article class="control-card">
