@@ -340,7 +340,12 @@ function handleGrab(w: World, b: BuddyRec, cmd: typeof EMPTY_INPUT, prev: typeof
     })[0];
   if (!target) return;
   attachCrateToBuddy(target, b.id);
+  target.x = b.x;
   target.y = CARRY_HEIGHT;
+  target.z = b.z;
+  target.prevX = b.prevX;
+  target.prevY = CARRY_HEIGHT;
+  target.prevZ = b.prevZ;
   b.carryCrate = target.id;
   emit(w, { kind: 'pickup', entity: target.id, buddy: b.id, at: { x: b.x, z: b.z } });
 }
@@ -353,6 +358,9 @@ function stepCrates(w: World, dt: number): void {
         detachCrate(c);
         continue;
       }
+      c.prevX = carrier.prevX;
+      c.prevY = c.y;
+      c.prevZ = carrier.prevZ;
       c.x = carrier.x;
       c.y = CARRY_HEIGHT + Math.sin(w.clock * 8) * 0.04;
       c.z = carrier.z;

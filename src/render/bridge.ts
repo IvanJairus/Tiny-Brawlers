@@ -152,8 +152,9 @@ export class WorldRenderer {
     for (const b of world.buddies) {
       if (this.actors.length >= BUDGET.buddies) break;
       const fallback = this.lastPos.get(b.id);
-      const prevX = b.prevX !== b.x ? b.prevX : (fallback?.x ?? b.x);
-      const prevZ = b.prevZ !== b.z ? b.prevZ : (fallback?.z ?? b.z);
+      const useFallback = b.prevX === b.x && b.prevZ === b.z && (b.vx ?? 0) === 0 && (b.vz ?? 0) === 0 && fallback !== undefined;
+      const prevX = useFallback ? fallback.x : (b.prevX ?? b.x);
+      const prevZ = useFallback ? fallback.z : (b.prevZ ?? b.z);
       const prevH = b.prevHeading !== b.heading ? b.prevHeading : (fallback?.heading ?? b.heading);
       const ix = lerp(prevX, b.x, t);
       const iz = lerp(prevZ, b.z, t);
